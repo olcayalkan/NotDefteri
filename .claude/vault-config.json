@@ -1,0 +1,18 @@
+{
+  "user": { "name": "t3kn0", "publicProfile": false },
+  "vaultPath": "/Users/t3kn0/Projects/NotDefteri",
+  "vaultPurpose": "Swift/AppKit projesi icin bilgi havuzu - kodu her oturumda bastan okumayi engellemek",
+  "organizationMethod": "PARA",
+  "primaryUses": ["kod-gelistirme", "mimari-notlari", "is-takibi"],
+  "project": {
+    "name": "NotDefteri",
+    "language": "Swift 5.9",
+    "framework": "AppKit",
+    "platform": "macOS 12+",
+    "sourceFile": "Sources/NotDefteri/main.swift",
+    "identifierLanguage": "Turkish"
+  },
+  "tools": { "geminiVision": false, "firecrawl": false },
+  "importedAt": "2026-08-24",
+  "lastUpdated": "2026-08-24"
+}
