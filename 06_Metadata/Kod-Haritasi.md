@@ -27,6 +27,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|---|
 | `MarkdownCevirici.swift` | 214 | **Çift yönlü çevirici** — `markdownMetniUret()`, `markdowndenAttributedStringUret()`, `isaretlemeleriTemizle()`, `otomatikBaslikUret()`, font yardımcıları |
 | `SayfaAgaci.swift` | 169 | `AgacDugumu`, `agaciYukle()`, `sayfaKlasoru()`, `sayfayiYenidenAdlandir()`, `sayfayiKlasoreDonustur()` |
+| `NotKaydedici.swift` | 118 | **Kayıt mantığı** — yazma kararı, disk yazımı, otomatik kayıt zamanlayıcısı. AppKit'siz, test edilebilir |
 | `DosyaSistemi.swift` | 62 | `notlarKlasoru()`, `gorsellerKlasoru()`, LaunchAgent |
 | `Sabitler.swift` | 28 | `kTabanPunto`, `kMinYaziBoyutu`, `kOtomatikKayitAraligi`… |
 | `Ayarlar.swift` | 22 | `UserDefaults` destekli durum: `gTemaIndex`, `gKenarPanelGenislik`, `gYaziBoyutu` |
@@ -74,7 +75,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-`Tests/NotDefteriTests/CeviriciTestleri.swift` — 21 test.
+`Tests/NotDefteriTests/` — 36 test (`CeviriciTestleri` 23, `KaydediciTestleri` 13).
 Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama, otomatik başlık,
 Türkçe arama, font yardımcıları. `swift test` ile çalıştır.
 
