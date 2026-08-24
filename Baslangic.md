@@ -21,7 +21,7 @@ Amaç: kodu her seferinde baştan okumadan çalışabilmek.
 ## Proje Künyesi
 
 - **Dil:** Swift 5.9 · **Framework:** AppKit (bağımlılıksız) · **Platform:** macOS 12+
-- **Kaynak:** `Sources/NotDefteri/NotDefteri.swift` — tek dosya, ~2570 satır
+- **Kaynak:** `Sources/NotDefteri/` — 26 dosya, 5 katman, ~2684 satır
 - **Tanımlayıcılar Türkçe:** `NotPenceresi`, `agaciYukle()`, `kenarPaneli`
 - **Uygulamanın not klasörü:** `~/Documents/NotDefteri/` (bu vault değil)
 
