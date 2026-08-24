@@ -1,3 +1,8 @@
+---
+tags: [analiz, genel-bakis]
+guncelleme: 2026-08-24
+---
+
 # NotDefteri — Proje Analizi
 
 _Analiz tarihi: 2026-08-24_
