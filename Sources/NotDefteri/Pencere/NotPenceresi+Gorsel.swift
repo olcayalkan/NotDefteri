@@ -16,19 +16,13 @@ extension NotPenceresi {
 
         // Sayfa henüz kaydedilmemişse görseller kök klasöre yazılır.
         let hedefKlasor = gorsellerKlasoru(mevcutDosyaURL.map { sayfaKlasoru($0) } ?? notlarKlasoru())
-        var taban = (bolumBasligi ?? "Görsel")
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if taban.isEmpty { taban = "Görsel" }
-        if taban.count > 40 { taban = String(taban.prefix(40)) }
 
-        var hedef = hedefKlasor.appendingPathComponent("\(taban).png")
-        var sayac = 2
-        while FileManager.default.fileExists(atPath: hedef.path) {
-            hedef = hedefKlasor.appendingPathComponent("\(taban)-\(sayac).png")
-            sayac += 1
-        }
+        // Dosya adı bölüm başlığından üretilir ama MUTLAKA temizlenir:
+        // Markdown bağı `![](yol)` biçiminde, yoldaki bir ")" bağı erken
+        // bitirip görseli kalıcı olarak okunamaz hâle getiriyordu.
+        let taban = guvenliDosyaAdi(bolumBasligi ?? "Görsel")
+        let hedef = benzersizDosyaYolu(klasor: hedefKlasor, taban: taban, uzanti: "png")
+
         guard (try? png.write(to: hedef)) != nil else { return nil }
 
         // Ek, ekrandaki piksel boyutunu değil görselin nokta boyutunu kullanır.
