@@ -45,30 +45,55 @@ final class CeviriciTestleri: XCTestCase {
         gidisDonusKontrol("")
     }
 
-    // MARK: Bilinen kayıplar
-    // Bu testler çeviricinin ŞU ANKİ kayıplı davranışını belgeliyor.
-    // Açık İşler 1. madde (kayıpsız çevirici) yapılınca bunlar
-    // gidisDonusKontrol'e çevrilmeli.
+    // MARK: Obsidian sözdizimi — gidiş-dönüşte bozulmamalı
+    //
+    // Bu biçimleri uygulama TANIMIYOR ama metin olarak korumalı;
+    // aksi hâlde Obsidian'da yazılan not NotDefteri'nde kaydedilince bozulur.
 
-    func testListeSozdizimiBicimKaybeder() {
-        // Metin korunuyor ama madde işareti biçim taşımıyor: düz metin olarak dönüyor.
-        let metin = "- birinci\n- ikinci\n"
-        let geri = markdownMetniUret(markdowndenAttributedStringUret(metin))
-        XCTAssertEqual(geri, metin, "liste metni en azından metin olarak korunmalı")
+    func testTanimayanSozdizimiMetinOlarakKorunur() {
+        gidisDonusKontrol("- birinci\n- ikinci\n", "liste")
+        gidisDonusKontrol("- [ ] görev\n- [x] biten\n", "onay kutusu")
+        gidisDonusKontrol("| a | b |\n|---|---|\n| 1 | 2 |\n", "tablo")
+        gidisDonusKontrol("```swift\nlet x = 1\n```\n", "kod bloğu")
+        gidisDonusKontrol("---\ntags: [a]\n---\n\nmetin\n", "frontmatter")
+        gidisDonusKontrol("[[Başka Not]]\n", "wikilink")
+        gidisDonusKontrol("[metin](http://a.com)\n", "bağlantı")
+        gidisDonusKontrol("*italik*\n", "italik")
+        gidisDonusKontrol("> alıntı satırı\n", "alıntı")
+        gidisDonusKontrol("#### dört\n", "4+ seviye başlık desteklenmiyor")
+        gidisDonusKontrol("<b>kalın</b>\n", "ham HTML")
     }
 
-    func testItalikYildizlariMetneDonusur() {
-        // *italik* tanınmıyor; yıldızlar düz metin olarak kalıyor.
-        let metin = "*italik*"
-        let geri = markdownMetniUret(markdowndenAttributedStringUret(metin))
-        XCTAssertEqual(geri, metin)
+    /// Kod bloğu içindeki işaretleme yorumlanmamalı.
+    func testKodBlogundakiIsaretlemeYorumlanmaz() {
+        gidisDonusKontrol("```\n# başlık değil\n```\n")
+        gidisDonusKontrol("```\n<punto=20>metin</punto>\n```\n")
+        gidisDonusKontrol("```\na ** b\n```\n")
     }
 
-    func testDortIsaretliBaslikTaninmaz() {
-        // Yalnızca 1-3 seviye destekleniyor; #### düz metin kalmalı.
-        let metin = "#### dört\n"
-        let geri = markdownMetniUret(markdowndenAttributedStringUret(metin))
-        XCTAssertEqual(geri, metin)
+    // MARK: Eşleşmemiş işaretleme
+    //
+    // Bu testler bir hatayı yakaladı: kapanışı olmayan "**" ya da "<punto=..>"
+    // biçim başlatıyor, geri yazarken sona uydurma bir kapanış ekleniyordu.
+    // "2 ** 3 = 8" kaydedince "2 ** 3 = 8\n**" oluyordu.
+
+    func testEslesmemisKalinIsaretiDuzMetinKalir() {
+        gidisDonusKontrol("2 ** 3 = 8\n", "çarpma işareti bozulmamalı")
+        gidisDonusKontrol("yıldız * ortada\n")
+        gidisDonusKontrol("tek ** açık kaldı")
+    }
+
+    func testEslesmemisPuntoEtiketiDuzMetinKalir() {
+        gidisDonusKontrol("<punto=16>açık kaldı\n")
+    }
+
+    /// Gidiş-dönüş kararlı olmalı: ikinci tur birinciyle aynı sonucu vermeli.
+    func testGidisDonusKararli() {
+        for metin in ["2 ** 3 = 8\n", "<punto=16>açık\n", "**kalın**", "# Başlık\n"] {
+            let bir = markdownMetniUret(markdowndenAttributedStringUret(metin))
+            let iki = markdownMetniUret(markdowndenAttributedStringUret(bir))
+            XCTAssertEqual(bir, iki, "ikinci tur değişmemeli: \(metin.debugDescription)")
+        }
     }
 
     // MARK: İşaret temizleme
