@@ -41,7 +41,11 @@ swift build -c release && .build/release/NotDefteri
 
 ## Dikkat
 
-Uygulamanın Markdown çeviricisi **kayıplı** — tanımadığı sözdizimini kaydedince
-siliyor. Ayrıntı: [[Markdown-Formati]]. Bu vault'taki notlar uygulamanın
-klasöründe olmadığı için etkilenmiyor; ama uygulamayla Obsidian'ı aynı klasörde
-kullanırsan veri kaybedersin.
+Uygulamanın Markdown çeviricisi **sınırlı ama kayıpsız.** Tanımadığı sözdizimi
+(liste, tablo, kod bloğu, italik, `[[wikilink]]`, frontmatter) biçimli görünmez
+ama **metin olarak korunur** — 24 Ağu 2026 ölçümünde 18 Obsidian biçiminin 18'i
+gidiş-dönüşten sağlam çıktı. Ayrıntı: [[Markdown-Formati]].
+
+Yani Obsidian'da yazdığın tablo uygulamada düz metin gibi durur, ama kaydedince
+silinmez. Bilinen sınır: parser bağlam duyarsız, kod bloğu içindeki *eşleşen*
+`**` çifti hâlâ kalın sayılıyor.
