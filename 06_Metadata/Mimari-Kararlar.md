@@ -45,6 +45,17 @@ başlık fontu seviyeden türetilir (`baslikFontu()`, satır 168).
 
 ## Görsel Eki
 
+### Dosya adı MUTLAKA temizlenir
+`guvenliDosyaAdi()` (`Cekirdek/DosyaAdi.swift`) parantez, süslü parantez,
+köşeli parantez, tırnak vb. karakterleri tireye çevirir.
+
+**Neden:** Bağ biçimi `![](yol)`. Yolda geçen bir `)` bağı erken bitiriyor ve
+görsel bir daha okunamıyordu. Gerçek vaka: bölüm başlığı bir Shellshock yüküydü
+(`User-Agent: () { :; }; nslookup $(whoami)`), üretilen dosya adı parantez içerdi,
+`resimBaginiCozumle` deseni (`\(([^)]*)\)`) ilk `)` karakterinde kesti.
+Not her açılışta o görseller düz metne dönüşüyordu.
+
+
 ### Görsel kendi satırında durur
 `ekiEkle()` (satır 556) ekin önüne/arkasına `\n` koyar.
 **Neden:** Aynı satırı metinle paylaşırsa satır yüksekliği görsel kadar olur,
@@ -77,6 +88,17 @@ Her 5 saniyede bir bunu yapmak pahalı.
 ### Not değiştirirken geçmiş sıfırlanır
 `gecmisiSifirla()` (satır 2081) `notuAc()` içinde çağrılır.
 **Neden:** Yoksa ⌘Z önceki notun içeriğini şu ankinin üzerine geri getirir.
+
+## Kenar Panel
+
+### `yenile()` yeniden girişe kapalı
+`yenilemeSuruyor` bayrağı var. **Neden:** NSOutlineView iç içe `reloadData`
+desteklemiyor. Şu yol kendini tetikliyordu: satır seç → `notSecildi` →
+`notuAc` → `yenile` → `reloadData`. AppKit seçim bildirimini bazen
+ertelediği için `programatikSecimYapiliyor` bayrağı tek başına yetmiyordu.
+
+Ayrıca panelden seçilerek açılan not artık ağacı yeniden kurmuyor
+(`notuAc(url, panelYenile: false)`) — ağaç zaten güncel.
 
 ## Arama
 

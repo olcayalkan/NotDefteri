@@ -63,7 +63,7 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
         kenarPaneli.frame = NSRect(x: 0, y: 0, width: kenarPanelBaslangicGenislik, height: boyut.height - kBaslikYuksekligi)
         kenarPaneli.autoresizingMask = [.maxXMargin, .height]
         kenarPaneli.isHidden = kenarPanelGizli
-        kenarPaneli.notSecildi = { [weak self] url in self?.notuAc(url) }
+        kenarPaneli.notSecildi = { [weak self] url in self?.notuAc(url, panelYenile: false) }
         kenarPaneli.notSilindi = { [weak self] url in self?.notSilindiIsleyici(url) }
         kenarPaneli.notYenidenAdlandirildi = { [weak self] eski, yeni in self?.notYenidenAdlandirildiIsleyici(eski: eski, yeni: yeni) }
         kenarPaneli.yeniSayfaIstendi = { [weak self] klasor in self?.yeniSayfaOlustur(klasor: klasor) }

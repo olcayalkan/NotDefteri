@@ -8,6 +8,12 @@ extension KenarPaneli {
 
     func yenile(secili: URL?) {
         if let secili { acikNotURL = secili }
+        // NSOutlineView iç içe reloadData'yı desteklemiyor. Seçim bildirimi
+        // bazen ertelendiği için bu yol kendini tetikleyebiliyordu:
+        // satır seç -> notSecildi -> notuAc -> yenile -> reloadData (iç içe).
+        guard !yenilemeSuruyor else { return }
+        yenilemeSuruyor = true
+        defer { yenilemeSuruyor = false }
         tumKokDugumler = agaciYukle()
         tumNotlar = notlariDuzlestir(tumKokDugumler)
         icerikOnbelleginiTazele()
@@ -153,5 +159,11 @@ extension KenarPaneli {
         aramaTemizleButonu.isHidden = true
         filtreUygula()
         window?.makeFirstResponder(aramaAlani)
+    }
+
+    /// Ağacı yeniden kurmadan yalnızca "açık not" bilgisini günceller.
+    /// Panelden seçilerek açılan notlarda kullanılır.
+    func acikNotuBildir(_ url: URL) {
+        acikNotURL = url
     }
 }

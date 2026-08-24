@@ -29,6 +29,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `SayfaAgaci.swift` | 169 | `AgacDugumu`, `agaciYukle()`, `sayfaKlasoru()`, `sayfayiYenidenAdlandir()`, `sayfayiKlasoreDonustur()` |
 | `NotKaydedici.swift` | 118 | **Kayıt mantığı** — yazma kararı, disk yazımı, otomatik kayıt zamanlayıcısı. AppKit'siz, test edilebilir |
 | `DosyaSistemi.swift` | 62 | `notlarKlasoru()`, `gorsellerKlasoru()`, LaunchAgent |
+| `DosyaAdi.swift` | 55 | `guvenliDosyaAdi()`, `benzersizDosyaYolu()` — görsel adlarını Markdown-güvenli yapar |
 | `Sabitler.swift` | 28 | `kTabanPunto`, `kMinYaziBoyutu`, `kOtomatikKayitAraligi`… |
 | `Ayarlar.swift` | 22 | `UserDefaults` destekli durum: `gTemaIndex`, `gKenarPanelGenislik`, `gYaziBoyutu` |
 | `MetinNormallestirme.swift` | 18 | `aramaIcinSadelestir()` — Türkçe duyarlı arama |
@@ -76,7 +77,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-`Tests/NotDefteriTests/` — 50 test (`CeviriciTestleri` 23, `KaydediciTestleri` 13, `OnbellekTestleri` 6, `IcindekilerTestleri` 8).
+`Tests/NotDefteriTests/` — 60 test (`CeviriciTestleri` 23, `KaydediciTestleri` 13, `DosyaAdiTestleri` 10, `IcindekilerTestleri` 8, `OnbellekTestleri` 6).
 Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama, otomatik başlık,
 Türkçe arama, font yardımcıları. `swift test` ile çalıştır.
 

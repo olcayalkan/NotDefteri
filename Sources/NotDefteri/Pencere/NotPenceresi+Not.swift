@@ -6,7 +6,7 @@ extension NotPenceresi {
 
     // MARK: Not açma / oluşturma
 
-    func notuAc(_ url: URL) {
+    func notuAc(_ url: URL, panelYenile: Bool = true) {
         if mevcutDosyaURL != url {
             mevcutNotuKaybolmayacakSekildeKaydet()
         }
@@ -18,26 +18,21 @@ extension NotPenceresi {
         gecmisiSifirla()
         baslikEtiketiniGuncelle()
         icindekileriTazele()
-        kenarPaneli.yenile(secili: url)
+        // Panelden seçilerek açıldıysa ağaç zaten güncel; yeniden kurmak
+        // hem gereksiz disk okuması hem de iç içe reloadData kaynağı.
+        if panelYenile { kenarPaneli.yenile(secili: url) } else { kenarPaneli.acikNotuBildir(url) }
         puntoGostergesiniGuncelle()
     }
 
+    /// Başlık çubuğundaki "Yeni Not" düğmesi.
+    ///
+    /// Dosyayı HEMEN oluşturur ki kenar panelde anında görünsün. Eskiden
+    /// yalnızca editör boşaltılıyor, dosya ilk otomatik kayıtta doğuyordu;
+    /// o ana kadar not listede yoktu ve kullanıcı kaybolduğunu sanıyordu.
     func yeniNotOlustur() {
-        mevcutNotuKaybolmayacakSekildeKaydet()
-        let bosOznitelik: [NSAttributedString.Key: Any] = [.font: varsayilanFont(), .foregroundColor: kMetinRenk]
-        metinGorunumu.textStorage?.setAttributedString(NSAttributedString(string: "", attributes: bosOznitelik))
-        mevcutDosyaURL = nil
-        kaydedici.sifirla(sonYazilan: nil)
-        otomatikAdlandirildiMi = false
-        gecmisiSifirla()
-        baslikEtiketiniGuncelle()
-        icindekileriTazele()
-        kenarPaneli.tablo.deselectAll(nil)
-        makeFirstResponder(metinGorunumu)
+        yeniSayfaOlustur(klasor: kenarPaneli.hedefKlasor())
     }
 
-    /// Kenar panelden istenen yeni sayfayı oluşturup açar. Adı "Yeni Sayfa"dır;
-    /// ilk satırı yazdıkça dosya adı ona göre değişir.
     func yeniSayfaOlustur(klasor: URL) {
         mevcutNotuKaybolmayacakSekildeKaydet()
         let url = benzersizSayfaURL(taban: "Yeni Sayfa", klasor: klasor)

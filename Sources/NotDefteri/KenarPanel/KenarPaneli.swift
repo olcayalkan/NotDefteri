@@ -48,6 +48,8 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     let puntoArttirButonu = NSButton()
     let puntoEtiketi = NSTextField(labelWithString: "")
     var programatikSecimYapiliyor = false
+    /// `yenile()` içindeyken tekrar çağrılmasını engeller (iç içe reloadData).
+    var yenilemeSuruyor = false
     /// Adı yerinde düzenlenen düğüm (çift tıklama ile açılır).
     var duzenlenenDugum: AgacDugumu?
     var adDuzenlemesiIptal = false
