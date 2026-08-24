@@ -75,3 +75,10 @@ görünmesi ve LaunchAgent'in ikiliyi doğrudan çağırmaması için bundle ger
 
 Dosya dışarıdan değişirse (Obsidian, git, iCloud) uygulama fark etmiyor,
 üstüne yazıyor. `DispatchSource` ile izlenebilir.
+
+## İlgili
+
+- [[Kod-Haritasi]] — dokunulacak satırlar
+- [[Mimari-Kararlar]] — değiştirmeden önce oku
+- [[Markdown-Formati]] — 1. madde için spesifikasyon
+- [[ozet]] — bu listenin çıktığı analiz

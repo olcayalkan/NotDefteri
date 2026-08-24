@@ -77,3 +77,9 @@ Hepsi kalın (`baslikFontu()`, satır 168).
 
 Çeviriciyi "tanımadığını olduğu gibi koru" mantığına çevirmek en temiz çözüm.
 Bkz. `01_Projects/Obsidian-Uyumlulugu.md`.
+
+## İlgili
+
+- [[Kod-Haritasi]] — çevirici işlevlerinin yeri
+- [[Mimari-Kararlar]] — punto ve başlık kararlarının gerekçesi
+- [[Acik-Isler]] — kayıpsız çevirici işi

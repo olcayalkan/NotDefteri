@@ -113,3 +113,10 @@ kaynak: Sources/NotDefteri/main.swift
 
 Punto kısayolları menüden değil `performKeyEquivalent`'ten geçer:
 Türkçe Q klavyede `*` shift'siz üretiliyor, menü eşleşmesi kaçıyor.
+
+## İlgili
+
+- [[Mimari-Kararlar]] — bu işlevlerin neden öyle yazıldığı
+- [[Markdown-Formati]] — çeviricinin ürettiği biçim
+- [[Acik-Isler]] — hangi bölümde iş var
+- [[ozet]] — projenin tam analizi

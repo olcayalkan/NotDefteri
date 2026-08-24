@@ -121,3 +121,9 @@ Standart pencere düğmeleri gizli (`standardWindowButton(...)?.isHidden = true`
 | `kenarPanelGizli` | Panel açık/kapalı |
 | `sonNotYolu` | Açılışta geri yüklenecek not |
 | `acikKlasorler` | Ağaçta açık bırakılan dallar |
+
+## İlgili
+
+- [[Kod-Haritasi]] — burada anlatılanların satır numaraları
+- [[Markdown-Formati]] — format kararlarının ayrıntısı
+- [[Acik-Isler]] — değiştirilmesi düşünülen kararlar
