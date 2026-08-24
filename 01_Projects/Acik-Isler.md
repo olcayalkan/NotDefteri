@@ -118,11 +118,39 @@ Geri kalan 25 `try?` okuma/tarama yollarında (`agaciYukle`, `SayfaAgaci`).
 Oralarda sessiz başarısızlık veri kaybettirmiyor, yalnızca öğe listede
 görünmüyor — düşük öncelik.
 
-## 5. Arama Önbelleğini Ucuzlatmak
-**Etki: düşük (şimdilik) · Maliyet: orta · Satır 1238**
+## 5. ✅ Arama Önbelleği Artımlı Yapıldı — BİTTİ (24 Ağu 2026)
+**`KenarPanel/KenarPaneli+Arama.swift` · 6 yeni test**
 
-`yenile()` her çağrıda tüm notları diskten okuyor. Birkaç yüz notta hissedilir.
-Değiştirilme tarihine göre artımlı önbellek çözer.
+### Ölçüm planı değiştirdi
+`yenile()` maliyeti 1000 notta 93 ms. Ama darboğaz sandığım yerde değildi:
+
+| Aşama | 1000 notta | Pay |
+|---|---|---|
+| **Ağaç taraması** (`agaciYukle`) | 65 ms | **%72** |
+| İçerik okuma | 25 ms | %28 |
+| mtime kontrolü | 2.3 ms | %2.5 |
+
+Planlanan düzeltme (içerik önbelleği) yalnızca %28'lik kısmı hedefliyordu.
+Ölçülmeseydi yanlış yer optimize edilecekti.
+
+### Yapılan
+`icerikOnbelleginiTazele()`: değiştirilme tarihi aynıysa dosya yeniden
+okunmuyor. mtime kontrolü okumadan ~10 kat ucuz. Silinen notlar sözlükten
+düşüyor, önbellek sınırsız büyümüyor.
+
+Ölçülen kazanç: 1000 notta 93 → 67 ms (%27).
+
+### Yol boyunca çıkan tuzak
+`URL.resourceValues` değerleri **örnek başına önbellekler**. Aynı `URL`
+örneği yeniden sorgulanırsa dosya değişse bile eski tarihi döndürür.
+İlk sondam bu yüzden "mtime güvenilmez" sonucu verdi — yanlıştı.
+Taze `URL` ile mikrosaniye çözünürlük var. `agaciYukle()` her taramada
+yeni URL kurduğu için uygulama güvende; regresyon testi eklendi.
+
+### Kalan — asıl iş burada
+Ağaç taraması (%72). Her klasör girdisi için ayrı `fileExists` +
+`resourceValues` çağrısı var. Tek geçişli `FileManager.enumerator` ile
+azaltılabilir. Ölçüm önce yapılmalı.
 
 ## 6. `.app` Paketi Üretmek
 **Etki: düşük · Maliyet: düşük**
