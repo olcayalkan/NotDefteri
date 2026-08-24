@@ -100,6 +100,7 @@ extension NotPenceresi {
 
     func textViewDidChangeSelection(_ notification: Notification) {
         puntoGostergesiniGuncelle()
+        icindekiler.etkinBasligiGuncelle(imlecKonumu: metinGorunumu.selectedRange().location)
     }
 
     // MARK: Tema (Görünüm menüsü)
@@ -117,5 +118,6 @@ extension NotPenceresi {
         metinGorunumu.backgroundColor = aktifTema.arkaplan
         baslikCubugu.temayiUygula()
         kenarPaneli.temayiUygula()
+        icindekiler.temayiUygula()
     }
 }

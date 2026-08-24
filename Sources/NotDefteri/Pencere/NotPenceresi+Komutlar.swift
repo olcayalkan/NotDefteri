@@ -88,6 +88,7 @@ extension NotPenceresi {
         }
         metinGorunumu.typingAttributes = oznitelikler
         icerikDegisti()
+        icindekileriTazele()
         puntoGostergesiniGuncelle()
         makeFirstResponder(metinGorunumu)
     }

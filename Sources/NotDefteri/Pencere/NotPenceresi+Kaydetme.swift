@@ -64,6 +64,7 @@ extension NotPenceresi {
     func textDidChange(_ notification: Notification) {
         icerikDegisti()
         gecmisDugmeleriniGuncelle()
+        icindekileriTazele()
     }
 
     // MARK: Otomatik kayıt

@@ -10,6 +10,8 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
     let icerikGorunum = NSView()
     let kaydirmaGorunumu = NSScrollView()
     let surukleTutamaci = KenarPaneliSurukleTutamaci()
+    /// Sağ kenardaki içindekiler paneli (başlıklardan üretilir).
+    let icindekiler = IcindekilerPaneli(frame: .zero)
 
     var mevcutDosyaURL: URL? {
         didSet { UserDefaults.standard.set(mevcutDosyaURL?.path, forKey: "sonNotYolu") }
@@ -117,7 +119,11 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
 
         kaydirmaGorunumu.documentView = metinGorunumu
 
+        icindekiler.autoresizingMask = [.minXMargin, .minYMargin, .maxYMargin]
+        icindekiler.basligaGitIstendi = { [weak self] konum in self?.basligaGit(konum) }
+
         icerikGorunum.addSubview(kaydirmaGorunumu)
+        icerikGorunum.addSubview(icindekiler)
         icerikGorunum.addSubview(kenarPaneli)
         icerikGorunum.addSubview(surukleTutamaci)
         icerikGorunum.addSubview(baslikCubugu)

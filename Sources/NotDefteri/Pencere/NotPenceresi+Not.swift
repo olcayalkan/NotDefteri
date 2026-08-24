@@ -17,6 +17,7 @@ extension NotPenceresi {
         otomatikAdlandirildiMi = false
         gecmisiSifirla()
         baslikEtiketiniGuncelle()
+        icindekileriTazele()
         kenarPaneli.yenile(secili: url)
         puntoGostergesiniGuncelle()
     }
@@ -30,6 +31,7 @@ extension NotPenceresi {
         otomatikAdlandirildiMi = false
         gecmisiSifirla()
         baslikEtiketiniGuncelle()
+        icindekileriTazele()
         kenarPaneli.tablo.deselectAll(nil)
         makeFirstResponder(metinGorunumu)
     }
@@ -56,6 +58,7 @@ extension NotPenceresi {
         otomatikAdlandirildiMi = false
         gecmisiSifirla()
         baslikEtiketiniGuncelle()
+        icindekileriTazele()
     }
 
     func notYenidenAdlandirildiIsleyici(eski: URL, yeni: URL) {
@@ -63,6 +66,7 @@ extension NotPenceresi {
         mevcutDosyaURL = yeni
         otomatikAdlandirildiMi = false  // Adı artık kullanıcı belirledi.
         baslikEtiketiniGuncelle()
+        icindekileriTazele()
     }
 
     /// Not değiştirilmeden önce, yazılmış ama kaydedilmemiş içeriği otomatik olarak kaydeder.
@@ -83,5 +87,24 @@ extension NotPenceresi {
         let ad = mevcutDosyaURL.map { sayfaAdi($0) } ?? "Yeni Sayfa"
         baslikCubugu.notAdiEtiketi.stringValue = ad
         title = ad
+    }
+
+    // MARK: İçindekiler paneli
+
+    /// Başlıklar değişmiş olabilir; paneli yeniden kurar ve yerine oturtur.
+    func icindekileriTazele() {
+        icindekiler.icerigiGuncelle(metinGorunumu.textStorage)
+        icindekiler.frame = icindekiler.hedefKare()
+        icindekiler.etkinBasligiGuncelle(imlecKonumu: metinGorunumu.selectedRange().location)
+    }
+
+    /// İçindekilerden bir başlığa tıklanınca metni oraya kaydırır ve imleci koyar.
+    func basligaGit(_ konum: Int) {
+        guard let depo = metinGorunumu.textStorage, konum < depo.length else { return }
+        let paragraf = (depo.string as NSString).paragraphRange(for: NSRange(location: konum, length: 0))
+        metinGorunumu.scrollRangeToVisible(paragraf)
+        metinGorunumu.setSelectedRange(NSRange(location: paragraf.location, length: 0))
+        makeFirstResponder(metinGorunumu)
+        icindekiler.etkinBasligiGuncelle(imlecKonumu: paragraf.location)
     }
 }
