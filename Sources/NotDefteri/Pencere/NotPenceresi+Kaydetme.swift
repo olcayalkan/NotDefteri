@@ -16,24 +16,61 @@ extension NotPenceresi {
         }
     }
 
-    func kaydetURLe(_ url: URL, hazirMetin: String? = nil, panelYenile: Bool = true) {
+    /// Notu diske yazar. Başarılıysa `true` döner.
+    ///
+    /// Yazma başarısız olursa iç durum (`sonYazilanIcerik`, `duzenlendiMi`)
+    /// GÜNCELLENMEZ. Aksi hâlde not kaydedilmediği hâlde "kaydedildi" sayılıyor,
+    /// sonraki otomatik kayıtlar da "içerik değişmemiş" diyerek atlıyordu;
+    /// kullanıcı yazdığını sessizce kaybediyordu.
+    @discardableResult
+    func kaydetURLe(_ url: URL, hazirMetin: String? = nil, panelYenile: Bool = true) -> Bool {
         let metin = hazirMetin ?? markdownMetniUret(metinGorunumu.attributedString())
         // Aynı dosyaya aynı içeriği tekrar yazma (dosya diskte duruyorsa).
         guard metin != sonYazilanIcerik
                 || url != mevcutDosyaURL
                 || !FileManager.default.fileExists(atPath: url.path) else {
             duzenlendiMi = false
-            return
+            return true
         }
-        // Sayfa klasörü henüz yoksa (yeni sayfa) oluşturulur.
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? metin.write(to: url, atomically: true, encoding: .utf8)
+        do {
+            // Sayfa klasörü henüz yoksa (yeni sayfa) oluşturulur.
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                     withIntermediateDirectories: true)
+            try metin.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            kayitHatasiniBildir(url: url, hata: error)
+            return false
+        }
+        kayitHatasiBildirildi = false
         sonYazilanIcerik = metin
         mevcutDosyaURL = url
         duzenlendiMi = false
         otomatikKayitBekleyeniIptalEt()
         baslikEtiketiniGuncelle()
         if panelYenile { kenarPaneli.yenile(secili: url) }
+        return true
+    }
+
+    /// Kayıt hatasını bir kez bildirir. Otomatik kayıt sürekli denediği için
+    /// hata devam ederken uyarı tekrarlanmaz; başarılı kayıtta bayrak sıfırlanır.
+    private func kayitHatasiniBildir(url: URL, hata: Error) {
+        guard !kayitHatasiBildirildi else { return }
+        kayitHatasiBildirildi = true
+
+        let uyari = NSAlert()
+        uyari.alertStyle = .critical
+        uyari.messageText = "Not kaydedilemedi"
+        uyari.informativeText = """
+            "\(sayfaAdi(url))" diske yazılamadı. Yazdıkların pencerede duruyor; \
+            kapatmadan önce başka bir yere kopyala.
+
+            Neden: \(hata.localizedDescription)
+            """
+        uyari.addButton(withTitle: "Tamam")
+        uyari.addButton(withTitle: "Klasörü Göster")
+        if uyari.runModal() == .alertSecondButtonReturn {
+            NSWorkspace.shared.activateFileViewerSelecting([url.deletingLastPathComponent()])
+        }
     }
 
     func textDidChange(_ notification: Notification) {
@@ -125,10 +162,12 @@ extension NotPenceresi {
     }
 
     /// Uygulama tamamen kapanırken (Cmd+Q gibi) mevcut dosyayı üzerine kaydeder.
-    func kapanistaGerekirseKaydet() {
+    /// Kapanış öncesi son kayıt. Yazma başarısız olursa `false` döner;
+    /// çağıran kapanmayı iptal etmeli, yoksa yazılanlar kaybolur.
+    @discardableResult
+    func kapanistaGerekirseKaydet() -> Bool {
         otomatikKayitBekleyeniIptalEt()
-        if let url = mevcutDosyaURL {
-            kaydetURLe(url)
-        }
+        guard let url = mevcutDosyaURL else { return true }
+        return kaydetURLe(url)
     }
 }

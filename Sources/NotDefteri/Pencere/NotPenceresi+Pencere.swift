@@ -115,8 +115,10 @@ extension NotPenceresi {
         if duzenlendiMi { otomatikKaydet() }
     }
 
+    /// Kayıt başarısızsa pencere KAPANMAZ. Kullanıcı uyarıyı görür ve
+    /// yazdıklarını kurtarma şansı bulur; sessizce kaybetmez.
     override func close() {
-        kapanistaGerekirseKaydet()
+        guard kapanistaGerekirseKaydet() else { return }
         super.close()
     }
 
