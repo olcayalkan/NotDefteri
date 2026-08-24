@@ -8,17 +8,39 @@ kaynak: ozet.md
 
 `ozet.md` analizinden çıkan iş listesi, etki/maliyet sırasına göre.
 
-## 1. Markdown Çeviriciyi Kayıpsız Yapmak
-**Etki: yüksek · Maliyet: orta · Dosya: `NotDefteri.swift:206`**
+## 1. ✅ Markdown Çeviricinin Kayıpları — BİTTİ (24 Ağu 2026)
+**`Cekirdek/MarkdownCevirici.swift` · 23 test**
 
-`markdownMetniUret()` tanımadığı sözdizimini yok ediyor. "Tanımadığını olduğu
-gibi koru" mantığına çevrilmeli. Bu, Obsidian ile birlikte çalışmayı güvenli
-kılan tek değişiklik.
+### Ölçüm önce yapıldı
+"Çevirici kayıplı" varsayımı büyük ölçüde YANLIŞ çıktı. 18 Obsidian
+sözdizimi denendi, **15'i zaten sorunsuz** gidiş-dönüş yapıyordu:
+liste, onay kutusu, tablo, kod bloğu, frontmatter, wikilink, bağlantı,
+italik, alıntı, yatay çizgi, 4+ seviye başlık, ham HTML.
 
-Yaklaşım: AttributedString'e çevirirken tanınmayan satırları bir öznitelikle
-işaretle (`kHamMetinAnahtari` gibi), geri yazarken o parçaları dokunmadan bas.
+Bunlar uygulama tarafından tanınmıyor ama **metin olarak korunuyor** —
+yani Obsidian'da yazılan not NotDefteri'nde kaydedilince içeriği kaybetmiyor,
+sadece biçimli görünmüyor.
 
-İlgili: `03_Resources/Markdown-Formati.md`
+### Gerçek hata: eşleşmemiş işaretleme
+Bozulan 3 örnek aynı sınıftandı — kapanışı olmayan işaretleme biçim
+başlatıyor, geri yazarken sona uydurma bir kapanış ekleniyordu:
+
+| Girdi | Eski çıktı |
+|---|---|
+| `2 ** 3 = 8` | `2 ** 3 = 8\n**` |
+| `<punto=16>açık kaldı` | `<punto=16>açık kaldı\n</punto>` |
+| kod bloğu içinde `a ** b` | sona `**` eklenmiş |
+
+Birikmiyordu (bir turdan sonra sabitleniyor) ama nota görünür çöp ekliyordu.
+
+**Düzeltme:** `kapanisVarMi()` yardımcısı eklendi. `**` ve `<punto=N>`
+yalnızca ileride kapanışları varsa biçim başlatıyor; eşleşmemiş olan
+düz metin kalıyor. Sonuç: 18/18 temiz.
+
+### Kalan (düşük öncelik)
+Kod bloğu içindeki `**` artık kazara kapanmıyor ama parser hâlâ bağlam
+duyarsız — kod bloğu içinde *eşleşen* bir `**` çifti varsa kalın sayılır.
+Gerçek çözüm ``` bloklarını ayrı bir durum olarak tanımak.
 
 ## 2. ✅ Saf Fonksiyonlara Test Yazmak — BİTTİ (24 Ağu 2026)
 **`Tests/NotDefteriTests/CeviriciTestleri.swift` · 21 test · `swift test`**

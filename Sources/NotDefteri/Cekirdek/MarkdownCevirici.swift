@@ -126,6 +126,17 @@ func resimBaginiCozumle(_ ns: NSString, _ baslangic: Int, taban: URL) -> (ResimE
     return (resimEkiUret(gorsel: gorsel, dosyaURL: dosyaURL, bagYolu: yol, gosterimBoyutu: gosterimBoyutu), eslesme.range.length)
 }
 
+/// `baslangic` konumundan sonra `aranan` dizesi geçiyor mu?
+/// Eşleşmemiş işaretlemenin biçim başlatmasını engellemek için kullanılır:
+/// kapanışı olmayan bir "**" ya da "<punto=..>" düz metin sayılmalı, yoksa
+/// geri yazarken sona uydurma bir kapanış etiketi ekleniyordu
+/// (ör. "2 ** 3 = 8" -> "2 ** 3 = 8\n**").
+private func kapanisVarMi(_ ns: NSString, sonrasinda baslangic: Int, aranan: String) -> Bool {
+    guard baslangic <= ns.length else { return false }
+    let kalanAralik = NSRange(location: baslangic, length: ns.length - baslangic)
+    return ns.range(of: aranan, options: [], range: kalanAralik).location != NSNotFound
+}
+
 func markdowndenAttributedStringUret(_ metin: String, taban: URL = notlarKlasoru()) -> NSAttributedString {
     let sonuc = NSMutableAttributedString()
     let ns = metin as NSString
@@ -170,8 +181,10 @@ func markdowndenAttributedStringUret(_ metin: String, taban: URL = notlarKlasoru
             i += 1
             continue
         }
-        // Kalın işareti
-        if i + 2 <= ns.length, ns.substring(with: NSRange(location: i, length: 2)) == "**" {
+        // Kalın işareti. Açılış yalnızca ileride bir kapanış varsa kabul edilir;
+        // eşleşmemiş "**" düz metin olarak kalır.
+        if i + 2 <= ns.length, ns.substring(with: NSRange(location: i, length: 2)) == "**",
+           kalin || kapanisVarMi(ns, sonrasinda: i + 2, aranan: "**") {
             tamponuBosalt()
             kalin.toggle()
             i += 2
@@ -198,7 +211,8 @@ func markdowndenAttributedStringUret(_ metin: String, taban: URL = notlarKlasoru
                     i += etiketUzunlugu
                     continue
                 }
-                if etiket.hasPrefix("punto="), let deger = Double(etiket.dropFirst("punto=".count)) {
+                if etiket.hasPrefix("punto="), let deger = Double(etiket.dropFirst("punto=".count)),
+                   kapanisVarMi(ns, sonrasinda: i + etiketUzunlugu, aranan: "</punto>") {
                     tamponuBosalt()
                     boyut = boyutSinirla(CGFloat(deger))
                     i += etiketUzunlugu

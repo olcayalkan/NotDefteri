@@ -20,24 +20,28 @@ Kaynak: `markdownMetniUret()` (satır 206) ve `markdowndenAttributedStringUret()
 Başka hiçbir şey **yok**: liste, tablo, kod bloğu, italik, bağlantı, alıntı,
 onay kutusu, frontmatter, yatay çizgi — hiçbiri tanınmıyor.
 
-## Kritik Davranış: Çevirici Kayıplı
+## Çevirici Ne Kadar Sadık
 
-Kaydetme, metni AttributedString'den **yeniden üretir**. Tanınmayan sözdizimi
-düz metne dönüşür ve **kalıcı olarak kaybolur**.
+Kaydetme, metni AttributedString'den yeniden üretir. Ama tanınmayan sözdizimi
+**metin olarak korunur** — 24 Ağu 2026 ölçümünde 18 Obsidian biçiminin
+18'i gidiş-dönüşten sağlam çıktı.
 
 ```
-Obsidian'da yaz:  - [ ] görev
-NotDefteri açar:  "- [ ] görev"  (düz metin, madde değil)
-NotDefteri kaydeder: "- [ ] görev"  (metin korunur ama biçim yok)
+Obsidian'da yaz:   - [ ] görev
+NotDefteri gösterir: "- [ ] görev"   (düz metin, madde işareti yok)
+NotDefteri kaydeder: "- [ ] görev"   (metin aynen korunur)
 ```
 
-Asıl tehlike biçim taşıyan sözdiziminde:
-```
-Obsidian:  *italik*  →  NotDefteri kaydedince:  *italik*  (yıldızlar metin olur)
-Obsidian:  | a | b |  →  tablo kaybolur, satır düz metin kalır
-Obsidian:  ```swift   →  kod bloğu kaybolur
-Obsidian:  ---\ntags: x\n---  →  frontmatter düz metin olur
-```
+Yani **içerik kaybolmuyor, sadece biçimli görünmüyor.**
+
+Test edilmiş ve korunduğu doğrulanmış: liste, onay kutusu, tablo, kod bloğu,
+frontmatter, `[[wikilink]]`, `[bağlantı](url)`, italik, alıntı, yatay çizgi,
+4+ seviye başlık, ham HTML.
+
+### Bilinen sınır
+Parser bağlam duyarsız. Kod bloğu içinde **eşleşen** bir `**` çifti varsa
+kalın sayılır ve ``` bloğu korunmaz. Eşleşmeyen `**` ise (ör. `2 ** 3`)
+artık doğru şekilde düz metin kalıyor.
 
 ## Punto Etiketi Mantığı
 
