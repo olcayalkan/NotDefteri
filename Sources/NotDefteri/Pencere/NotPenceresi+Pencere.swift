@@ -112,7 +112,7 @@ extension NotPenceresi {
     /// Pencere odağı kaybettiğinde bekleyen değişikliği hemen yazar.
     override func resignKey() {
         super.resignKey()
-        if duzenlendiMi { otomatikKaydet() }
+        if kaydedici.duzenlendiMi { otomatikKaydet() }
     }
 
     /// Kayıt başarısızsa pencere KAPANMAZ. Kullanıcı uyarıyı görür ve

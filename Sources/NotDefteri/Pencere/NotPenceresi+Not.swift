@@ -13,9 +13,8 @@ extension NotPenceresi {
         guard let icerik = try? String(contentsOf: url, encoding: .utf8) else { return }
         metinGorunumu.textStorage?.setAttributedString(markdowndenAttributedStringUret(icerik, taban: sayfaKlasoru(url)))
         mevcutDosyaURL = url
-        sonYazilanIcerik = icerik
+        kaydedici.sifirla(sonYazilan: icerik)
         otomatikAdlandirildiMi = false
-        duzenlendiMi = false
         gecmisiSifirla()
         baslikEtiketiniGuncelle()
         kenarPaneli.yenile(secili: url)
@@ -27,9 +26,8 @@ extension NotPenceresi {
         let bosOznitelik: [NSAttributedString.Key: Any] = [.font: varsayilanFont(), .foregroundColor: kMetinRenk]
         metinGorunumu.textStorage?.setAttributedString(NSAttributedString(string: "", attributes: bosOznitelik))
         mevcutDosyaURL = nil
-        sonYazilanIcerik = nil
+        kaydedici.sifirla(sonYazilan: nil)
         otomatikAdlandirildiMi = false
-        duzenlendiMi = false
         gecmisiSifirla()
         baslikEtiketiniGuncelle()
         kenarPaneli.tablo.deselectAll(nil)
@@ -54,10 +52,8 @@ extension NotPenceresi {
         let bosOznitelik: [NSAttributedString.Key: Any] = [.font: varsayilanFont(), .foregroundColor: kMetinRenk]
         metinGorunumu.textStorage?.setAttributedString(NSAttributedString(string: "", attributes: bosOznitelik))
         mevcutDosyaURL = nil
-        sonYazilanIcerik = nil
+        kaydedici.sifirla(sonYazilan: nil)
         otomatikAdlandirildiMi = false
-        duzenlendiMi = false
-        otomatikKayitBekleyeniIptalEt()
         gecmisiSifirla()
         baslikEtiketiniGuncelle()
     }
@@ -72,7 +68,7 @@ extension NotPenceresi {
     /// Not değiştirilmeden önce, yazılmış ama kaydedilmemiş içeriği otomatik olarak kaydeder.
     /// Mevcut bir dosya açıksa üzerine yazar; yeni/boş bir nottaysa içerikten otomatik bir isim üretip yeni dosya oluşturur.
     private func mevcutNotuKaybolmayacakSekildeKaydet() {
-        guard duzenlendiMi else { return }
+        guard kaydedici.duzenlendiMi else { return }
         let icerik = metinGorunumu.string
         guard !icerik.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         if let url = mevcutDosyaURL {

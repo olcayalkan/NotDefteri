@@ -18,42 +18,30 @@ extension NotPenceresi {
 
     /// Notu diske yazar. Başarılıysa `true` döner.
     ///
-    /// Yazma başarısız olursa iç durum (`sonYazilanIcerik`, `duzenlendiMi`)
-    /// GÜNCELLENMEZ. Aksi hâlde not kaydedilmediği hâlde "kaydedildi" sayılıyor,
-    /// sonraki otomatik kayıtlar da "içerik değişmemiş" diyerek atlıyordu;
-    /// kullanıcı yazdığını sessizce kaybediyordu.
+    /// Yazma mantığı `NotKaydedici`de; burada yalnızca arayüz tepkileri var
+    /// (uyarı gösterme, başlık etiketi, kenar panel tazeleme).
     @discardableResult
     func kaydetURLe(_ url: URL, hazirMetin: String? = nil, panelYenile: Bool = true) -> Bool {
         let metin = hazirMetin ?? markdownMetniUret(metinGorunumu.attributedString())
-        // Aynı dosyaya aynı içeriği tekrar yazma (dosya diskte duruyorsa).
-        guard metin != sonYazilanIcerik
-                || url != mevcutDosyaURL
-                || !FileManager.default.fileExists(atPath: url.path) else {
-            duzenlendiMi = false
+
+        switch kaydedici.yaz(metin: metin, url: url, mevcutURL: mevcutDosyaURL) {
+        case .gerekmedi:
+            return true
+        case .basarisiz(let neden):
+            kayitHatasiniBildir(url: url, neden: neden)
+            return false
+        case .yazildi:
+            kayitHatasiBildirildi = false
+            mevcutDosyaURL = url
+            baslikEtiketiniGuncelle()
+            if panelYenile { kenarPaneli.yenile(secili: url) }
             return true
         }
-        do {
-            // Sayfa klasörü henüz yoksa (yeni sayfa) oluşturulur.
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
-                                                     withIntermediateDirectories: true)
-            try metin.write(to: url, atomically: true, encoding: .utf8)
-        } catch {
-            kayitHatasiniBildir(url: url, hata: error)
-            return false
-        }
-        kayitHatasiBildirildi = false
-        sonYazilanIcerik = metin
-        mevcutDosyaURL = url
-        duzenlendiMi = false
-        otomatikKayitBekleyeniIptalEt()
-        baslikEtiketiniGuncelle()
-        if panelYenile { kenarPaneli.yenile(secili: url) }
-        return true
     }
 
     /// Kayıt hatasını bir kez bildirir. Otomatik kayıt sürekli denediği için
     /// hata devam ederken uyarı tekrarlanmaz; başarılı kayıtta bayrak sıfırlanır.
-    private func kayitHatasiniBildir(url: URL, hata: Error) {
+    private func kayitHatasiniBildir(url: URL, neden: String) {
         guard !kayitHatasiBildirildi else { return }
         kayitHatasiBildirildi = true
 
@@ -64,7 +52,7 @@ extension NotPenceresi {
             "\(sayfaAdi(url))" diske yazılamadı. Yazdıkların pencerede duruyor; \
             kapatmadan önce başka bir yere kopyala.
 
-            Neden: \(hata.localizedDescription)
+            Neden: \(neden)
             """
         uyari.addButton(withTitle: "Tamam")
         uyari.addButton(withTitle: "Klasörü Göster")
@@ -80,32 +68,24 @@ extension NotPenceresi {
 
     // MARK: Otomatik kayıt
 
-    /// İçerik değiştiğinde çağrılır; 5 saniyelik tek atımlık bir zamanlayıcı kurar.
-    /// Zamanlayıcı zaten kuruluysa yenisi açılmaz, yani kesintisiz yazarken de
-    /// en fazla 5 saniyede bir disk yazımı olur; boştayken hiç zamanlayıcı dönmez.
+    /// İçerik değiştiğinde çağrılır; kaydediciye zamanlayıcı kurdurur.
     func icerikDegisti() {
-        duzenlendiMi = true
-        guard otomatikKayitZamanlayici == nil else { return }
-        let zamanlayici = Timer(timeInterval: kOtomatikKayitAraligi, repeats: false) { [weak self] _ in
-            guard let self else { return }
-            self.otomatikKayitZamanlayici = nil
-            self.otomatikKaydet()
-        }
-        zamanlayici.tolerance = 1  // Sistemin uyandırmaları birleştirmesine izin verir (enerji dostu).
-        RunLoop.main.add(zamanlayici, forMode: .common)  // Menü/kaydırma sırasında da işler.
-        otomatikKayitZamanlayici = zamanlayici
+        kaydedici.degisiklikIsaretle()
+        kaydedici.zamanlayiciKur { [weak self] in self?.otomatikKaydet() }
     }
 
     func otomatikKayitBekleyeniIptalEt() {
-        otomatikKayitZamanlayici?.invalidate()
-        otomatikKayitZamanlayici = nil
+        kaydedici.bekleyeniIptalEt()
     }
 
     func otomatikKaydet() {
-        guard duzenlendiMi else { return }
+        guard kaydedici.duzenlendiMi else { return }
         let metin = markdownMetniUret(metinGorunumu.attributedString())
-        guard metin != sonYazilanIcerik else {
-            duzenlendiMi = false
+        // Kaydedilmiş bir notta içerik diskle aynıysa yazmaya gerek yok.
+        // (Henüz dosyası olmayan not bu kontrolden muaf; aşağıda oluşturulur.)
+        if let url = mevcutDosyaURL,
+           !kaydedici.yazmakGerekli(metin: metin, url: url, mevcutURL: url) {
+            kaydedici.temizIsaretle()
             return
         }
         guard !metinGorunumu.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }

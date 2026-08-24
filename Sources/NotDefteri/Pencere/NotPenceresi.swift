@@ -14,12 +14,10 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
     var mevcutDosyaURL: URL? {
         didSet { UserDefaults.standard.set(mevcutDosyaURL?.path, forKey: "sonNotYolu") }
     }
-    var duzenlendiMi = false
+    /// Kayıt mantığı ve otomatik kayıt zamanlayıcısı burada.
+    let kaydedici = NotKaydedici()
     var kenarPanelGizli = UserDefaults.standard.bool(forKey: "kenarPanelGizli")
-    /// Otomatik kayıt: yalnızca bekleyen bir değişiklik varken kurulur, tetiklenince kendini bırakır.
-    var otomatikKayitZamanlayici: Timer?
     /// Diske en son yazılan metin; aynı içeriği tekrar yazmamak için karşılaştırılır.
-    var sonYazilanIcerik: String?
     /// Dosya adı kullanıcı tarafından değil, ilk satırdan otomatik üretildiyse doğrudur.
     var otomatikAdlandirildiMi = false
     /// Kayıt hatası kullanıcıya bildirildi mi? Otomatik kayıt 5 saniyede bir

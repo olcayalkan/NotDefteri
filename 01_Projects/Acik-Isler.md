@@ -69,15 +69,27 @@ Düzeltme: i ailesi (`İ I ı`) önce "i"ye indirgeniyor, ardından locale'sız 
 "Bilinen kayıplar" başlığı altındaki 3 test çeviricinin **şu anki** kayıplı
 davranışını belgeliyor. 1. madde yapılınca bunlar `gidisDonusKontrol`'e çevrilmeli.
 
-## 3. `NotPenceresi`'ni Bölmek
-**Etki: orta · Maliyet: yüksek · Satır 1686–2445**
+## 3. ✅ `NotKaydedici` Çıkarıldı — BİTTİ (24 Ağu 2026)
+**`Cekirdek/NotKaydedici.swift` · 13 yeni test**
 
-760 satır, 71 bağlantı. Ayrılabilecek sorumluluklar:
-- Kaydetme/otomatik kayıt → `NotKaydedici`
-- Metin biçimlendirme (kalın, punto, başlık) → `BicimlendirmeKomutlari`
-- Klavye kısayolları → ayrı işleyici
+Kayıt mantığı pencereden ayrıldı. `NotKaydedici` AppKit'e bağlı değil
+(yalnızca Foundation), bu yüzden **pencere kurmadan test edilebiliyor**.
 
-Tek dosya kısıtı da gözden geçirilmeli — 2560 satır tek dosya bakımı zorlaştırıyor.
+### Tipin sahiplendiği
+- `sonYazilanIcerik`, `duzenlendiMi` durumu
+- Yazma kararı (`yazmakGerekli`) ve disk yazımı (`yaz -> Sonuc`)
+- Otomatik kayıt zamanlayıcısı
+
+### Pencerede kalan (doğru yerde)
+Uyarı gösterme, başlık etiketi, kenar panel tazeleme, otomatik adlandırma.
+
+`NotPenceresi` üç depolanan alandan kurtuldu; `kaydetURLe()` artık
+`switch kaydedici.yaz(...)` ile yalnızca arayüz tepkisi veriyor.
+
+### Kalan
+`NotPenceresi` hâlâ 6 extension'a yayılı ve `KenarPaneli` ile sıkı bağlı.
+Sıradaki aday `mevcutDosyaURL` + `otomatikAdlandirildiMi` ikilisini de
+kaydediciye ya da ayrı bir "açık not" tipine taşımak.
 
 ## 4. ✅ Kayıt Yolundaki Sessiz Veri Kaybı — BİTTİ (24 Ağu 2026)
 **`Pencere/NotPenceresi+Kaydetme.swift`, `NotPenceresi+Pencere.swift`**

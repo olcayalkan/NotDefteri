@@ -96,7 +96,7 @@ extension NotPenceresi {
     private func altSayfaKomutu() {
         // Sayfanın altına dal açabilmek için önce kendisinin diskte olması gerekir.
         if mevcutDosyaURL == nil {
-            duzenlendiMi = true
+            kaydedici.degisiklikIsaretle()
             otomatikKaydet()
         }
         guard let ustSayfa = mevcutDosyaURL else {
