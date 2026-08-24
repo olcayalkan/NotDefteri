@@ -19,7 +19,7 @@ dosyaları olarak tutulur — yani veri formatı zaten Obsidian'a çok yakın.
 | Hedef | `.executableTarget` — `NotDefteri` |
 | Platform | macOS 12+ |
 | Framework | Yalnızca `AppKit` |
-| Kaynak | `Sources/NotDefteri/NotDefteri.swift` (tek dosya) |
+| Kaynak | `Sources/NotDefteri/` (26 dosya, 5 katman) |
 | Bağımlılık | Yok |
 | Veri konumu | `~/Documents/NotDefteri/` |
 | Kod dili | Tüm tanımlayıcılar Türkçe (`NotPenceresi`, `agaciYukle()`, `kenarPaneli`…) |
