@@ -41,3 +41,4 @@ DerivedData/
 # Obsidian oturum durumu (her acilista degisir)
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
+.obsidian/graph.json
