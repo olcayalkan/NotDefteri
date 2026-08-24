@@ -21,9 +21,9 @@
 
 ## Connections
 <!-- How does this relate to other notes? -->
-- See: [[related note]]
-- Contradicts: [[other perspective]]
-- Builds on: [[foundation concept]]
+- See: `[[related note]]`
+- Contradicts: `[[other perspective]]`
+- Builds on: `[[foundation concept]]`
 
 ## Action Items
 - [ ] 
