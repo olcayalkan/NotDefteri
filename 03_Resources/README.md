@@ -140,9 +140,9 @@ One paragraph overview
 - Main idea 3
 
 ## Connections
-- Related to: [[Other Concept]]
-- Contrasts with: [[Different Idea]]
-- Examples: [[Case Study]]
+- Related to: `[[Other Concept]]`
+- Contrasts with: `[[Different Idea]]`
+- Examples: `[[Case Study]]`
 
 ## Sources
 - Original article/book/video
