@@ -43,6 +43,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `Tema.swift` | 53 | `Tema`, `temaListesi`, `aktifTema`, renk türetme |
 | `NotSatirGorunumu.swift` | 47 | Kenar panel satır vurgusu |
 | `KenarPaneliSurukleTutamaci.swift` | 37 | Panel genişliği tutamacı |
+| `IcindekilerPaneli.swift` | 250 | **Sağ kenar içindekiler** — başlıklardan üretilir, hover'da açılır, tıklayınca kaydırır |
 | `SembolBoyama.swift` | 21 | `renklendirilmisSembol()` |
 
 ## KenarPanel/
@@ -75,7 +76,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-`Tests/NotDefteriTests/` — 42 test (`CeviriciTestleri` 23, `KaydediciTestleri` 13, `OnbellekTestleri` 6).
+`Tests/NotDefteriTests/` — 50 test (`CeviriciTestleri` 23, `KaydediciTestleri` 13, `OnbellekTestleri` 6, `IcindekilerTestleri` 8).
 Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama, otomatik başlık,
 Türkçe arama, font yardımcıları. `swift test` ile çalıştır.
 

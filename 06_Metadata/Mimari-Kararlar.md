@@ -111,6 +111,16 @@ Fn+F veya ⌃⌘F. Yeşil buton gizli ama `collectionBehavior`'a
 
 ## UI
 
+### İçindekiler paneli metnin ÜSTÜNDE yüzer
+`IcindekilerPaneli` sağ kenarda, `kaydirmaGorunumu`nun üstünde duruyor —
+metin alanını daraltmıyor. **Neden:** Notion'daki davranış bu; panel daraltılmışken
+yalnızca 26 px ve şeffaf, metni okumayı engellemiyor.
+
+Başlık yoksa `isHidden = true` — boş bir kutu görünmüyor.
+
+Girdiler `kBaslikSeviyesiAnahtari` özniteliğinden toplanıyor, Markdown metnini
+yeniden ayrıştırmaktan değil; böylece çevirici ile tek kaynak paylaşıyorlar.
+
 ### Özel başlık çubuğu
 Standart pencere düğmeleri gizli (`standardWindowButton(...)?.isHidden = true`),
 `BaslikCubugu` kendi düğmelerini çiziyor. Sürükleme `mouseDown` →
