@@ -1,10 +1,9 @@
 import AppKit
 
-/// Notun başlıklarından üretilen, sağ kenarda duran içindekiler paneli.
+/// Notun başlıklarından üretilen, sağ ÜSTE sabit içindekiler paneli.
 ///
-/// Daraltılmış hâlde yalnızca seviyeye göre kısalan çizgiler gösterir; fare
-/// üzerine gelince metinleri açar (Notion'daki gibi). Bir satıra tıklamak
-/// metni o başlığa kaydırır.
+/// Daraltılmış hâlde seviyeye göre kısalan çizgiler gösterir; fare üzerine
+/// gelince metinleri açar. Başlık sayısı sığmazsa panel kendi içinde kaydırılır.
 final class IcindekilerPaneli: NSView {
 
     /// Bir başlık girdisi: metni, düzeyi ve metin içindeki konumu.
@@ -18,24 +17,62 @@ final class IcindekilerPaneli: NSView {
     var basligaGitIstendi: ((Int) -> Void)?
 
     private(set) var girdiler: [Girdi] = []
-    /// Metinde o an görünen/imlecin bulunduğu başlığın sırası.
     private var etkinSira: Int?
-    private var acik = false
+    private(set) var acik = false
     private var izlemeAlani: NSTrackingArea?
     private var satirlar: [SatirGorunumu] = []
 
-    static let daraltilmisGenislik: CGFloat = 26
-    static let acikGenislik: CGFloat = 190
-    private let satirYuksekligi: CGFloat = 22
+    private let kaydirma = NSScrollView()
+    private let icerik = TersGorunum()
+
+    // MARK: Ölçüler (Notion'a yakın: dar ve sık)
+    static let daraltilmisGenislik: CGFloat = 22
+    static let acikGenislik: CGFloat = 180
+    /// Daraltılmışken satırlar sık; açılınca metin için yer açılır.
+    private let daralikSatir: CGFloat = 11
+    private let acikSatir: CGFloat = 22
+    private let dikeyBosluk: CGFloat = 6
+    /// Panelin üst kenarının başlık çubuğuna uzaklığı.
+    private let ustBosluk: CGFloat = 10
+    private let sagBosluk: CGFloat = 8
+
+    private var satirYuksekligi: CGFloat { acik ? acikSatir : daralikSatir }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.cornerRadius = 7
-        layer?.backgroundColor = NSColor.clear.cgColor
+        layer?.cornerRadius = 6
+
+        kaydirma.drawsBackground = false
+        kaydirma.borderType = .noBorder
+        kaydirma.hasVerticalScroller = false      // Kaydırma var ama çubuk görünmesin.
+        kaydirma.scrollerStyle = .overlay
+        kaydirma.autohidesScrollers = true
+        kaydirma.verticalScrollElasticity = .allowed
+        kaydirma.documentView = icerik
+        addSubview(kaydirma)
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    deinit { NotificationCenter.default.removeObserver(self) }
+
+    /// Pencere yeniden boyutlanınca panel sağ üstte kalmalı ve azami
+    /// yüksekliği yeniden hesaplanmalı; autoresizingMask bunu yapamıyor
+    /// çünkü yükseklik pencere boyuna bağlı.
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        NotificationCenter.default.removeObserver(self)
+        guard let ust = superview else { return }
+        ust.postsFrameChangedNotifications = true
+        NotificationCenter.default.addObserver(self, selector: #selector(ustBoyutDegisti),
+                                                name: NSView.frameDidChangeNotification, object: ust)
+    }
+
+    @objc private func ustBoyutDegisti() {
+        guard !girdiler.isEmpty else { return }
+        frame = hedefKare()
+    }
 
     // MARK: İçerik
 
@@ -70,27 +107,25 @@ final class IcindekilerPaneli: NSView {
         return sonuc
     }
 
-    /// İmlecin bulunduğu başlığı vurgular.
+    /// İmlecin bulunduğu başlığı vurgular ve gerekirse görünür alana kaydırır.
     func etkinBasligiGuncelle(imlecKonumu: Int) {
         let yeni = girdiler.lastIndex { $0.konum <= imlecKonumu }
         guard yeni != etkinSira else { return }
         etkinSira = yeni
-        for (sira, satir) in satirlar.enumerated() {
-            satir.etkin = (sira == yeni)
+        for (sira, satir) in satirlar.enumerated() { satir.etkin = (sira == yeni) }
+        if acik, let yeni, satirlar.indices.contains(yeni) {
+            icerik.scrollToVisible(satirlar[yeni].frame)
         }
     }
-
-    // MARK: Satırlar
 
     private func satirlariKur() {
         satirlar.forEach { $0.removeFromSuperview() }
         satirlar = girdiler.enumerated().map { sira, girdi in
             let satir = SatirGorunumu(girdi: girdi)
-            satir.tiklandi = { [weak self] in
-                self?.basligaGitIstendi?(girdi.konum)
-            }
+            satir.tiklandi = { [weak self] in self?.basligaGitIstendi?(girdi.konum) }
             satir.etkin = (sira == etkinSira)
-            addSubview(satir)
+            satir.acikGoster(acik)
+            icerik.addSubview(satir)
             return satir
         }
     }
@@ -115,44 +150,57 @@ final class IcindekilerPaneli: NSView {
         acik = yeniDurum
 
         NSAnimationContext.runAnimationGroup { baglam in
-            baglam.duration = 0.16
+            baglam.duration = 0.15
             baglam.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             animator().frame = hedefKare()
             layer?.backgroundColor = yeniDurum
-                ? aktifTema.kenarPanel.withAlphaComponent(0.92).cgColor
+                ? aktifTema.kenarPanel.withAlphaComponent(0.95).cgColor
                 : NSColor.clear.cgColor
             for satir in satirlar { satir.acikGoster(yeniDurum) }
         }
+        // Kapanınca başa dön; açılınca hep aynı yerden başlasın.
+        if !yeniDurum { icerik.scroll(NSPoint(x: 0, y: 0)) }
         needsLayout = true
     }
 
-    /// Panelin o anki hâline göre olması gereken çerçevesi.
-    /// Sağ kenara yaslıdır; açılırken sola doğru büyür.
+    /// Sağ ÜSTE yaslı çerçeve. Yükseklik içeriğe göre; sığmazsa kırpılır
+    /// ve panel kendi içinde kaydırılır.
     func hedefKare() -> NSRect {
         guard let ust = superview else { return frame }
         let genislik = acik ? Self.acikGenislik : Self.daraltilmisGenislik
-        let yukseklik = min(CGFloat(max(girdiler.count, 1)) * satirYuksekligi + 12,
-                            ust.bounds.height - kBaslikYuksekligi - 24)
-        return NSRect(x: ust.bounds.width - genislik - 6,
-                      y: (ust.bounds.height - kBaslikYuksekligi - yukseklik) / 2,
+        let istenen = CGFloat(girdiler.count) * satirYuksekligi + dikeyBosluk * 2
+        let enFazla = ust.bounds.height - kBaslikYuksekligi - ustBosluk * 2
+        let yukseklik = min(istenen, max(0, enFazla))
+        return NSRect(x: ust.bounds.width - genislik - sagBosluk,
+                      y: ust.bounds.height - kBaslikYuksekligi - ustBosluk - yukseklik,
                       width: genislik,
                       height: yukseklik)
     }
 
     override func layout() {
         super.layout()
+        kaydirma.frame = bounds.insetBy(dx: 0, dy: dikeyBosluk)
+
+        let icerikYuksekligi = CGFloat(satirlar.count) * satirYuksekligi
+        icerik.frame = NSRect(x: 0, y: 0, width: kaydirma.contentSize.width,
+                              height: max(icerikYuksekligi, kaydirma.contentSize.height))
+        // Ters koordinatlı görünüm: ilk satır en üstte.
         for (sira, satir) in satirlar.enumerated() {
-            satir.frame = NSRect(x: 0,
-                                  y: bounds.height - 6 - CGFloat(sira + 1) * satirYuksekligi,
-                                  width: bounds.width,
-                                  height: satirYuksekligi)
+            satir.frame = NSRect(x: 0, y: CGFloat(sira) * satirYuksekligi,
+                                  width: icerik.bounds.width, height: satirYuksekligi)
         }
     }
 
     func temayiUygula() {
-        if acik { layer?.backgroundColor = aktifTema.kenarPanel.withAlphaComponent(0.92).cgColor }
+        if acik { layer?.backgroundColor = aktifTema.kenarPanel.withAlphaComponent(0.95).cgColor }
         satirlar.forEach { $0.temayiUygula() }
     }
+}
+
+// MARK: - Ters koordinatlı kapsayıcı (ilk satır üstte)
+
+private final class TersGorunum: NSView {
+    override var isFlipped: Bool { true }
 }
 
 // MARK: - Tek başlık satırı
@@ -173,28 +221,27 @@ private final class SatirGorunumu: NSView {
     /// Çizgi uzunluğu başlık düzeyini gösterir: /1 en uzun.
     private var cizgiUzunlugu: CGFloat {
         switch girdi.seviye {
-        case 1: return 14
-        case 2: return 10
-        default: return 6
+        case 1: return 11
+        case 2: return 8
+        default: return 5
         }
     }
 
     /// Metin girintisi de düzeye göre artar.
-    private var girinti: CGFloat {
-        CGFloat(girdi.seviye - 1) * 10
-    }
+    private var girinti: CGFloat { CGFloat(girdi.seviye - 1) * 9 }
 
     init(girdi: IcindekilerPaneli.Girdi) {
         self.girdi = girdi
         super.init(frame: .zero)
         wantsLayer = true
+        layer?.cornerRadius = 3
 
         cizgi.wantsLayer = true
-        cizgi.layer?.cornerRadius = 1
+        cizgi.layer?.cornerRadius = 0.75
         addSubview(cizgi)
 
         etiket.stringValue = girdi.metin
-        etiket.font = NSFont.systemFont(ofSize: girdi.seviye == 1 ? 11.5 : 11,
+        etiket.font = NSFont.systemFont(ofSize: girdi.seviye == 1 ? 11 : 10.5,
                                          weight: girdi.seviye == 1 ? .medium : .regular)
         etiket.lineBreakMode = .byTruncatingTail
         etiket.alphaValue = 0
@@ -205,6 +252,8 @@ private final class SatirGorunumu: NSView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    override var isFlipped: Bool { true }
+
     func acikGoster(_ acikMi: Bool) {
         acik = acikMi
         etiket.animator().alphaValue = acikMi ? 1 : 0
@@ -214,18 +263,18 @@ private final class SatirGorunumu: NSView {
 
     override func layout() {
         super.layout()
-        let y = (bounds.height - 2) / 2
-        cizgi.frame = NSRect(x: bounds.width - cizgiUzunlugu - 8, y: y, width: cizgiUzunlugu, height: 2)
-        etiket.frame = NSRect(x: 10 + girinti, y: (bounds.height - 15) / 2,
-                              width: max(0, bounds.width - 18 - girinti), height: 15)
+        let y = (bounds.height - 1.5) / 2
+        cizgi.frame = NSRect(x: bounds.width - cizgiUzunlugu - 6, y: y, width: cizgiUzunlugu, height: 1.5)
+        etiket.frame = NSRect(x: 8 + girinti, y: (bounds.height - 14) / 2,
+                              width: max(0, bounds.width - 14 - girinti), height: 14)
     }
 
     private func gorunumuTazele() {
-        let koyuluk: CGFloat = etkin ? 0.85 : (farePanelde ? 0.6 : 0.35)
+        let koyuluk: CGFloat = etkin ? 0.8 : 0.3
         cizgi.layer?.backgroundColor = NSColor.black.withAlphaComponent(koyuluk).cgColor
-        etiket.textColor = NSColor.black.withAlphaComponent(etkin ? 0.9 : 0.6)
-        layer?.backgroundColor = farePanelde && acik
-            ? NSColor.black.withAlphaComponent(0.06).cgColor
+        etiket.textColor = NSColor.black.withAlphaComponent(etkin ? 0.9 : 0.58)
+        layer?.backgroundColor = (farePanelde && acik)
+            ? NSColor.black.withAlphaComponent(0.07).cgColor
             : NSColor.clear.cgColor
     }
 
@@ -243,19 +292,11 @@ private final class SatirGorunumu: NSView {
         izlemeAlani = yeni
     }
 
-    override func mouseEntered(with event: NSEvent) {
-        farePanelde = true
-        gorunumuTazele()
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        farePanelde = false
-        gorunumuTazele()
-    }
-
+    override func mouseEntered(with event: NSEvent) { farePanelde = true; gorunumuTazele() }
+    override func mouseExited(with event: NSEvent) { farePanelde = false; gorunumuTazele() }
     override func mouseDown(with event: NSEvent) { tiklandi?() }
 
     override func resetCursorRects() {
-        addCursorRect(bounds, cursor: .pointingHand)
+        if acik { addCursorRect(bounds, cursor: .pointingHand) }
     }
 }

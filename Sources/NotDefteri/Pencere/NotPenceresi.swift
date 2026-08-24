@@ -119,7 +119,7 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
 
         kaydirmaGorunumu.documentView = metinGorunumu
 
-        icindekiler.autoresizingMask = [.minXMargin, .minYMargin, .maxYMargin]
+        icindekiler.autoresizingMask = [.minXMargin, .minYMargin]  // sağ üste sabit
         icindekiler.basligaGitIstendi = { [weak self] konum in self?.basligaGit(konum) }
 
         icerikGorunum.addSubview(kaydirmaGorunumu)
