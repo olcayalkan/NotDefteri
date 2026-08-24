@@ -80,6 +80,15 @@ Her 5 saniyede bir bunu yapmak pahalı.
 
 ## Arama
 
+### Önbellek artımlı
+`icerikOnbelleginiTazele()` değişmemiş notu yeniden okumaz (mtime karşılaştırması).
+**Tuzak:** `URL.resourceValues` örnek başına önbellekler — aynı `URL` örneğini
+yeniden sorgularsan dosya değişse bile eski değeri alırsın. Her ölçümde taze
+`URL` kur. `agaciYukle()` zaten böyle çalışıyor.
+
+**Asıl maliyet önbellekte değil:** 1000 notta `yenile()`in %72'si ağaç
+taramasında geçiyor, %28'i içerik okumada.
+
 ### Türkçe duyarlı normalleştirme
 ```swift
 metin.folding(options: [.diacriticInsensitive, .caseInsensitive],

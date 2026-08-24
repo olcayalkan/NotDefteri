@@ -2,13 +2,20 @@ import AppKit
 
 // MARK: - Kenar panel (arama + not ağacı + punto kısayolu)
 
+/// Arama önbelleğinin bir girdisi: notun aranabilir metni ve okunduğu andaki
+/// değiştirilme tarihi. Tarih aynıysa dosya yeniden okunmaz.
+struct OnbellekGirdisi {
+    let tarih: Date
+    let aranabilirMetin: String
+}
+
 final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate, NSTextFieldDelegate, NSMenuDelegate {
 
     /// Ağacın görüntülenen (arama filtresinden geçmiş) hâli.
     var kokDugumler: [AgacDugumu] = []
     /// Ağacın filtrelenmemiş hâli.
     var tumKokDugumler: [AgacDugumu] = []
-    var icerikOnbellek: [URL: String] = [:]
+    var icerikOnbellek: [URL: OnbellekGirdisi] = [:]
     var acikNotURL: URL?
 
     /// Görüntülenen sıradaki notlar (klasörler hariç).
