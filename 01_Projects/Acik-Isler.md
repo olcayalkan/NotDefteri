@@ -9,7 +9,7 @@ kaynak: ozet.md
 `ozet.md` analizinden çıkan iş listesi, etki/maliyet sırasına göre.
 
 ## 1. Markdown Çeviriciyi Kayıpsız Yapmak
-**Etki: yüksek · Maliyet: orta · Dosya: `main.swift:206`**
+**Etki: yüksek · Maliyet: orta · Dosya: `NotDefteri.swift:206`**
 
 `markdownMetniUret()` tanımadığı sözdizimini yok ediyor. "Tanımadığını olduğu
 gibi koru" mantığına çevrilmeli. Bu, Obsidian ile birlikte çalışmayı güvenli
@@ -20,25 +20,32 @@ işaretle (`kHamMetinAnahtari` gibi), geri yazarken o parçaları dokunmadan bas
 
 İlgili: `03_Resources/Markdown-Formati.md`
 
-## 2. Saf Fonksiyonlara Test Yazmak
-**Etki: yüksek · Maliyet: düşük**
+## 2. ✅ Saf Fonksiyonlara Test Yazmak — BİTTİ (24 Ağu 2026)
+**`Tests/NotDefteriTests/CeviriciTestleri.swift` · 21 test · `swift test`**
 
-Test hedefi yok. En kolay başlangıç — bunlar zaten saf:
+Yapılanlar:
+- `main.swift` → `NotDefteri.swift`, giriş noktası `@main enum Ana`'ya taşındı.
+  **Neden:** top-level kod içeren dosya `@testable import` edilemiyor.
+- `Package.swift`'e `.testTarget` eklendi.
+- Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama,
+  otomatik başlık, Türkçe arama, font yardımcıları.
 
-| İşlev | Satır |
-|---|---|
-| `isaretlemeleriTemizle()` | 197 |
-| `markdownMetniUret()` | 206 |
-| `markdowndenAttributedStringUret()` | 284 |
-| `otomatikBaslikUret()` | 242 |
-| `boyutSinirla()` / `boyutMetni()` | 187 / 192 |
-| `aramaIcinSadelestir()` | 73 |
+### Bu iş bir hata yakaladı
+`aramaIcinSadelestir()` Türkçe aramada bozuktu:
 
-Gidiş-dönüş testi en değerlisi: `markdown → attr → markdown` özdeş olmalı.
+| Girdi | Eski sonuç | Yeni sonuç |
+|---|---|---|
+| `İstanbul` | `ıstanbul` | `istanbul` |
+| `istanbul` | `istanbul` | `istanbul` |
 
-`Package.swift`'e `.testTarget` eklemek gerekir. Şu an tek `executableTarget`
-var; test için mantığı bir kütüphane hedefine ayırmak veya `@testable`
-kullanabilmek adına yapıyı bölmek gerekebilir.
+Eskiden **"istanbul" araması "İstanbul" başlıklı notu bulamıyordu.**
+Kök neden: `.diacriticInsensitive` "İ"nin noktasını silip "I" yapıyor,
+ardından `tr_TR` küçültmesi onu "ı"ya çeviriyordu.
+Düzeltme: i ailesi (`İ I ı`) önce "i"ye indirgeniyor, ardından locale'sız folding.
+
+### Kalan
+"Bilinen kayıplar" başlığı altındaki 3 test çeviricinin **şu anki** kayıplı
+davranışını belgeliyor. 1. madde yapılınca bunlar `gidisDonusKontrol`'e çevrilmeli.
 
 ## 3. `NotPenceresi`'ni Bölmek
 **Etki: orta · Maliyet: yüksek · Satır 1686–2445**

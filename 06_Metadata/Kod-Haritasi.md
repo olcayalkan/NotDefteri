@@ -1,12 +1,12 @@
 ---
 tags: [kod-haritasi, referans]
 guncelleme: 2026-08-24
-kaynak: Sources/NotDefteri/main.swift
+kaynak: Sources/NotDefteri/NotDefteri.swift
 ---
 
-# Kod Haritası — main.swift
+# Kod Haritası — NotDefteri.swift
 
-**2560 satır, tek dosya.** Dosyayı baştan okuma; aşağıdan hedef aralığı bul,
+**2570 satır, tek dosya.** Dosyayı baştan okuma; aşağıdan hedef aralığı bul,
 `Read` aracına `offset` + `limit` ver.
 
 ## Bölümler (MARK)
