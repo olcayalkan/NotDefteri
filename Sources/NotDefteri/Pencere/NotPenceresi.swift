@@ -22,6 +22,10 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
     var sonYazilanIcerik: String?
     /// Dosya adı kullanıcı tarafından değil, ilk satırdan otomatik üretildiyse doğrudur.
     var otomatikAdlandirildiMi = false
+    /// Kayıt hatası kullanıcıya bildirildi mi? Otomatik kayıt 5 saniyede bir
+    /// denediği için, hata sürerken her turda uyarı çıkmasın diye tutulur.
+    /// Başarılı bir kayıtta sıfırlanır.
+    var kayitHatasiBildirildi = false
 
     convenience init() {
         let boyut = NSRect(x: 0, y: 0, width: 680, height: 520)

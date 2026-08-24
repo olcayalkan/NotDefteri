@@ -79,13 +79,32 @@ davranışını belgeliyor. 1. madde yapılınca bunlar `gidisDonusKontrol`'e ç
 
 Tek dosya kısıtı da gözden geçirilmeli — 2560 satır tek dosya bakımı zorlaştırıyor.
 
-## 4. Hata Yutmayı Azaltmak
-**Etki: orta · Maliyet: düşük**
+## 4. ✅ Kayıt Yolundaki Sessiz Veri Kaybı — BİTTİ (24 Ağu 2026)
+**`Pencere/NotPenceresi+Kaydetme.swift`, `NotPenceresi+Pencere.swift`**
 
-Dosya işlemleri neredeyse tamamen `try?`. Disk dolu, izin yok, dosya kilitli
-gibi durumlar sessizce kayboluyor — kullanıcı notunun kaydedilmediğini fark etmiyor.
+### Asıl hata `try?` değildi
+`try?` yalnızca hatayı susturuyordu. Gerçek sorun sonraki üç satırdaydı:
+yazma başarısız olsa bile `sonYazilanIcerik` ve `duzenlendiMi` güncelleniyordu.
 
-En azından `kaydetURLe()` (satır 1920) başarısızlığı kullanıcıya bildirmeli.
+Sonuç zinciri:
+1. Disk dolu / izin yok → yazma başarısız, kimse bilmiyor
+2. Kod notu "kaydedildi" sayıyor
+3. Sonraki otomatik kayıt "içerik değişmemiş" diyip **atlıyor**
+4. Kullanıcı pencereyi kapatıyor, yazdığı gidiyor
+
+### Düzeltme
+- `kaydetURLe()` artık `@discardableResult -> Bool`; `do/catch` ile yazıyor.
+  Başarısızlıkta iç durum **güncellenmiyor** → otomatik kayıt yeniden deniyor.
+- `kayitHatasiniBildir()`: kritik `NSAlert`, "Klasörü Göster" düğmesiyle.
+  `kayitHatasiBildirildi` bayrağı 5 saniyede bir uyarı yağmasını engelliyor;
+  başarılı kayıtta sıfırlanıyor.
+- `kapanistaGerekirseKaydet()` da `Bool` döndürüyor; **`close()` kayıt
+  başarısızsa pencereyi kapatmıyor.** Kullanıcı yazdığını kurtarma şansı buluyor.
+
+### Kalan
+Geri kalan 25 `try?` okuma/tarama yollarında (`agaciYukle`, `SayfaAgaci`).
+Oralarda sessiz başarısızlık veri kaybettirmiyor, yalnızca öğe listede
+görünmüyor — düşük öncelik.
 
 ## 5. Arama Önbelleğini Ucuzlatmak
 **Etki: düşük (şimdilik) · Maliyet: orta · Satır 1238**
