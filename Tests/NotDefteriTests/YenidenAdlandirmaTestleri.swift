@@ -121,3 +121,55 @@ final class YenidenAdlandirmaTestleri: XCTestCase {
         XCTAssertEqual(sonra.cocuklar.map(\.ad), ["Alt"], "alt sayfa ağaçta görünmeli")
     }
 }
+
+/// Kenar panelin "açık klasör" hafızası. Bir dal taşınınca altındaki tüm
+/// kayıtların da taşınması gerekiyor; yoksa alt sayfanın altındaki dallar
+/// yeniden açılmıyor ve kayıt kalıcı çöpe dönüşüyor.
+final class AcikKlasorKayitlariTestleri: XCTestCase {
+
+    private func panel(_ yollar: [String]) -> KenarPaneli {
+        let p = KenarPaneli(frame: .zero)
+        p.acikKlasorYollari = Set(yollar)
+        return p
+    }
+
+    func testTasimaTorunlariDaGunceller() {
+        let p = panel(["/n/Ana", "/n/Ana/Alt", "/n/Ana/Alt/AltAlt", "/n/Baska"])
+        p.acikKlasorleriTasi(eski: "/n/Ana/Alt", yeni: "/n/Ana/AltYeni")
+
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/Ana/AltYeni"))
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/Ana/AltYeni/AltAlt"),
+                      "torun kaydı da taşınmalı: \(p.acikKlasorYollari.sorted())")
+        XCTAssertFalse(p.acikKlasorYollari.contains("/n/Ana/Alt"))
+        XCTAssertFalse(p.acikKlasorYollari.contains("/n/Ana/Alt/AltAlt"), "eski kayıt kalmamalı")
+    }
+
+    func testTasimaIlgisizKayitlaraDokunmaz() {
+        let p = panel(["/n/Ana", "/n/Ana/Alt", "/n/Baska", "/n/AltBaska"])
+        p.acikKlasorleriTasi(eski: "/n/Ana/Alt", yeni: "/n/Ana/AltYeni")
+
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/Ana"), "üst dal etkilenmemeli")
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/Baska"))
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/AltBaska"),
+                      "benzer adlı ama farklı dal etkilenmemeli")
+    }
+
+    /// "Alt" öneki "AltBaska"yı yakalamamalı — sınır "/" ile korunuyor.
+    func testOnekSinirinaSaygiliDir() {
+        let p = panel(["/n/Alt", "/n/AltBaska"])
+        p.acikKlasorleriTasi(eski: "/n/Alt", yeni: "/n/Yeni")
+
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/Yeni"))
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/AltBaska"), "yanlış eşleşme olmamalı")
+    }
+
+    func testSilmeDaliTemizler() {
+        let p = panel(["/n/Ana", "/n/Ana/Alt", "/n/Ana/Alt/AltAlt", "/n/Baska"])
+        p.acikKlasorleriSil(onek: "/n/Ana/Alt")
+
+        XCTAssertFalse(p.acikKlasorYollari.contains("/n/Ana/Alt"))
+        XCTAssertFalse(p.acikKlasorYollari.contains("/n/Ana/Alt/AltAlt"), "torunlar da silinmeli")
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/Ana"), "üst dal kalmalı")
+        XCTAssertTrue(p.acikKlasorYollari.contains("/n/Baska"))
+    }
+}

@@ -77,10 +77,7 @@ extension KenarPaneli {
             acikNotURL = yeniURL
             notYenidenAdlandirildi?(acik, yeniURL)
         }
-        if acikKlasorYollari.remove(eskiCocukKlasoru.path) != nil {
-            acikKlasorYollari.insert(yeniCocukKlasoru.path)
-            acikKlasorleriKaydet()
-        }
+        acikKlasorleriTasi(eski: eskiCocukKlasoru.path, yeni: yeniCocukKlasoru.path)
         yenile(secili: acikNotURL)
     }
 
@@ -141,6 +138,32 @@ extension KenarPaneli {
             acikNotURL = nil
             notSilindi?(acik)
         }
+        acikKlasorleriSil(onek: altKlasor.path)
         DispatchQueue.main.async { [weak self] in self?.yenile(secili: nil) }
+    }
+
+    // MARK: Açık klasör kayıtlarının bakımı
+
+    /// Bir dal taşındığında altındaki TÜM açık klasör kayıtlarını yeni yola taşır.
+    ///
+    /// Yalnızca taşınan düğümün kendi yolunu güncellemek yetmiyordu: torun
+    /// sayfaların kayıtları eski önekte kalıyor, dal yeniden açılmıyor ve
+    /// kayıt kalıcı çöpe dönüşüyordu.
+    func acikKlasorleriTasi(eski: String, yeni: String) {
+        let etkilenen = acikKlasorYollari.filter { $0 == eski || $0.hasPrefix(eski + "/") }
+        guard !etkilenen.isEmpty else { return }
+        for yol in etkilenen {
+            acikKlasorYollari.remove(yol)
+            acikKlasorYollari.insert(yeni + yol.dropFirst(eski.count))
+        }
+        acikKlasorleriKaydet()
+    }
+
+    /// Silinen dalın açık klasör kayıtlarını temizler.
+    func acikKlasorleriSil(onek: String) {
+        let etkilenen = acikKlasorYollari.filter { $0 == onek || $0.hasPrefix(onek + "/") }
+        guard !etkilenen.isEmpty else { return }
+        etkilenen.forEach { acikKlasorYollari.remove($0) }
+        acikKlasorleriKaydet()
     }
 }
