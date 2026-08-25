@@ -150,6 +150,12 @@ extension KenarPaneli {
     }
 
     func controlTextDidChange(_ obj: Notification) {
+        // YALNIZCA arama kutusu. Satır üzerinde ad düzenlenirken de bu geri
+        // çağrı tetikleniyor; süzmezsek her tuş vuruşunda filtreUygula ->
+        // reloadData çalışıyor, düzenlenen hücre yok ediliyor ve ad yarım
+        // metinle kaydediliyordu ("A" yazınca dosya adı "A" oluyordu).
+        // Aynı yol "Reentrant call to reloadData" uyarısının da kaynağıydı.
+        guard (obj.object as AnyObject?) === aramaAlani else { return }
         aramaTemizleButonu.isHidden = aramaAlani.stringValue.isEmpty
         filtreUygula()
     }

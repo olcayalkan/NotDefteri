@@ -91,6 +91,20 @@ Her 5 saniyede bir bunu yapmak pahalı.
 
 ## Kenar Panel
 
+### Metin alanı delege metotları MUTLAKA süzülür
+`KenarPaneli` iki farklı metin alanının delegesi: arama kutusu ve satır
+üzerindeki ad düzenleme alanı. Dört geri çağrının **hepsi** hangi alandan
+geldiğini kontrol etmeli.
+
+**Neden:** `controlTextDidChange` süzülmüyordu. Ad düzenlenirken her tuş
+vuruşunda `filtreUygula()` -> `reloadData()` çalışıyor, düzenlenen hücre yok
+ediliyor, alan editörü kapanıyor ve ad **yarım metinle** kaydediliyordu:
+"A" yazınca dosyanın adı "A" oluyor, düzenleme bitiyordu.
+
+Aynı yol "Reentrant call to reloadData" uyarısının da kaynağıydı — reloadData
+alan editörü etkinken, outline view'ın kendi bağlamından çağrılıyordu.
+
+
 ### Ağaç tazeleme AppKit geri çağrılarından ERTELENİR
 Yeniden adlandırma, silme ve klasöre dönüştürme `DispatchQueue.main.async`
 ile sonraki döngüye bırakılır.
