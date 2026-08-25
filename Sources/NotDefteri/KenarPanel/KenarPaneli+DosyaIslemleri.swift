@@ -104,7 +104,11 @@ extension KenarPaneli {
             acikNotURL = yeni
             notYenidenAdlandirildi?(icerik, yeni)
         }
-        yenile(secili: acikNotURL)
+        // Menü bağlamından geliyoruz; ağacı sonraki döngüde kur (bkz. adiDegistir).
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.yenile(secili: self.acikNotURL)
+        }
     }
 
     @objc func silTiklandi() {
@@ -137,6 +141,6 @@ extension KenarPaneli {
             acikNotURL = nil
             notSilindi?(acik)
         }
-        yenile(secili: nil)
+        DispatchQueue.main.async { [weak self] in self?.yenile(secili: nil) }
     }
 }

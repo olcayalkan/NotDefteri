@@ -133,7 +133,13 @@ extension KenarPaneli {
             alan.stringValue = dugum.ad   // Vazgeçildi: eski adı geri yaz.
             return
         }
-        adiDegistir(dugum, yeniAd: yeniAd)
+        // Yeniden adlandırma dosyaları taşıyıp ağacı yeniden kuruyor. Bunu bu
+        // geri çağrının içinde yapmak yasak: AppKit hâlâ satır düzenleyicisini
+        // kapatıyor ve o sırada reloadData çağırmak outline view'ın iç durumunu
+        // bozuyor ("Reentrant call to reloadData"). Sonraki döngüye bırakıyoruz.
+        DispatchQueue.main.async { [weak self] in
+            self?.adiDegistir(dugum, yeniAd: yeniAd)
+        }
     }
 
     func outlineViewItemDidExpand(_ notification: Notification) {
