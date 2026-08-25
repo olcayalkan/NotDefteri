@@ -91,6 +91,19 @@ Her 5 saniyede bir bunu yapmak pahalı.
 
 ## Kenar Panel
 
+### Ağaç tazeleme AppKit geri çağrılarından ERTELENİR
+Yeniden adlandırma, silme ve klasöre dönüştürme `DispatchQueue.main.async`
+ile sonraki döngüye bırakılır.
+
+**Neden:** `controlTextDidEndEditing` AppKit satır düzenleyicisini kapatırken
+tetikleniyor. O sırada `reloadData` çağırmak outline view'ın iç durumunu
+bozuyor — "Reentrant call to reloadData" uyarısı çıkıyor ve **yeniden
+adlandırmadan sonra panel çalışmaz hâle geliyordu.**
+
+Dikkat: `yenilemeSuruyor` bayrağı bunu ÇÖZMEZ. O yalnızca özyinelemeyi
+engelliyor; buradaki çağrı AppKit'in kendi reload bağlamının içinden geliyor.
+Tek çözüm bağlamdan çıkmak.
+
 ### `yenile()` yeniden girişe kapalı
 `yenilemeSuruyor` bayrağı var. **Neden:** NSOutlineView iç içe `reloadData`
 desteklemiyor. Şu yol kendini tetikliyordu: satır seç → `notSecildi` →
