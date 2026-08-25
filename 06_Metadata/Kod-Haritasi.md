@@ -77,7 +77,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-`Tests/NotDefteriTests/` — 75 test (`CeviriciTestleri` 23, `KaydediciTestleri` 13, `DosyaAdiTestleri` 10, `YenidenAdlandirmaTestleri` 15, `IcindekilerTestleri` 8, `OnbellekTestleri` 6).
+`Tests/NotDefteriTests/` — 80 test (`CeviriciTestleri` 23, `KaydediciTestleri` 13, `YenidenAdlandirmaTestleri` 15, `DosyaAdiTestleri` 10, `IcindekilerTestleri` 8, `OnbellekTestleri` 6, `GorselBagiTestleri` 5).
 Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama, otomatik başlık,
 Türkçe arama, font yardımcıları. `swift test` ile çalıştır.
 

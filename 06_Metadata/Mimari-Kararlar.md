@@ -45,6 +45,14 @@ başlık fontu seviyeden türetilir (`baslikFontu()`, satır 168).
 
 ## Görsel Eki
 
+### Görsel HER ZAMAN sayfanın kendi klasörüne yazılır
+Sayfa henüz diskte yoksa `gorseliDiskeYaz()` önce onu oluşturur.
+
+**Neden:** Bağlar göreli (`Görseller/x.png`) ve `Görseller/` klasörü sayfanın
+klasöründe. Böylece sayfa yeniden adlandırılınca ya da taşınınca görsel
+birlikte gidiyor, bağ kendiliğinden geçerli kalıyor. Eskiden kaydedilmemiş
+notun görseli kök klasöre yazılıyordu; sayfayla bağı kopuyordu.
+
 ### Dosya adı MUTLAKA temizlenir
 `guvenliDosyaAdi()` (`Cekirdek/DosyaAdi.swift`) parantez, süslü parantez,
 köşeli parantez, tırnak vb. karakterleri tireye çevirir.
