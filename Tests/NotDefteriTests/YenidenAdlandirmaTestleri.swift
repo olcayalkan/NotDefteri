@@ -173,3 +173,50 @@ final class AcikKlasorKayitlariTestleri: XCTestCase {
         XCTAssertTrue(p.acikKlasorYollari.contains("/n/Baska"))
     }
 }
+
+/// Kenar panelin metin alanı delege metotları hangi alandan geldiğini
+/// süzmeli. Süzmezse satır üzerinde ad düzenlerken arama mantığı devreye
+/// giriyor ve düzenleme yarıda kesiliyor.
+final class MetinAlaniDelegeTestleri: XCTestCase {
+
+    /// Ad düzenleme alanından gelen değişiklik arama filtresini ÇALIŞTIRMAMALI.
+    ///
+    /// Gerçek hata: her tuş vuruşunda `filtreUygula()` -> `reloadData()`
+    /// çalışıyor, düzenlenen hücre yok ediliyor ve ad yarım metinle
+    /// kaydediliyordu — "A" yazınca dosyanın adı "A" oluyordu.
+    func testYabanciAlandanGelenDegisiklikAramayiTetiklemez() {
+        let panel = KenarPaneli(frame: .zero)
+        panel.aramaAlani.stringValue = "arama metni"
+        let onceki = panel.aramaTemizleButonu.isHidden
+
+        // Satır üzerindeki ad düzenleme alanını taklit et.
+        let adAlani = NSTextField(string: "A")
+        panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification,
+                                                 object: adAlani))
+
+        XCTAssertEqual(panel.aramaTemizleButonu.isHidden, onceki,
+                       "yabancı alandan gelen bildirim arama durumunu değiştirmemeli")
+    }
+
+    /// Arama kutusundan gelen değişiklik normal şekilde işlenmeli.
+    func testAramaKutusundanGelenDegisiklikIslenir() {
+        let panel = KenarPaneli(frame: .zero)
+        panel.aramaAlani.stringValue = "bir şey"
+
+        panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification,
+                                                 object: panel.aramaAlani))
+
+        XCTAssertFalse(panel.aramaTemizleButonu.isHidden,
+                       "arama doluyken temizle düğmesi görünmeli")
+    }
+
+    func testBosAramaTemizleDugmesiniGizler() {
+        let panel = KenarPaneli(frame: .zero)
+        panel.aramaAlani.stringValue = ""
+
+        panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification,
+                                                 object: panel.aramaAlani))
+
+        XCTAssertTrue(panel.aramaTemizleButonu.isHidden)
+    }
+}
