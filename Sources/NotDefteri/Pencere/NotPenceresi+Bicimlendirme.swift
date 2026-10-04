@@ -4,47 +4,105 @@ import AppKit
 
 extension NotPenceresi {
 
-    // MARK: Kalın yazı (Cmd+B)
+    enum SatirIciBicim { case kalin, italik, ustuCizili, kod, vurgu }
 
-    @objc func kalinKomutu(_ sender: Any?) { kalinYap() }
+    @objc func kalinKomutu(_ sender: Any?) { satirIciBicimiDegistir(.kalin) }
+    @objc func italikKomutu(_ sender: Any?) { satirIciBicimiDegistir(.italik) }
+    @objc func ustuCiziliKomutu(_ sender: Any?) { satirIciBicimiDegistir(.ustuCizili) }
+    @objc func satirIciKodKomutu(_ sender: Any?) { satirIciBicimiDegistir(.kod) }
+    @objc func vurguKomutu(_ sender: Any?) { satirIciBicimiDegistir(.vurgu) }
 
-    private func kalinYap() {
-        guard let textStorage = metinGorunumu.textStorage else { return }
-        let secilen = metinGorunumu.selectedRange()
-
-        if secilen.length == 0 {
-            var oznitelikler = metinGorunumu.typingAttributes
-            let mevcutFont = (oznitelikler[.font] as? NSFont) ?? varsayilanFont()
-            let kalinMi = NSFontManager.shared.traits(of: mevcutFont).contains(.boldFontMask)
-            oznitelikler[.font] = kalinMi
-                ? NSFontManager.shared.convert(mevcutFont, toNotHaveTrait: .boldFontMask)
-                : NSFontManager.shared.convert(mevcutFont, toHaveTrait: .boldFontMask)
-            metinGorunumu.typingAttributes = oznitelikler
-            return
-        }
-
-        var tumuKalin = true
-        textStorage.enumerateAttribute(.font, in: secilen, options: []) { deger, _, durdur in
-            let font = (deger as? NSFont) ?? varsayilanFont()
-            if !NSFontManager.shared.traits(of: font).contains(.boldFontMask) {
-                tumuKalin = false
-                durdur.pointee = true
+    private func satirIciBicimiDegistir(_ bicim: SatirIciBicim) {
+        guard let depo = metinGorunumu.textStorage else { return }
+        let secim = metinGorunumu.selectedRange()
+        func etkin(_ oznitelikler: [NSAttributedString.Key: Any]) -> Bool {
+            let font = (oznitelikler[.font] as? NSFont) ?? varsayilanFont()
+            switch bicim {
+            case .kalin: return kalinMi(font)
+            case .italik: return italikMi(font)
+            case .ustuCizili: return oznitelikler[kUstuCiziliAnahtari] as? Bool == true
+            case .kod: return oznitelikler[kSatirIciKodAnahtari] as? Bool == true
+            case .vurgu: return oznitelikler[kVurguAnahtari] as? Bool == true
             }
         }
-
-        // shouldChangeText/didChangeText çifti, öznitelik değişikliğini geri alma
-        // yığınına kaydeder ve textDidChange'i tetikler.
-        guard metinGorunumu.shouldChangeText(in: secilen, replacementString: nil) else { return }
-        textStorage.beginEditing()
-        textStorage.enumerateAttribute(.font, in: secilen, options: []) { deger, altAralik, _ in
-            let font = (deger as? NSFont) ?? varsayilanFont()
-            let yeniFont = tumuKalin
-                ? NSFontManager.shared.convert(font, toNotHaveTrait: .boldFontMask)
-                : NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
-            textStorage.addAttribute(.font, value: yeniFont, range: altAralik)
+        func degistir(_ eski: [NSAttributedString.Key: Any], ac: Bool) -> [NSAttributedString.Key: Any] {
+            var yeni = eski
+            let font = (eski[.font] as? NSFont) ?? varsayilanFont()
+            switch bicim {
+            case .kalin, .italik:
+                let ozellik: NSFontTraitMask = bicim == .kalin ? .boldFontMask : .italicFontMask
+                yeni[.font] = ac ? NSFontManager.shared.convert(font, toHaveTrait: ozellik)
+                    : NSFontManager.shared.convert(font, toNotHaveTrait: ozellik)
+            case .ustuCizili:
+                yeni[kUstuCiziliAnahtari] = ac ? true : nil
+                let yapilacak = (eski[kMetinBloguAnahtari] as? MetinBlogu)?.tamamlandi == true
+                yeni[.strikethroughStyle] = ac || yapilacak ? NSUnderlineStyle.single.rawValue : nil
+            case .kod:
+                yeni[kSatirIciKodAnahtari] = ac ? true : nil
+                let temel = ac ? NSFont.monospacedSystemFont(ofSize: font.pointSize, weight: .regular)
+                    : NSFont.systemFont(ofSize: font.pointSize)
+                yeni[.font] = NSFontManager.shared.convert(temel, toHaveTrait: NSFontManager.shared.traits(of: font).intersection([.boldFontMask, .italicFontMask]))
+                yeni[.backgroundColor] = eski[kVurguAnahtari] as? Bool == true
+                    ? NSColor.systemYellow.withAlphaComponent(0.3) : (ac ? kMetinRenk.withAlphaComponent(0.08) : nil)
+            case .vurgu:
+                yeni[kVurguAnahtari] = ac ? true : nil
+                yeni[.backgroundColor] = ac ? NSColor.systemYellow.withAlphaComponent(0.3)
+                    : (eski[kSatirIciKodAnahtari] as? Bool == true ? kMetinRenk.withAlphaComponent(0.08) : nil)
+            }
+            return yeni
         }
-        textStorage.endEditing()
-        metinGorunumu.didChangeText()
+        if secim.length == 0 {
+            metinGorunumu.typingAttributes = degistir(metinGorunumu.typingAttributes, ac: !etkin(metinGorunumu.typingAttributes))
+            return
+        }
+        var tumuEtkin = true
+        depo.enumerateAttributes(in: secim) { oznitelikler, _, durdur in
+            if !etkin(oznitelikler) { tumuEtkin = false; durdur.pointee = true }
+        }
+        let yeni = NSMutableAttributedString(attributedString: depo.attributedSubstring(from: secim))
+        yeni.enumerateAttributes(in: NSRange(location: 0, length: yeni.length)) { oznitelikler, alt, _ in
+            if oznitelikler[kBlokIsaretiAnahtari] as? Bool != true, oznitelikler[.attachment] == nil {
+                yeni.setAttributes(degistir(oznitelikler, ac: !tumuEtkin), range: alt)
+            }
+        }
+        metinGorunumu.blokDuzenle(secim, yeni: yeni, secim: secim, yazim: metinGorunumu.typingAttributes)
+        metinGorunumu.secimCubugunuGuncelle()
+    }
+
+    @objc func baglantiKomutu(_ sender: Any?) {
+        metinGorunumu.blokYaziminiGuncelle()
+        let secim = metinGorunumu.selectedRange()
+        let uyari = NSAlert()
+        uyari.messageText = "Bağlantı"
+        uyari.informativeText = "URL girin. Boş bırakırsanız bağlantı kaldırılır."
+        uyari.addButton(withTitle: "Uygula")
+        uyari.addButton(withTitle: "Vazgeç")
+        let giris = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
+        giris.placeholderString = "https://…"
+        if let depo = metinGorunumu.textStorage, secim.location < depo.length,
+           let url = depo.attribute(.link, at: secim.location, effectiveRange: nil) {
+            giris.stringValue = String(describing: url)
+        }
+        uyari.accessoryView = giris
+        uyari.window.initialFirstResponder = giris
+        metinGorunumu.yuzerGorunumleriGizle()
+        guard uyari.runModal() == .alertFirstButtonReturn else { return }
+        let metin = giris.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let url = URL(string: metin)
+        guard metin.isEmpty || url.map(disBaglantiGecerliMi) == true else { NSSound.beep(); return }
+        guard let depo = metinGorunumu.textStorage, NSMaxRange(secim) <= depo.length else { return }
+        let yeni = secim.length > 0
+            ? NSMutableAttributedString(attributedString: depo.attributedSubstring(from: secim))
+            : NSMutableAttributedString(string: metin, attributes: metinGorunumu.typingAttributes)
+        let tumu = NSRange(location: 0, length: yeni.length)
+        yeni.removeAttribute(kCiplakBagAnahtari, range: tumu)
+        if let url, !metin.isEmpty { yeni.addAttribute(.link, value: url, range: tumu) }
+        else { yeni.removeAttribute(.link, range: tumu) }
+        metinGorunumu.blokDuzenle(secim, yeni: yeni,
+                                  secim: NSRange(location: secim.location, length: yeni.length),
+                                  yazim: metinGorunumu.typingAttributes)
+        makeFirstResponder(metinGorunumu)
+        metinGorunumu.secimCubugunuGuncelle()
     }
 
     // MARK: Punto (Cmd+* büyüt / Cmd+- küçült)
@@ -61,9 +119,10 @@ extension NotPenceresi {
         if secilen.length == 0 {
             var oznitelikler = metinGorunumu.typingAttributes
             let mevcutFont = (oznitelikler[.font] as? NSFont) ?? varsayilanFont()
-            let yeniBoyut = boyutSinirla(mevcutFont.pointSize + fark)
-            guard yeniBoyut != mevcutFont.pointSize else { return }
-            oznitelikler[.font] = fontUret(boyut: yeniBoyut, kalin: kalinMi(mevcutFont))
+            let olcek = (oznitelikler[kSayfaYaziOlcegiAnahtari] as? CGFloat) ?? 1
+            let yeniBoyut = boyutSinirla(mevcutFont.pointSize / olcek + fark)
+            guard yeniBoyut != mevcutFont.pointSize / olcek else { return }
+            oznitelikler[.font] = NSFontManager.shared.convert(mevcutFont, toSize: yeniBoyut * olcek)
             metinGorunumu.typingAttributes = oznitelikler
             // Yalnızca imlecin o anki yazım puntosu; kalıcı DEĞİL (kayma olmasın).
             gYaziBoyutu = yeniBoyut
@@ -75,8 +134,9 @@ extension NotPenceresi {
         textStorage.beginEditing()
         textStorage.enumerateAttribute(.font, in: secilen, options: []) { deger, altAralik, _ in
             let eskiFont = (deger as? NSFont) ?? varsayilanFont()
-            let yeniBoyut = boyutSinirla(eskiFont.pointSize + fark)
-            textStorage.addAttribute(.font, value: fontUret(boyut: yeniBoyut, kalin: kalinMi(eskiFont)), range: altAralik)
+            let olcek = (textStorage.attribute(kSayfaYaziOlcegiAnahtari, at: altAralik.location, effectiveRange: nil) as? CGFloat) ?? 1
+            let yeniBoyut = boyutSinirla(eskiFont.pointSize / olcek + fark)
+            textStorage.addAttribute(.font, value: NSFontManager.shared.convert(eskiFont, toSize: yeniBoyut * olcek), range: altAralik)
         }
         textStorage.endEditing()
         metinGorunumu.didChangeText()
@@ -93,12 +153,14 @@ extension NotPenceresi {
         if secilen.length > 0, let textStorage = metinGorunumu.textStorage,
            secilen.location < textStorage.length,
            let font = textStorage.attribute(.font, at: secilen.location, effectiveRange: nil) as? NSFont {
-            return font.pointSize
+            return font.pointSize / ((textStorage.attribute(kSayfaYaziOlcegiAnahtari, at: secilen.location, effectiveRange: nil) as? CGFloat) ?? 1)
         }
         return ((metinGorunumu.typingAttributes[.font] as? NSFont) ?? varsayilanFont()).pointSize
+            / ((metinGorunumu.typingAttributes[kSayfaYaziOlcegiAnahtari] as? CGFloat) ?? 1)
     }
 
     func textViewDidChangeSelection(_ notification: Notification) {
+        metinGorunumu.secimCubugunuGuncelle()
         puntoGostergesiniGuncelle()
         icindekiler.etkinBasligiGuncelle(imlecKonumu: metinGorunumu.selectedRange().location)
     }
@@ -118,6 +180,9 @@ extension NotPenceresi {
         metinGorunumu.backgroundColor = aktifTema.arkaplan
         baslikCubugu.temayiUygula()
         kenarPaneli.temayiUygula()
+        anaSayfa.temayiUygula()
         icindekiler.temayiUygula()
+        metinGorunumu.blokMenusunuGuncelle()
+        metinGorunumu.secimCubugunuGuncelle()
     }
 }

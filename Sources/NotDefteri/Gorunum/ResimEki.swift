@@ -1,8 +1,15 @@
 import AppKit
 
-// MARK: - Görsel eki (köşesinden çekilerek boyutlandırılabilir)
+// MARK: - Görsel eki (tutamaçlarından çekilerek boyutlandırılabilir)
 
 let kEnKucukResimEni: CGFloat = 48
+let kEnBuyukResimBoyutu: CGFloat = 10_000
+
+func resimBoyutuGecerliMi(_ boyut: NSSize) -> Bool {
+    boyut.width.isFinite && boyut.height.isFinite
+        && boyut.width >= 1 && boyut.height >= 1
+        && boyut.width <= kEnBuyukResimBoyutu && boyut.height <= kEnBuyukResimBoyutu
+}
 
 /// Metnin içine gömülen görsel. Dosya yolunu ve gösterim boyutunu taşır.
 final class ResimEki: NSTextAttachment {
@@ -17,13 +24,19 @@ final class ResimEki: NSTextAttachment {
     }
 }
 
-/// Görseli çizen ve sağ alt köşesindeki tutamaçtan boyutlandırmayı yöneten hücre.
+/// Görseli çizen ve tutamaçlarından boyutlandırmayı yöneten hücre.
 final class ResimEkiHucresi: NSTextAttachmentCell {
 
-    var gosterimBoyutu: NSSize = NSSize(width: 200, height: 150)
+    var gosterimBoyutu: NSSize = NSSize(width: 200, height: 150) {
+        didSet {
+            if !resimBoyutuGecerliMi(gosterimBoyutu) { gosterimBoyutu = oldValue }
+        }
+    }
     /// Görselin kendi en/boy oranı; boyutlandırırken korunur.
     var enBoyOrani: CGFloat = 4.0 / 3.0
-    private let tutamacBoyutu: CGFloat = 14
+    var tutamaclarGorunur = false
+    private(set) var cizimCercevesi: NSRect = .zero
+    private var boyutlandiriliyor = false
 
     override func cellSize() -> NSSize { gosterimBoyutu }
 
@@ -34,7 +47,8 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
         var boyut = gosterimBoyutu
         let sigacakEn = max(kEnKucukResimEni, lineFrag.width - position.x)
         if boyut.width > sigacakEn {
-            boyut = NSSize(width: sigacakEn.rounded(), height: (sigacakEn / enBoyOrani).rounded())
+            boyut = NSSize(width: sigacakEn.rounded(),
+                           height: min(kEnBuyukResimBoyutu, max(1, (sigacakEn / enBoyOrani).rounded())))
         }
         return NSRect(x: 0, y: cellBaselineOffset().y, width: boyut.width, height: boyut.height)
     }
@@ -43,63 +57,119 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
     override func cellBaselineOffset() -> NSPoint { NSPoint(x: 0, y: -3) }
 
     override func draw(withFrame cellFrame: NSRect, in controlView: NSView?) {
+        if controlView is NotMetinGorunumu { cizimCercevesi = cellFrame }
         image?.draw(in: cellFrame, from: .zero, operation: .sourceOver, fraction: 1.0, respectFlipped: true, hints: nil)
-        tutamaciCiz(cellFrame)
+        if tutamaclarGorunur || boyutlandiriliyor { tutamaclariCiz(cellFrame) }
     }
 
-    private func tutamaciCiz(_ cellFrame: NSRect) {
-        let kare = tutamacKaresi(cellFrame).insetBy(dx: 3, dy: 3)
-        NSColor.white.withAlphaComponent(0.9).setFill()
-        let yol = NSBezierPath(roundedRect: kare, xRadius: 2, yRadius: 2)
-        yol.fill()
-        NSColor.black.withAlphaComponent(0.55).setStroke()
-        yol.lineWidth = 1
-        yol.stroke()
+    private func tutamaclariCiz(_ cerceve: NSRect) {
+        NSColor.controlAccentColor.withAlphaComponent(0.7).setStroke()
+        let kenar = NSBezierPath(rect: cerceve.insetBy(dx: 0.5, dy: 0.5))
+        kenar.lineWidth = 1
+        kenar.stroke()
+        for alan in tutamaclar(cerceve) {
+            NSColor.white.withAlphaComponent(0.95).setFill()
+            let yol = NSBezierPath(rect: alan)
+            yol.fill()
+            yol.lineWidth = 1
+            yol.stroke()
+        }
     }
 
-    /// Tutamaç, görselin sağ alt köşesinde (metin görünümü ters çevrilmiş koordinatta).
-    private func tutamacKaresi(_ cellFrame: NSRect) -> NSRect {
-        NSRect(x: cellFrame.maxX - tutamacBoyutu, y: cellFrame.maxY - tutamacBoyutu,
-               width: tutamacBoyutu, height: tutamacBoyutu)
+    /// Çizim ve tıklama aynı alanları kullanır.
+    private func tutamaclar(_ cerceve: NSRect) -> [NSRect] {
+        let kare = min(8, cerceve.width, cerceve.height)
+        let cubukEni = min(4, cerceve.width)
+        let cubukBoyu = min(24, cerceve.height)
+        return [
+            NSRect(x: cerceve.minX, y: cerceve.minY, width: kare, height: kare),
+            NSRect(x: cerceve.minX, y: cerceve.maxY - kare, width: kare, height: kare),
+            NSRect(x: cerceve.maxX - kare, y: cerceve.minY, width: kare, height: kare),
+            NSRect(x: cerceve.maxX - kare, y: cerceve.maxY - kare, width: kare, height: kare),
+            NSRect(x: cerceve.minX, y: cerceve.midY - cubukBoyu / 2, width: cubukEni, height: cubukBoyu),
+            NSRect(x: cerceve.maxX - cubukEni, y: cerceve.midY - cubukBoyu / 2, width: cubukEni, height: cubukBoyu)
+        ]
+    }
+
+    func tutamacYonu(noktada nokta: NSPoint, cerceve: NSRect) -> CGFloat? {
+        guard cerceve.contains(nokta),
+              tutamaclar(cerceve).contains(where: { $0.insetBy(dx: -3, dy: -3).contains(nokta) }) else { return nil }
+        // Dar görsellerde tıklama alanları çakışsa da sağ/sol yönü değişmesin.
+        return nokta.x < cerceve.midX ? -1 : 1
     }
 
     override func wantsToTrackMouse() -> Bool { true }
 
     override func trackMouse(with theEvent: NSEvent, in cellFrame: NSRect, of controlView: NSView?, untilMouseUp flag: Bool) -> Bool {
-        guard let metinGorunumu = controlView as? NSTextView, let pencere = metinGorunumu.window else { return false }
+        guard let metinGorunumu = controlView as? NSTextView, metinGorunumu.isEditable,
+              let pencere = metinGorunumu.window else { return false }
         let baslangicNoktasi = metinGorunumu.convert(theEvent.locationInWindow, from: nil)
         // Tutamacın dışına basıldıysa olağan davranış (seçme/sürükleme) sürsün.
-        guard tutamacKaresi(cellFrame).contains(baslangicNoktasi) else { return false }
+        guard let yon = tutamacYonu(noktada: baslangicNoktasi, cerceve: cellFrame) else { return false }
+        guard let metinDeposu = metinGorunumu.textStorage,
+              let ekIndeksi = ekinIndeksi(metinDeposu) else { return false }
 
         let baslangicBoyutu = gosterimBoyutu
-        let enFazlaEn = maksimumEn(metinGorunumu)
+        // Satıra sığdırılan görsel, ilk harekette saklanan büyük boyutuna sıçramasın.
+        let baslangicEni = cellFrame.width
+        let enFazlaEn = min(maksimumEn(metinGorunumu), kEnBuyukResimBoyutu,
+                           kEnBuyukResimBoyutu * enBoyOrani).rounded(.down)
+        let enAzGecerliEn = max(1, enBoyOrani).rounded(.up)
+        let enAzEn = min(enFazlaEn, max(kEnKucukResimEni, enAzGecerliEn))
+        boyutlandiriliyor = true
+        pencere.makeFirstResponder(metinGorunumu)
+        NSCursor.resizeLeftRight.set()
+        defer {
+            boyutlandiriliyor = false
+            metinGorunumu.needsDisplay = true
+        }
+        metinGorunumu.breakUndoCoalescing()
 
         while let olay = pencere.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
             if olay.type == .leftMouseUp { break }
+            // Oranı koruyan hiçbir geçerli boyut sığmıyorsa tutamaç yine seçimi engeller.
+            guard enAzGecerliEn <= enFazlaEn else { continue }
             let nokta = metinGorunumu.convert(olay.locationInWindow, from: nil)
-            // Çapraz çekme: yatay ve dikey hareketin ortalaması, oran korunarak.
-            let yatayFark = nokta.x - baslangicNoktasi.x
-            let dikeyFark = (nokta.y - baslangicNoktasi.y) * enBoyOrani
-            let yeniEn = min(max(baslangicBoyutu.width + (yatayFark + dikeyFark) / 2, kEnKucukResimEni), enFazlaEn)
-            gosterimBoyutu = NSSize(width: yeniEn.rounded(), height: (yeniEn / enBoyOrani).rounded())
-            yerlesimiTazele(metinGorunumu)
+            let yatayFark = (nokta.x - baslangicNoktasi.x) * yon
+            let yeniEn = min(max(baslangicEni + yatayFark, enAzEn), enFazlaEn)
+            let yeniBoyut = yatayFark == 0 ? baslangicBoyutu
+                : NSSize(width: max(1, yeniEn.rounded()), height: max(1, (yeniEn / enBoyOrani).rounded()))
+            guard resimBoyutuGecerliMi(yeniBoyut), yeniBoyut != gosterimBoyutu else { continue }
+            gosterimBoyutu = yeniBoyut
+            yerlesimiTazele(metinGorunumu, ekIndeksi: ekIndeksi)
+            metinGorunumu.displayIfNeeded()
+            NSCursor.resizeLeftRight.set()
         }
-        yerlesimiTazele(metinGorunumu)
-        // Boyut değişikliği not içeriğinin bir parçası; kaydı tetikle.
-        NotificationCenter.default.post(name: NSText.didChangeNotification, object: metinGorunumu)
+        if gosterimBoyutu != baslangicBoyutu {
+            geriAlmayiKaydet(boyut: baslangicBoyutu, metinGorunumu: metinGorunumu)
+            metinGorunumu.didChangeText()
+        }
         return true
+    }
+
+    private func geriAlmayiKaydet(boyut: NSSize, metinGorunumu: NSTextView) {
+        metinGorunumu.undoManager?.registerUndo(withTarget: self) { [weak metinGorunumu] hucre in
+            guard let metinGorunumu, let depo = metinGorunumu.textStorage,
+                  let indeks = hucre.ekinIndeksi(depo) else { return }
+            hucre.geriAlmayiKaydet(boyut: hucre.gosterimBoyutu, metinGorunumu: metinGorunumu)
+            hucre.gosterimBoyutu = boyut
+            hucre.yerlesimiTazele(metinGorunumu, ekIndeksi: indeks)
+            metinGorunumu.didChangeText()
+        }
+        metinGorunumu.undoManager?.setActionName("Görsel Boyutlandırma")
     }
 
     /// Görselin sığabileceği en fazla genişlik (metin alanı eksi kenar boşlukları).
     private func maksimumEn(_ metinGorunumu: NSTextView) -> CGFloat {
-        let kapsayiciEni = metinGorunumu.textContainer?.size.width ?? metinGorunumu.bounds.width
-        return max(kEnKucukResimEni, kapsayiciEni - metinGorunumu.textContainerInset.width * 2 - 8)
+        guard let kapsayici = metinGorunumu.textContainer else {
+            return max(1, metinGorunumu.bounds.width - metinGorunumu.textContainerInset.width * 2)
+        }
+        return max(1, kapsayici.size.width - kapsayici.lineFragmentPadding * 2)
     }
 
     /// Hücre boyutu değişince satır yerleşimi yeniden hesaplanmalı.
-    private func yerlesimiTazele(_ metinGorunumu: NSTextView) {
-        guard let metinDeposu = metinGorunumu.textStorage,
-              let ekIndeksi = ekinIndeksi(metinDeposu) else { return }
+    private func yerlesimiTazele(_ metinGorunumu: NSTextView, ekIndeksi: Int) {
+        guard let metinDeposu = metinGorunumu.textStorage else { return }
         metinDeposu.edited(.editedAttributes, range: NSRange(location: ekIndeksi, length: 1), changeInLength: 0)
         metinGorunumu.needsDisplay = true
     }
@@ -124,14 +194,15 @@ func resimEkiUret(gorsel: NSImage, dosyaURL: URL, bagYolu: String? = nil, goster
 
     let gercekBoyut = gorsel.size
     let oran = gercekBoyut.height > 0 ? gercekBoyut.width / gercekBoyut.height : 1
-    hucre.enBoyOrani = oran > 0 ? oran : 1
+    hucre.enBoyOrani = oran.isFinite && oran > 0 ? min(max(oran, 1 / kEnBuyukResimBoyutu), kEnBuyukResimBoyutu) : 1
 
-    if let istenen = gosterimBoyutu, istenen.width >= kEnKucukResimEni {
+    if let istenen = gosterimBoyutu, resimBoyutuGecerliMi(istenen), istenen.width >= kEnKucukResimEni {
         hucre.gosterimBoyutu = istenen
     } else {
         // Yeni eklenen görsel çok büyükse makul bir başlangıç genişliğine indirilir.
-        let baslangicEni = min(gercekBoyut.width, 360)
-        hucre.gosterimBoyutu = NSSize(width: baslangicEni.rounded(), height: (baslangicEni / hucre.enBoyOrani).rounded())
+        let baslangicEni = gercekBoyut.width.isFinite && gercekBoyut.width > 0 ? min(gercekBoyut.width, 360) : 200
+        hucre.gosterimBoyutu = NSSize(width: max(1, baslangicEni.rounded()),
+                                     height: min(kEnBuyukResimBoyutu, max(1, (baslangicEni / hucre.enBoyOrani).rounded())))
     }
 
     ek.attachmentCell = hucre

@@ -15,12 +15,14 @@ extension KenarPaneli {
     }
 
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+        if item is KenarBolumu { return true }
         // Sadece alt sayfası olan düğümde açma oku çıkar.
-        !((item as? AgacDugumu)?.cocuklar.isEmpty ?? true)
+        return !((item as? AgacDugumu)?.cocuklar.isEmpty ?? true)
     }
 
-    private func cocuklar(_ item: Any?) -> [AgacDugumu] {
-        guard let dugum = item as? AgacDugumu else { return kokDugumler }
+    private func cocuklar(_ item: Any?) -> [Any] {
+        if let bolum = item as? KenarBolumu { return bolum.sayfalar }
+        guard let dugum = item as? AgacDugumu else { return kenarBolumleri + kokDugumler.map { $0 as Any } }
         return dugum.cocuklar
     }
 
@@ -35,6 +37,12 @@ extension KenarPaneli {
     }
 
     func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+        if let bolum = item as? KenarBolumu {
+            let etiket = NSTextField(labelWithString: bolum.ad)
+            etiket.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+            etiket.textColor = .secondaryLabelColor
+            return etiket
+        }
         guard let dugum = item as? AgacDugumu else { return nil }
         let kimlik = NSUserInterfaceItemIdentifier("NotHucresi")
         let hucre: NSTableCellView
@@ -58,13 +66,25 @@ extension KenarPaneli {
             hucre.addSubview(etiket)
             hucre.textField = etiket
 
+            // Sabit sayfada adın hemen sağında soluk küçük raptiye; sabit değilse boş kalır.
+            let raptiye = NSTextField(labelWithString: "")
+            raptiye.identifier = NSUserInterfaceItemIdentifier("Raptiye")
+            raptiye.font = NSFont.systemFont(ofSize: 9)
+            raptiye.alphaValue = 0.5
+            raptiye.translatesAutoresizingMaskIntoConstraints = false
+            raptiye.setContentCompressionResistancePriority(.required, for: .horizontal)
+            hucre.addSubview(raptiye)
+            etiket.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
             NSLayoutConstraint.activate([
+                raptiye.leadingAnchor.constraint(equalTo: etiket.trailingAnchor, constant: 3),
+                raptiye.trailingAnchor.constraint(lessThanOrEqualTo: hucre.trailingAnchor, constant: -6),
+                raptiye.centerYAnchor.constraint(equalTo: hucre.centerYAnchor),
                 ikon.leadingAnchor.constraint(equalTo: hucre.leadingAnchor, constant: 2),
                 ikon.centerYAnchor.constraint(equalTo: hucre.centerYAnchor),
                 ikon.widthAnchor.constraint(equalToConstant: 14),
                 ikon.heightAnchor.constraint(equalToConstant: 14),
                 etiket.leadingAnchor.constraint(equalTo: ikon.trailingAnchor, constant: 5),
-                etiket.trailingAnchor.constraint(equalTo: hucre.trailingAnchor, constant: -6),
                 etiket.centerYAnchor.constraint(equalTo: hucre.centerYAnchor)
             ])
         }
@@ -78,7 +98,13 @@ extension KenarPaneli {
         hucre.imageView?.image = renklendirilmisSembol(sembol,
                                                         renk: NSColor.black.withAlphaComponent(dugum.sayfaMi ? 0.45 : 0.6),
                                                         boyut: 12)
+        hucre.wantsLayer = true
+        hucre.layer?.cornerRadius = 6
+        hucre.layer?.backgroundColor = kisaYolMu(dugum) && dugum.icerikURL == acikNotURL
+            ? secimVurguRengi().cgColor : NSColor.clear.cgColor
         hucre.textField?.stringValue = dugum.ad
+        (hucre.subviews.first { $0.identifier?.rawValue == "Raptiye" } as? NSTextField)?.stringValue =
+            dugum.sabit && !kisaYolMu(dugum) ? "📌" : ""
         hucre.textField?.font = NSFont.systemFont(ofSize: 12.5, weight: dugum.sayfaMi ? .regular : .medium)
         return hucre
     }
@@ -87,8 +113,19 @@ extension KenarPaneli {
         guard !programatikSecimYapiliyor else { return }
         guard let dugum = tablo.item(atRow: tablo.selectedRow) as? AgacDugumu,
               let icerik = dugum.icerikURL else { return }
-        acikNotURL = icerik
         notSecildi?(icerik)
+        // Açık not yalnızca başarılı açılışta değişir. Başarısız geçişte
+        // ağacı yeniden yüklemeden eski seçimi geri getir.
+        guard acikNotURL != icerik else { return }
+        programatikSecimYapiliyor = true
+        defer { programatikSecimYapiliyor = false }
+        if let acikNotURL, let satir = (0..<tablo.numberOfRows).first(where: {
+            (tablo.item(atRow: $0) as? AgacDugumu)?.icerikURL == acikNotURL
+        }) {
+            tablo.selectRowIndexes(IndexSet(integer: satir), byExtendingSelection: false)
+        } else {
+            tablo.deselectAll(nil)
+        }
     }
 
     /// Çift tıklamak adı satırın üzerinde düzenlemeye açar (Finder gibi).
@@ -143,12 +180,16 @@ extension KenarPaneli {
     }
 
     func outlineViewItemDidExpand(_ notification: Notification) {
+        guard !programatikSecimYapiliyor, !aramaFiltresiEtkin else { return }
+        if let bolum = notification.userInfo?["NSObject"] as? KenarBolumu { bolum.katli = false; return }
         guard let dugum = notification.userInfo?["NSObject"] as? AgacDugumu else { return }
         acikKlasorYollari.insert(dugum.cocuklarKlasoru.path)
         acikKlasorleriKaydet()
     }
 
     func outlineViewItemDidCollapse(_ notification: Notification) {
+        guard !programatikSecimYapiliyor, !aramaFiltresiEtkin else { return }
+        if let bolum = notification.userInfo?["NSObject"] as? KenarBolumu { bolum.katli = true; return }
         guard let dugum = notification.userInfo?["NSObject"] as? AgacDugumu else { return }
         acikKlasorYollari.remove(dugum.cocuklarKlasoru.path)
         acikKlasorleriKaydet()

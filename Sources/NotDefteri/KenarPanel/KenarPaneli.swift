@@ -2,13 +2,6 @@ import AppKit
 
 // MARK: - Kenar panel (arama + not ağacı + punto kısayolu)
 
-/// Arama önbelleğinin bir girdisi: notun aranabilir metni ve okunduğu andaki
-/// değiştirilme tarihi. Tarih aynıysa dosya yeniden okunmaz.
-struct OnbellekGirdisi {
-    let tarih: Date
-    let aranabilirMetin: String
-}
-
 final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate, NSTextFieldDelegate, NSMenuDelegate {
 
     /// Ağacın görüntülenen (arama filtresinden geçmiş) hâli.
@@ -16,7 +9,34 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     /// Ağacın filtrelenmemiş hâli.
     var tumKokDugumler: [AgacDugumu] = []
     var icerikOnbellek: [URL: OnbellekGirdisi] = [:]
+    let sayfaBaglantilari = SayfaBaglantilari()
+    let favoriler = Favoriler()
+    let copKutusu = CopKutusu()
+    let copButonu = NSButton(title: "🗑 Çöp kutusu", target: nil, action: nil)
+    let copPopover = NSPopover()
+    let favoriBolumu = KenarBolumu("Favoriler", anahtar: "favorilerKatli")
+    let sonAcilanBolumu = KenarBolumu("Son açılanlar", anahtar: "sonAcilanlarKatli")
+    var kisaYolGuncellemesiBekliyor = false
+    var baglantiOnbellegiDegisti: (() -> Void)?
+    var sayfaIndeksiDegisti: (() -> Void)?
+    var tasinmadanOnce: (() -> Bool)?
+    var baglarYenidenYazildi: (([String: String]) -> Void)?
+    var aramaZamanlayicisi: Timer?
+    var aramaFiltresiEtkin = false
     var acikNotURL: URL?
+    private(set) var gorunumGuncellemeleriEtkin = true
+    private(set) var duraklatilanAcikNotURL: URL?
+    var filtreGuncellemesiBekliyor = false
+    var onbellekYenilemesiBekliyor = false
+    /// İçerik okuma/normalleştirme tek seri kuyrukta; büyük koleksiyonda ana thread donmaz.
+    let onbellekKuyrugu = DispatchQueue(label: "NotDefteri.icerikOnbellegi", qos: .userInitiated)
+    /// En son başlatılan tarama; eski nesil sonucu yeni durumu ezmez.
+    var onbellekNesli = 0
+    var uygulananOnbellekNesli = 0
+    var onbellekKutusu = OnbellekKutusu()
+    private var gosterilecekPunto = gYaziBoyutu
+    private var sonYerlesimBoyutu: NSSize?
+    private var temaGuncellemesiBekliyor = false
 
     /// Görüntülenen sıradaki notlar (klasörler hariç).
     /// Yalnızca `filtreUygula()` yazar; dışarıdan değiştirilmemeli.
@@ -24,6 +44,10 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     var tumNotlar: [URL] = []
     /// Cmd+[ / Cmd+] ile gezinme gibi, arama filtresinden etkilenmemesi gereken durumlar için tüm notlar.
     var tumNotUrlListesi: [URL] { tumNotlar }
+
+    let anaSayfaButonu = NSButton(title: "🏠 Ana Sayfa", target: nil, action: nil)
+    var anaSayfaSecili = false
+    var anaSayfaIstendi: (() -> Void)?
 
     var notSecildi: ((URL) -> Void)?
     var notSilindi: ((URL) -> Void)?
@@ -60,6 +84,22 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         super.init(frame: frameRect)
         wantsLayer = true
         layer?.backgroundColor = aktifTema.kenarPanel.cgColor
+
+        anaSayfaButonu.isBordered = false
+        anaSayfaButonu.alignment = .left
+        anaSayfaButonu.attributedTitle = NSAttributedString(string: "🏠 Ana Sayfa", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: kMetinRenk])
+        anaSayfaButonu.target = self
+        anaSayfaButonu.action = #selector(anaSayfaTiklandi)
+        anaSayfaButonu.toolTip = "Ana Sayfa (⌘⇧H)"
+        addSubview(anaSayfaButonu)
+
+        copButonu.isBordered = false
+        copButonu.alignment = .left
+        copButonu.font = .systemFont(ofSize: 13)
+        copButonu.target = self
+        copButonu.action = #selector(copKutusuTiklandi)
+        addSubview(copButonu)
 
         aramaKutusu.wantsLayer = true
         aramaKutusu.layer?.cornerRadius = 7
@@ -110,14 +150,26 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         tablo.autoresizesOutlineColumn = false
         tablo.target = self
         tablo.doubleAction = #selector(cifteTiklandi)
+        // Sayfaları sürükleyerek başka sayfanın altına taşıma (bkz. KenarPaneli+SurukleBirak).
+        tablo.registerForDraggedTypes([kSayfaSurukleTipi, kFavoriSurukleTipi])
+        tablo.setDraggingSourceOperationMask(.move, forLocal: true)
+        tablo.draggingDestinationFeedbackStyle = .regular
+
+        sayfaBaglantilari.sonAcilanlarDegisti = { [weak self] in self?.kisaYollariPlanla() }
 
         let sagTikMenusu = NSMenu()
+        let favoriOgesi = NSMenuItem(title: "Favorilere ekle", action: #selector(favoriTiklandi), keyEquivalent: "")
+        favoriOgesi.target = self
+        sagTikMenusu.addItem(favoriOgesi)
         let altSayfaOgesi = NSMenuItem(title: "Alt Sayfa Ekle", action: #selector(altSayfaEkleTiklandi), keyEquivalent: "")
         altSayfaOgesi.target = self
         sagTikMenusu.addItem(altSayfaOgesi)
         let kardesSayfaOgesi = NSMenuItem(title: "Yanına Sayfa Ekle", action: #selector(kardesSayfaEkleTiklandi), keyEquivalent: "")
         kardesSayfaOgesi.target = self
         sagTikMenusu.addItem(kardesSayfaOgesi)
+        let sabitleOgesi = NSMenuItem(title: "📌 Sabitle", action: #selector(sabitleTiklandi), keyEquivalent: "")
+        sabitleOgesi.target = self
+        sagTikMenusu.addItem(sabitleOgesi)
         sagTikMenusu.addItem(NSMenuItem.separator())
         let yenidenAdlandirOgesi = NSMenuItem(title: "Yeniden Adlandır", action: #selector(yenidenAdlandirTiklandi), keyEquivalent: "")
         yenidenAdlandirOgesi.target = self
@@ -218,11 +270,16 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
 
     /// Punto göstergesini günceller (imlecin bulunduğu ya da seçili metnin puntosu).
     func puntoyuGoster(_ boyut: CGFloat) {
-        puntoEtiketi.stringValue = "\(boyutMetni(boyut)) pt"
+        gosterilecekPunto = boyut
+        guard gorunumGuncellemeleriEtkin else { return }
+        let yazi = "\(boyutMetni(boyut)) pt"
+        if puntoEtiketi.stringValue != yazi { puntoEtiketi.stringValue = yazi }
     }
 
     @objc private func puntoAzaltTiklandi() { puntoDegistirIstendi?(-1) }
     @objc private func puntoArttirTiklandi() { puntoDegistirIstendi?(1) }
+
+    @objc private func anaSayfaTiklandi() { anaSayfaIstendi?() }
 
     required init?(coder: NSCoder) { fatalError() }
 
@@ -231,6 +288,11 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         aramaKutusu.layer?.backgroundColor = aramaKutuRengi().cgColor
         baslikCubugu.layer?.backgroundColor = aramaKutuRengi().cgColor
         puntoCubugu.layer?.backgroundColor = aramaKutuRengi().cgColor
+        guard gorunumGuncellemeleriEtkin else {
+            temaGuncellemesiBekliyor = true
+            return
+        }
+        temaGuncellemesiBekliyor = false
         for satirIndex in 0..<tablo.numberOfRows {
             (tablo.rowView(atRow: satirIndex, makeIfNecessary: false) as? NotSatirGorunumu)?.temayiUygula()
         }
@@ -238,9 +300,13 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
 
     override func layout() {
         super.layout()
+        // Kayma yalnızca origin'i değiştirir; outline sütunlarını yeniden boyutlama.
+        guard !isHidden, sonYerlesimBoyutu != bounds.size else { return }
+        sonYerlesimBoyutu = bounds.size
         let aramaAlaniYuksekligi: CGFloat = 24
         let ustBosluk: CGFloat = 8
-        aramaKutusu.frame = NSRect(x: 8, y: bounds.height - aramaAlaniYuksekligi - ustBosluk, width: bounds.width - 16, height: aramaAlaniYuksekligi)
+        anaSayfaButonu.frame = NSRect(x: 8, y: bounds.height - 34, width: max(0, bounds.width - 16), height: 26)
+        aramaKutusu.frame = NSRect(x: 8, y: bounds.height - 34 - aramaAlaniYuksekligi - ustBosluk, width: bounds.width - 16, height: aramaAlaniYuksekligi)
 
         let ikonBoyutu: CGFloat = 13
         aramaIkonu.frame = NSRect(x: 6, y: (aramaAlaniYuksekligi - ikonBoyutu) / 2, width: ikonBoyutu, height: ikonBoyutu)
@@ -254,7 +320,8 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
 
         let puntoCubuguYuksekligi: CGFloat = 26
         let altBosluk: CGFloat = 8
-        puntoCubugu.frame = NSRect(x: 8, y: altBosluk, width: max(0, bounds.width - 16), height: puntoCubuguYuksekligi)
+        copButonu.frame = NSRect(x: 8, y: altBosluk, width: max(0, bounds.width - 16), height: 26)
+        puntoCubugu.frame = NSRect(x: 8, y: copButonu.frame.maxY + 6, width: max(0, bounds.width - 16), height: puntoCubuguYuksekligi)
 
         let butonGenisligi: CGFloat = 30
         puntoAzaltButonu.frame = NSRect(x: 0, y: 0, width: butonGenisligi, height: puntoCubuguYuksekligi)
@@ -270,7 +337,7 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
             buton.frame = NSRect(x: dilimGenisligi * CGFloat(sira), y: 0, width: dilimGenisligi, height: baslikCubuguYuksekligi)
         }
 
-        let listeUstu = bounds.height - aramaAlaniYuksekligi - ustBosluk * 2
+        let listeUstu = bounds.height - 34 - aramaAlaniYuksekligi - ustBosluk * 2
         let listeAlti = baslikCubugu.frame.maxY + altBosluk
         kaydirmaGorunumu.frame = NSRect(x: 0, y: listeAlti, width: bounds.width, height: max(0, listeUstu - listeAlti))
     }
@@ -279,6 +346,11 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     private func aramaOdakDegisti(odakta: Bool) {
         let eskiRenk = aramaKutusu.layer?.backgroundColor
         let hedefRenk = odakta ? aramaOdakRengi() : aramaKutuRengi()
+        guard gorunumGuncellemeleriEtkin else {
+            aramaKutusu.layer?.removeAnimation(forKey: "arkaplanRengi")
+            aramaKutusu.layer?.backgroundColor = hedefRenk.cgColor
+            return
+        }
         let animasyon = CABasicAnimation(keyPath: "backgroundColor")
         animasyon.fromValue = eskiRenk
         animasyon.toValue = hedefRenk.cgColor
@@ -286,6 +358,23 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         animasyon.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         aramaKutusu.layer?.add(animasyon, forKey: "arkaplanRengi")
         aramaKutusu.layer?.backgroundColor = hedefRenk.cgColor
+    }
+
+    /// Kapalı/geçişteki panelde satırları yeniden kurmak yerine son değişikliği bekletir.
+    func gorunumGuncellemeleriniAyarla(_ etkin: Bool) {
+        guard gorunumGuncellemeleriEtkin != etkin else { return }
+        gorunumGuncellemeleriEtkin = etkin
+        if etkin {
+            bekleyenGuncellemeleriUygula()
+            puntoyuGoster(gosterilecekPunto)
+            if temaGuncellemesiBekliyor { temayiUygula() }
+        } else {
+            duraklatilanAcikNotURL = acikNotURL
+            if aramaZamanlayicisi != nil { filtreGuncellemesiBekliyor = true }
+            aramaZamanlayicisi?.invalidate()
+            aramaZamanlayicisi = nil
+            aramaKutusu.layer?.removeAnimation(forKey: "arkaplanRengi")
+        }
     }
 
     func controlTextDidBeginEditing(_ obj: Notification) {

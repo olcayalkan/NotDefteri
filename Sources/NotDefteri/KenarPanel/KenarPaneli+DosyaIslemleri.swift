@@ -1,5 +1,44 @@
 import AppKit
 
+// Çağrı imzaları korunur; pencere ve sürükle-bırak yollarının uyarıları da bu katmandadır.
+func benzersizSayfaURL(taban: String, klasor: URL) -> URL {
+    let sonuc = benzersizSayfaURLSonucu(taban: taban, klasor: klasor)
+    if sonuc.gecersizAd {
+        let uyari = NSAlert()
+        uyari.messageText = "Bu ad kullanılamaz"
+        uyari.informativeText = "Gizli, ayrılmış veya geçersiz bir ad girdiniz. Not, Yeni Sayfa adıyla kaydedilecek."
+        uyari.addButton(withTitle: "Tamam")
+        uyari.runModal()
+        return benzersizSayfaURLSonucu(taban: "Yeni Sayfa", klasor: klasor).url
+    }
+    return sonuc.url
+}
+
+@discardableResult
+func sayfayiYenidenAdlandir(_ icerikURL: URL, yeniAd: String) -> URL? {
+    sayfaTasimaUyarisiIle { try sayfayiYenidenAdlandirmaSonucu(icerikURL, yeniAd: yeniAd) }
+}
+
+@discardableResult
+func sayfayiTasi(_ icerikURL: URL, hedefKlasor: URL) -> URL? {
+    sayfaTasimaUyarisiIle { try sayfaTasimaSonucu(icerikURL, hedefKlasor: hedefKlasor) }
+}
+
+private func sayfaTasimaUyarisiIle(_ islem: () throws -> URL?) -> URL? {
+    do {
+        return try islem()
+    } catch {
+        let tasimaHatasi = error as? SayfaTasimaHatasi
+        let uyari = NSAlert(error: tasimaHatasi?.neden ?? error)
+        uyari.messageText = "Sayfa taşınamadı"
+        if let tasimaHatasi, let geriAlmaHatasi = tasimaHatasi.geriAlmaHatasi {
+            uyari.informativeText += "\nDosya eski yerine alınamadı: \(geriAlmaHatasi.localizedDescription)\nDosyanın bulunduğu yol: \(tasimaHatasi.dosyaURL.path)"
+        }
+        uyari.runModal()
+        return nil
+    }
+}
+
 // MARK: - KenarPaneli: Sayfa ekleme, yeniden adlandırma, silme
 
 extension KenarPaneli {
@@ -9,6 +48,10 @@ extension KenarPaneli {
     /// Başlık çubuğundaki "yeni not" için hedef: seçili sayfanın kardeşi olacak
     /// şekilde onun bulunduğu klasör; seçim yoksa kök.
     func hedefKlasor() -> URL {
+        // Gizliyken gezinme seçili satırı güncellemez; yeni not eski dala gitmesin.
+        if !gorunumGuncellemeleriEtkin, acikNotURL != duraklatilanAcikNotURL, let acikNotURL {
+            return ustKlasor(acikNotURL)
+        }
         guard let dugum = tablo.item(atRow: tablo.selectedRow) as? AgacDugumu else { return notlarKlasoru() }
         return dugum.sayfaMi ? dugum.klasorURL.deletingLastPathComponent() : dugum.klasorURL
     }
@@ -48,12 +91,29 @@ extension KenarPaneli {
     }
 
     func adiDegistir(_ dugum: AgacDugumu, yeniAd: String) {
+        guard sayfaAdiGecerliMi(yeniAd) else {
+            let uyari = NSAlert()
+            uyari.messageText = "Bu ad kullanılamaz"
+            uyari.informativeText = "Sayfa adı boş olamaz, noktayla başlayamaz, / veya : içeremez; ekler ve Görseller adları ayrılmıştır."
+            uyari.addButton(withTitle: "Tamam")
+            uyari.runModal()
+            yenile(secili: acikNotURL)
+            return
+        }
+        guard tasinmadanOnce?() ?? true else { return }
+        baglantiOnbelleginiHazirla()
         let eskiCocukKlasoru = dugum.klasorURL
         let yeniCocukKlasoru: URL
+        var yeniSayfaURL: URL?
 
         if let icerik = dugum.icerikURL {
-            guard let yeni = sayfayiYenidenAdlandir(icerik, yeniAd: yeniAd), yeni != icerik else { return }
+            guard let yeni = sayfayiYenidenAdlandir(icerik, yeniAd: yeniAd) else {
+                yenile(secili: acikNotURL)
+                return
+            }
+            guard yeni != icerik else { return }
             yeniCocukKlasoru = sayfaKlasoru(yeni)
+            yeniSayfaURL = yeni
             if acikNotURL == icerik {
                 acikNotURL = yeni
                 notYenidenAdlandirildi?(icerik, yeni)
@@ -61,28 +121,51 @@ extension KenarPaneli {
         } else {
             // Salt kapsayıcı klasör (eski yapıdan).
             let ust = dugum.klasorURL.deletingLastPathComponent()
-            var aday = ust.appendingPathComponent(yeniAd, isDirectory: true)
-            guard aday != dugum.klasorURL else { return }
-            var sayac = 2
-            while FileManager.default.fileExists(atPath: aday.path) {
-                aday = ust.appendingPathComponent("\(yeniAd) (\(sayac))", isDirectory: true)
-                sayac += 1
-            }
+            guard yeniAd != dugum.ad else { return }
+            let aday = benzersizSayfaURL(taban: yeniAd, klasor: ust).deletingLastPathComponent()
             guard (try? FileManager.default.moveItem(at: dugum.klasorURL, to: aday)) != nil else { return }
             yeniCocukKlasoru = aday
         }
-        // Açık sayfa taşınan dalın altındaysa yeni yolunu bildir.
-        if let acik = acikNotURL, acik.path.hasPrefix(eskiCocukKlasoru.path + "/") {
-            let yeniURL = URL(fileURLWithPath: yeniCocukKlasoru.path + acik.path.dropFirst(eskiCocukKlasoru.path.count))
+        siraAdiniDegistir(klasor: eskiCocukKlasoru.deletingLastPathComponent(),
+                          eski: dugum.ad, yeni: yeniCocukKlasoru.lastPathComponent)
+        acikDaliTasindiOlarakIsle(eskiKlasor: eskiCocukKlasoru, yeniKlasor: yeniCocukKlasoru,
+                                  eskiIcerik: dugum.icerikURL, yeniIcerik: yeniSayfaURL)
+        yenile(secili: acikNotURL)
+    }
+
+    /// Bir dal taşındıktan (ya da adı değiştikten) sonra açık notun yolunu ve
+    /// açık klasör kayıtlarını yeni yere göre günceller.
+    ///
+    /// Taşınan sayfanın kendisi açıksa `eskiIcerik`/`yeniIcerik` üzerinden,
+    /// açık not taşınan dalın ALTINDAysa yol öneki değiştirilerek bildirilir;
+    /// yoksa editör silinmiş bir yolu kaydetmeye çalışıyordu.
+    func acikDaliTasindiOlarakIsle(eskiKlasor: URL, yeniKlasor: URL, eskiIcerik: URL?, yeniIcerik: URL?) {
+        if let eskiIcerik, let yeniIcerik, acikNotURL == eskiIcerik {
+            acikNotURL = yeniIcerik
+            notYenidenAdlandirildi?(eskiIcerik, yeniIcerik)
+        } else if let acik = acikNotURL, acik.path.hasPrefix(eskiKlasor.path + "/") {
+            let yeniURL = URL(fileURLWithPath: yeniKlasor.path + acik.path.dropFirst(eskiKlasor.path.count))
             acikNotURL = yeniURL
             notYenidenAdlandirildi?(acik, yeniURL)
         }
-        acikKlasorleriTasi(eski: eskiCocukKlasoru.path, yeni: yeniCocukKlasoru.path)
-        yenile(secili: acikNotURL)
+        acikKlasorleriTasi(eski: eskiKlasor.path, yeni: yeniKlasor.path)
+        dalBaglantilariniGuncelle(eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,
+                                 eskiIcerik: eskiIcerik, yeniIcerik: yeniIcerik)
     }
 
     /// Dönüştürme seçeneği yalnızca eski düzendeki düz notlarda görünür.
     func menuNeedsUpdate(_ menu: NSMenu) {
+        for oge in menu.items where oge.action == #selector(favoriTiklandi) {
+            let url = tiklananDugum()?.icerikURL
+            oge.isHidden = url == nil
+            oge.title = url.map { favoriler.iceriyor($0) } == true ? "Favorilerden çıkar" : "Favorilere ekle"
+        }
+        let sabitlenebilir = tiklananDugum().map { !kisaYolMu($0) } ?? false
+        for oge in menu.items where oge.action == #selector(sabitleTiklandi) {
+            // Süzülmüş ağaçta düğümler kopyadır; sabit durumu güvenilir değil.
+            oge.isHidden = !sabitlenebilir || aramaFiltresiEtkin
+            oge.title = tiklananDugum()?.sabit == true ? "Sabitlemeyi kaldır" : "📌 Sabitle"
+        }
         let eskiDuzenMi = tiklananDugum()?.icerikURL.map { $0.lastPathComponent != kIcerikDosyaAdi } ?? false
         for oge in menu.items where oge.action == #selector(klasoreDonusturTiklandi) {
             oge.isHidden = !eskiDuzenMi
@@ -93,14 +176,29 @@ extension KenarPaneli {
         }
     }
 
+    /// Sabitse kaldırır (sabitsizlerin başına), değilse sabitlerin sonuna ekler.
+    @objc func sabitleTiklandi() {
+        guard let dugum = tiklananDugum(), !kisaYolMu(dugum), !aramaFiltresiEtkin else { return }
+        let ust = tablo.parent(forItem: dugum) as? AgacDugumu
+        let kardesler = ust?.cocuklar ?? kokDugumler
+        let sabitler = kardesler.filter { $0.sabit }.map { $0.ad }
+        let digerleri = kardesler.filter { !$0.sabit && $0 !== dugum }.map { $0.ad }
+        let yeni = dugum.sabit
+            ? SayfaSirasi(sabitler: sabitler.filter { $0 != dugum.ad }, sira: [dugum.ad] + digerleri)
+            : SayfaSirasi(sabitler: sabitler + [dugum.ad], sira: digerleri)
+        guard siraYaz(yeni, klasor: ust?.cocuklarKlasoru ?? notlarKlasoru()) else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.yenile(secili: self.acikNotURL)
+        }
+    }
+
     /// "Ad.md" düzenindeki notu "Ad/index.md" düzenine taşır.
     @objc func klasoreDonusturTiklandi() {
         guard let dugum = tiklananDugum(), let icerik = dugum.icerikURL,
               let yeni = sayfayiKlasoreDonustur(icerik) else { return }
-        if acikNotURL == icerik {
-            acikNotURL = yeni
-            notYenidenAdlandirildi?(icerik, yeni)
-        }
+        acikDaliTasindiOlarakIsle(eskiKlasor: dugum.klasorURL, yeniKlasor: sayfaKlasoru(yeni),
+                                  eskiIcerik: icerik, yeniIcerik: yeni)
         // Menü bağlamından geliyoruz; ağacı sonraki döngüde kur (bkz. adiDegistir).
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -111,13 +209,13 @@ extension KenarPaneli {
     @objc func silTiklandi() {
         guard let dugum = tiklananDugum() else { return }
         let altKlasor = dugum.klasorURL
-        let altDallariVar = !dugum.cocuklar.isEmpty
+        let altDallariVar = tumNotlar.contains { $0 != dugum.icerikURL && $0.path.hasPrefix(altKlasor.path + "/") }
 
         let uyari = NSAlert()
         uyari.messageText = "\"\(dugum.ad)\" silinsin mi?"
         uyari.informativeText = altDallariVar
-            ? "Sayfa ve altındaki tüm sayfalar Çöp Kutusu'na taşınacak."
-            : "Bu sayfa Çöp Kutusu'na taşınacak."
+            ? "Sayfa, alt sayfaları ve görselleri uygulamanın çöp kutusunda 30 gün saklanacak."
+            : "Bu sayfa uygulamanın çöp kutusunda 30 gün saklanacak."
         uyari.addButton(withTitle: "Sil")
         uyari.addButton(withTitle: "Vazgeç")
         if let silButonu = uyari.buttons.first {
@@ -125,12 +223,14 @@ extension KenarPaneli {
         }
         guard uyari.runModal() == .alertFirstButtonReturn else { return }
 
-        // Yeni düzende sayfanın her şeyi klasörünün içinde; tek hamlede gider.
-        if FileManager.default.fileExists(atPath: altKlasor.path) {
-            try? FileManager.default.trashItem(at: altKlasor, resultingItemURL: nil)
-        }
-        if let icerik = dugum.icerikURL, icerik.lastPathComponent != kIcerikDosyaAdi {
-            try? FileManager.default.trashItem(at: icerik, resultingItemURL: nil)
+        guard tasinmadanOnce?() ?? true else { return }
+        do {
+            try copKutusu.sil(dugum)
+        } catch {
+            let hata = NSAlert(error: error)
+            hata.messageText = "Sayfa çöp kutusuna taşınamadı"
+            hata.runModal()
+            return
         }
 
         // Açık sayfa silindiyse (ya da silinen dalın altındaysa) editörü boşalt.
@@ -138,6 +238,7 @@ extension KenarPaneli {
             acikNotURL = nil
             notSilindi?(acik)
         }
+        siraAdiniDegistir(klasor: altKlasor.deletingLastPathComponent(), eski: dugum.ad, yeni: nil)
         acikKlasorleriSil(onek: altKlasor.path)
         DispatchQueue.main.async { [weak self] in self?.yenile(secili: nil) }
     }

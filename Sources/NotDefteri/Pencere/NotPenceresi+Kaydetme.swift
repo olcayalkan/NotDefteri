@@ -22,7 +22,7 @@ extension NotPenceresi {
     /// (uyarı gösterme, başlık etiketi, kenar panel tazeleme).
     @discardableResult
     func kaydetURLe(_ url: URL, hazirMetin: String? = nil, panelYenile: Bool = true) -> Bool {
-        let metin = hazirMetin ?? markdownMetniUret(metinGorunumu.attributedString())
+        let metin = hazirMetin ?? sayfaMarkdownunuUret(metinGorunumu.attributedString(), ustbilgi: sayfaUstbilgisi)
 
         switch kaydedici.yaz(metin: metin, url: url, mevcutURL: mevcutDosyaURL) {
         case .gerekmedi:
@@ -32,8 +32,10 @@ extension NotPenceresi {
             return false
         case .yazildi:
             kayitHatasiBildirildi = false
+            SayfaGecmisi.kaydet(metin: metin, icerikURL: url)
             mevcutDosyaURL = url
             baslikEtiketiniGuncelle()
+            kenarPaneli.notIceriginiGuncelle(url, metin: metin)
             if panelYenile { kenarPaneli.yenile(secili: url) }
             return true
         }
@@ -64,13 +66,20 @@ extension NotPenceresi {
     func textDidChange(_ notification: Notification) {
         icerikDegisti()
         gecmisDugmeleriniGuncelle()
-        icindekileriTazele()
+        icindekileriTazelemeyiPlanla()
+    }
+
+    func icindekileriTazelemeyiPlanla() {
+        icindekiler.icerigiGuncellemeyiPlanla(metinGorunumu.textStorage)
+        icindekiler.etkinBasligiGuncelle(imlecKonumu: metinGorunumu.selectedRange().location)
     }
 
     // MARK: Otomatik kayıt
 
     /// İçerik değiştiğinde çağrılır; kaydediciye zamanlayıcı kurdurur.
     func icerikDegisti() {
+        sonDuzenleme = Date()
+        altBilgiyiGuncellemeyiPlanla()
         kaydedici.degisiklikIsaretle()
         kaydedici.zamanlayiciKur { [weak self] in self?.otomatikKaydet() }
     }
@@ -81,7 +90,7 @@ extension NotPenceresi {
 
     func otomatikKaydet() {
         guard kaydedici.duzenlendiMi else { return }
-        let metin = markdownMetniUret(metinGorunumu.attributedString())
+        let metin = sayfaMarkdownunuUret(metinGorunumu.attributedString(), ustbilgi: sayfaUstbilgisi)
         // Kaydedilmiş bir notta içerik diskle aynıysa yazmaya gerek yok.
         // (Henüz dosyası olmayan not bu kontrolden muaf; aşağıda oluşturulur.)
         if let url = mevcutDosyaURL,
@@ -89,9 +98,8 @@ extension NotPenceresi {
             kaydedici.temizIsaretle()
             return
         }
-        guard !metinGorunumu.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-
         guard let mevcutURL = mevcutDosyaURL else {
+            guard !metin.isEmpty else { return }
             // Henüz kaydedilmemiş not: ilk satırdan bir ad üretip dosyayı oluşturur.
             otomatikAdlandirildiMi = true
             kaydetURLe(benzersizDosyaURL(taban: otomatikBaslikUret(icerik: metinGorunumu.string)), hazirMetin: metin)
@@ -103,8 +111,17 @@ extension NotPenceresi {
             let istenenAd = otomatikBaslikUret(icerik: metinGorunumu.string)
             if istenenAd != sayfaAdi(mevcutURL) {
                 // Sayfa taşınırken alt sayfalarını tutan klasör de birlikte taşınır.
+                guard kaydetURLe(mevcutURL, hazirMetin: metin, panelYenile: false) else { return }
+                kenarPaneli.baglantiOnbelleginiHazirla()
                 if let yeniURL = sayfayiYenidenAdlandir(mevcutURL, yeniAd: istenenAd), yeniURL != mevcutURL {
-                    kaydetURLe(yeniURL, hazirMetin: metin)
+                    // Taşıma gerçekleşti; yazma başarısız olsa da yol artık budur.
+                    mevcutDosyaURL = yeniURL
+                    baslikEtiketiniGuncelle()
+                    kenarPaneli.acikNotuBildir(yeniURL)
+                    kaydetURLe(yeniURL, hazirMetin: metin, panelYenile: false)
+                    kenarPaneli.acikDaliTasindiOlarakIsle(eskiKlasor: sayfaKlasoru(mevcutURL), yeniKlasor: sayfaKlasoru(yeniURL),
+                                                        eskiIcerik: mevcutURL, yeniIcerik: yeniURL)
+                    kenarPaneli.yenile(secili: yeniURL)
                     return
                 }
             }
@@ -142,13 +159,22 @@ extension NotPenceresi {
         benzersizSayfaURL(taban: taban, klasor: verilenKlasor ?? kenarPaneli.hedefKlasor())
     }
 
-    /// Uygulama tamamen kapanırken (Cmd+Q gibi) mevcut dosyayı üzerine kaydeder.
-    /// Kapanış öncesi son kayıt. Yazma başarısız olursa `false` döner;
-    /// çağıran kapanmayı iptal etmeli, yoksa yazılanlar kaybolur.
+    /// Kapanış öncesi son kayıt. Yazma başarısızsa kullanıcıya kaydetmeden
+    /// çıkma seçeneği sunar; vazgeçerse çağıran kapanmayı iptal eder.
     @discardableResult
     func kapanistaGerekirseKaydet() -> Bool {
         otomatikKayitBekleyeniIptalEt()
-        guard let url = mevcutDosyaURL else { return true }
-        return kaydetURLe(url)
+        if mevcutNotuKaybolmayacakSekildeKaydet() { return true }
+
+        let uyari = NSAlert()
+        uyari.alertStyle = .warning
+        uyari.messageText = "Kaydetmeden çıkılsın mı?"
+        uyari.informativeText = "Not kaydedilemedi. Kaydetmeden çıkarsanız son değişiklikler kaybolacak."
+        uyari.addButton(withTitle: "Vazgeç")
+        uyari.addButton(withTitle: "Kaydetmeden Çık")
+        guard uyari.runModal() == .alertSecondButtonReturn else { return false }
+        // Pencere kapandıktan sonraki uygulama çıkışında tekrar kayıt sorma.
+        kaydedici.temizIsaretle()
+        return true
     }
 }
