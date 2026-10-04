@@ -27,47 +27,76 @@ extension NotPenceresi {
     func kenarPaneliniAcKapa() {
         kenarPanelGizli.toggle()
         UserDefaults.standard.set(kenarPanelGizli, forKey: "kenarPanelGizli")
+        kenarPaneliYerlesiminiUygula(animasyonlu: true)
+    }
 
+    /// Resize eski ölçülere giden animasyonu iptal eder; son hedef geçerlidir.
+    @objc func icerikBoyutuDegisti() {
+        hizliBulucu.yerlesiminiGuncelle()
+        kenarPaneliYerlesiminiUygula(animasyonlu: false)
+    }
+
+    private func kenarPaneliYerlesiminiUygula(animasyonlu: Bool) {
+        kenarPanelGecisNesli &+= 1
+        let nesil = kenarPanelGecisNesli
+        kenarPanelGecisiSuruyor = animasyonlu
         if !kenarPanelGizli {
+            // Hızlı yön değiştirmede henüz kayan outline'ı yeniden kurma.
+            if kenarPaneli.isHidden || !animasyonlu { kenarPaneli.gorunumGuncellemeleriniAyarla(true) }
             kenarPaneli.isHidden = false
-            surukleTutamaci.isHidden = false
+            // Birikmiş değişiklikleri kaymadan önce bir kez göster; geçişte ağacı dondur.
+            kenarPaneli.needsLayout = true
+            kenarPaneli.layoutSubtreeIfNeeded()
+        }
+        kenarPaneli.gorunumGuncellemeleriniAyarla(false)
+        surukleTutamaci.isHidden = true
+        if kenarPanelGizli, let odak = firstResponder as? NSView,
+           odak.isDescendant(of: kenarPaneli) || kenarPaneli.aramaAlani.currentEditor() === odak || kenarPaneli.duzenlenenDugum != nil {
+            // Gizlenen arama/ad alanının editörü ve bekleyen debounce'u açık kalmasın.
+            makeFirstResponder(metinGorunumu)
         }
 
         let hedefGenislik: CGFloat = kenarPanelGizli ? 0 : gKenarPanelGenislik
         let toplamGenislik = icerikGorunum.bounds.width
-        let yukseklik = kenarPaneli.frame.height
-
-        NSAnimationContext.runAnimationGroup({ baglam in
-            baglam.duration = 0.2
-            baglam.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            kenarPaneli.animator().frame = NSRect(x: 0, y: 0, width: hedefGenislik, height: yukseklik)
-            surukleTutamaci.animator().frame = NSRect(x: hedefGenislik - 3, y: 0, width: 6, height: yukseklik)
-            kaydirmaGorunumu.animator().frame = NSRect(x: hedefGenislik, y: 0, width: max(0, toplamGenislik - hedefGenislik), height: yukseklik)
-        }, completionHandler: { [weak self] in
-            guard let self else { return }
+        let yukseklik = max(0, icerikGorunum.bounds.height - kBaslikYuksekligi)
+        let baslikYuksekligi = min(SayfaSecenekAlani.yukseklik, yukseklik)
+        sayfaAltBilgisi.frame.origin.y = 5
+        sayfaAltBilgisi.frame.size.height = 16
+        sayfaSecenekAlani.frame.origin.y = yukseklik - baslikYuksekligi
+        sayfaSecenekAlani.frame.size.height = baslikYuksekligi
+        let tamamla = { [weak self] in
+            guard let self, self.kenarPanelGecisNesli == nesil else { return }
+            self.kenarPanelGecisiSuruyor = false
             self.kenarPaneli.isHidden = self.kenarPanelGizli
             self.surukleTutamaci.isHidden = self.kenarPanelGizli
-        })
+            self.kenarPaneli.gorunumGuncellemeleriniAyarla(!self.kenarPanelGizli)
+            self.sayfaGenisliginiUygula()
+        }
+
+        NSAnimationContext.runAnimationGroup({ baglam in
+            // Sıfır süre, resize/sürüklemede önceki animator hedeflerini de iptal eder.
+            baglam.duration = animasyonlu ? 0.2 : 0
+            baglam.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            kenarPaneli.animator().frame = NSRect(x: hedefGenislik - gKenarPanelGenislik, y: 0, width: gKenarPanelGenislik, height: yukseklik)
+            surukleTutamaci.animator().frame = NSRect(x: hedefGenislik - 3, y: 0, width: 6, height: yukseklik)
+            let metinGenisligi = max(0, toplamGenislik - hedefGenislik)
+            anaSayfa.animator().frame = NSRect(x: hedefGenislik, y: 0, width: metinGenisligi, height: yukseklik)
+            let altBilgiYuksekligi: CGFloat = 26
+            kaydirmaGorunumu.animator().frame = NSRect(x: hedefGenislik, y: altBilgiYuksekligi, width: metinGenisligi,
+                                                       height: max(0, yukseklik - baslikYuksekligi - altBilgiYuksekligi))
+        }, completionHandler: animasyonlu ? tamamla : nil)
+        if !animasyonlu { tamamla() }
     }
 
     /// Kenar panelin genişliğini fare ile sürükleyerek ayarlar.
     func kenarPaneliSurukleniyor(_ event: NSEvent) {
-        guard !kenarPanelGizli else { return }
+        guard !kenarPanelGizli, !kenarPanelGecisiSuruyor else { return }
         let nokta = icerikGorunum.convert(event.locationInWindow, from: nil)
         let yeniGenislik = min(max(nokta.x, kKenarPanelMinGenislik), kKenarPanelMaksGenislik)
         gKenarPanelGenislik = yeniGenislik
         UserDefaults.standard.set(Double(yeniGenislik), forKey: "kenarPanelGenislik")
 
-        var panelKare = kenarPaneli.frame
-        panelKare.size.width = yeniGenislik
-        kenarPaneli.frame = panelKare
-
-        surukleTutamaci.frame.origin.x = yeniGenislik - 3
-
-        var editorKare = kaydirmaGorunumu.frame
-        editorKare.origin.x = yeniGenislik
-        editorKare.size.width = max(0, icerikGorunum.bounds.width - yeniGenislik)
-        kaydirmaGorunumu.frame = editorKare
+        kenarPaneliYerlesiminiUygula(animasyonlu: false)
     }
 
     // MARK: Kapatma
@@ -78,6 +107,20 @@ extension NotPenceresi {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let bayraklar = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let karakterKucuk = event.charactersIgnoringModifiers?.lowercased()
+
+        if bayraklar == [.command, .shift], karakterKucuk == "h" {
+            anaSayfayiGoster()
+            return true
+        }
+        if !anaSayfa.isHidden, bayraklar.subtracting(.shift) == .command,
+           ["y", "z", "*", "+", "=", "-", "_"].contains(karakterKucuk ?? "") {
+            return true
+        }
+
+        if bayraklar == .command, karakterKucuk == "p" {
+            hizliBulucuKomutu(nil)
+            return true
+        }
 
         // Tam ekran: Fn+F veya standart ⌃⌘F.
         if karakterKucuk == "f",
@@ -111,6 +154,8 @@ extension NotPenceresi {
 
     /// Pencere odağı kaybettiğinde bekleyen değişikliği hemen yazar.
     override func resignKey() {
+        hizliBulucu.gizle()
+        metinGorunumu.yuzerGorunumleriGizle()
         super.resignKey()
         if kaydedici.duzenlendiMi { otomatikKaydet() }
     }
@@ -119,6 +164,10 @@ extension NotPenceresi {
     /// yazdıklarını kurtarma şansı bulur; sessizce kaybetmez.
     override func close() {
         guard kapanistaGerekirseKaydet() else { return }
+        hizliBulucu.gizle()
+        geriBagZamanlayicisi?.invalidate()
+        altBilgiZamanlayicisi?.invalidate()
+        metinGorunumu.yuzerGorunumleriGizle()
         super.close()
     }
 

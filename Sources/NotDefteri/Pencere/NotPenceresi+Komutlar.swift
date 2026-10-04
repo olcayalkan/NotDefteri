@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - NotPenceresi: Eğik çizgi komutları, başlıklar, geri al/yinele
 
@@ -6,89 +7,26 @@ extension NotPenceresi {
 
     // MARK: Eğik çizgi komutları (/1 /2 /3 /page) ve başlıklar
 
-    /// Satır başında yazılıp boşluk veya Enter ile tamamlanan komutlar.
-    private func egikCizgiKomutu(_ metin: String) -> String? {
-        let komut = metin.trimmingCharacters(in: .whitespaces).lowercased()
-        return ["/1", "/2", "/3", "/0", "/page", "/sayfa"].contains(komut) ? komut : nil
-    }
-
+    /// Eski /0 düz metin komutu korunur; diğer kısayollar blok menüsündedir.
     func textView(_ textView: NSTextView, shouldChangeTextIn affectedCharRange: NSRange, replacementString: String?) -> Bool {
-        guard let replacementString, replacementString == " " || replacementString == "\n" else { return true }
-        let ns = textView.string as NSString
-
-        // İmlecin bulunduğu satırın başından imlece kadarki metin komut mu?
-        let satirAralik = ns.paragraphRange(for: NSRange(location: affectedCharRange.location, length: 0))
-        let komutAralik = NSRange(location: satirAralik.location,
-                                   length: max(0, affectedCharRange.location - satirAralik.location))
-        if komutAralik.length > 0, let komut = egikCizgiKomutu(ns.substring(with: komutAralik)) {
-            // Düzenlemeyi bu geri çağrının içinde yapmamak için bir sonraki döngüye bırak.
-            DispatchQueue.main.async { [weak self] in self?.komutuCalistir(komut, aralik: komutAralik) }
-            return false
+        guard !metinGorunumu.blokDuzenleniyor,
+              let replacementString, replacementString == " " || replacementString == "\n",
+              let ns = textView.textStorage?.mutableString else { return true }
+        let satir = ns.paragraphRange(for: NSRange(location: affectedCharRange.location, length: 0))
+        let aralik = NSRange(location: satir.location, length: affectedCharRange.location - satir.location)
+        guard ns.substring(with: aralik).trimmingCharacters(in: .whitespaces) == "/0",
+              metinGorunumu.typingAttributes[kKodBloguAnahtari] == nil,
+              metinGorunumu.typingAttributes[kSatirIciKodAnahtari] == nil else { return true }
+        DispatchQueue.main.async { [weak self] in
+            self?.metinGorunumu.baslikUygula(0, komutAraligi: aralik, tamamlayici: replacementString)
+            self?.puntoGostergesiniGuncelle()
         }
-
-        // Başlık satırının sonunda Enter'a basılınca yeni satır normal biçimde başlasın.
-        if replacementString == "\n", metinGorunumu.typingAttributes[kBaslikSeviyesiAnahtari] != nil {
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                var oznitelikler = self.metinGorunumu.typingAttributes
-                oznitelikler.removeValue(forKey: kBaslikSeviyesiAnahtari)
-                oznitelikler[.font] = varsayilanFont()
-                self.metinGorunumu.typingAttributes = oznitelikler
-            }
-        }
-        return true
-    }
-
-    private func komutuCalistir(_ komut: String, aralik: NSRange) {
-        guard let metinDeposu = metinGorunumu.textStorage,
-              NSMaxRange(aralik) <= metinDeposu.length else { return }
-
-        // Önce komut metnini sil.
-        if metinGorunumu.shouldChangeText(in: aralik, replacementString: "") {
-            metinDeposu.replaceCharacters(in: aralik, with: "")
-            metinGorunumu.didChangeText()
-        }
-        metinGorunumu.setSelectedRange(NSRange(location: aralik.location, length: 0))
-
-        switch komut {
-        case "/1": baslikSeviyesiUygula(1)
-        case "/2": baslikSeviyesiUygula(2)
-        case "/3": baslikSeviyesiUygula(3)
-        case "/0": baslikSeviyesiUygula(0)
-        case "/page", "/sayfa": altSayfaKomutu()
-        default: break
-        }
+        return false
     }
 
     /// İmlecin bulunduğu paragrafı başlığa çevirir; seviye 0 normal metne döndürür.
     func baslikSeviyesiUygula(_ seviye: Int) {
-        guard let metinDeposu = metinGorunumu.textStorage else { return }
-        let ns = metinDeposu.string as NSString
-        let paragrafAralik = ns.paragraphRange(for: metinGorunumu.selectedRange())
-
-        if paragrafAralik.length > 0, metinGorunumu.shouldChangeText(in: paragrafAralik, replacementString: nil) {
-            metinDeposu.beginEditing()
-            if seviye > 0 {
-                metinDeposu.addAttributes([.font: baslikFontu(seviye), kBaslikSeviyesiAnahtari: seviye], range: paragrafAralik)
-            } else {
-                metinDeposu.removeAttribute(kBaslikSeviyesiAnahtari, range: paragrafAralik)
-                metinDeposu.addAttribute(.font, value: varsayilanFont(), range: paragrafAralik)
-            }
-            metinDeposu.endEditing()
-            metinGorunumu.didChangeText()
-        }
-
-        // Boş satırda komut verildiyse yazılacak metin başlık biçiminde başlasın.
-        var oznitelikler = metinGorunumu.typingAttributes
-        oznitelikler[.font] = seviye > 0 ? baslikFontu(seviye) : varsayilanFont()
-        if seviye > 0 {
-            oznitelikler[kBaslikSeviyesiAnahtari] = seviye
-        } else {
-            oznitelikler.removeValue(forKey: kBaslikSeviyesiAnahtari)
-        }
-        metinGorunumu.typingAttributes = oznitelikler
-        icerikDegisti()
-        icindekileriTazele()
+        metinGorunumu.baslikUygula(seviye)
         puntoGostergesiniGuncelle()
         makeFirstResponder(metinGorunumu)
     }
@@ -109,10 +47,79 @@ extension NotPenceresi {
         yeniSayfaOlustur(klasor: sayfaKlasoru(ustSayfa))
     }
 
+    func blokMenusuKomutunuCalistir(_ komut: BlokMenusu.Komut, aralik: NSRange) {
+        makeFirstResponder(metinGorunumu)
+        switch komut {
+        case .uyari, .uyariGri, .uyariMavi, .uyariSari, .uyariKirmizi, .uyariYesil:
+            let renk = [BlokMenusu.Komut.uyariGri: "gri", .uyariMavi: "mavi", .uyariSari: "sarı",
+                        .uyariKirmizi: "kırmızı", .uyariYesil: "yeşil"][komut] ?? "sarı"
+            if metinGorunumu.blok(metinGorunumu.paragrafAraligi())?.tur == .uyari {
+                metinGorunumu.undoManager?.beginUndoGrouping()
+                metinGorunumu.blokDuzenle(aralik, yeni: NSAttributedString(),
+                                          secim: NSRange(location: aralik.location, length: 0),
+                                          yazim: metinGorunumu.typingAttributes)
+                metinGorunumu.uyariKutusuDegistir(renk: renk)
+                metinGorunumu.undoManager?.endUndoGrouping()
+            } else {
+                metinGorunumu.menuBlogunuUygula(MetinBlogu(tur: .uyari, renk: renk, uyariKimligi: UUID().uuidString), komutAraligi: aralik)
+            }
+        case .baslik1, .baslik2, .baslik3:
+            metinGorunumu.baslikUygula(komut.rawValue + 1, komutAraligi: aralik)
+        case .madde, .numarali, .yapilacak, .alinti, .ayirici:
+            let tur: MetinBlogu.Tur
+            switch komut {
+            case .madde: tur = .madde
+            case .numarali: tur = .numarali
+            case .yapilacak: tur = .yapilacak
+            case .alinti: tur = .alinti
+            default: tur = .ayirici
+            }
+            metinGorunumu.menuBlogunuUygula(MetinBlogu(tur: tur), komutAraligi: aralik)
+        case .kod:
+            metinGorunumu.menuBlogunuUygula(nil, kod: true, komutAraligi: aralik)
+        case .sayfa, .gorsel:
+            guard metinGorunumu.textStorage != nil else { return }
+            metinGorunumu.blokDuzenle(aralik, yeni: NSAttributedString(),
+                                      secim: NSRange(location: aralik.location, length: 0),
+                                      yazim: metinGorunumu.typingAttributes)
+            if komut == .sayfa { altSayfaKomutu() }
+            else {
+                let secici = NSOpenPanel()
+                secici.allowedContentTypes = [.image]
+                secici.allowsMultipleSelection = false
+                secici.canChooseDirectories = false
+                secici.beginSheetModal(for: self) { [weak self] sonuc in
+                    guard let self, sonuc == .OK, let url = secici.url,
+                          let gorsel = NSImage(contentsOf: url),
+                          let ek = self.gorseliDiskeYaz(gorsel, bolumBasligi: nil) else { return }
+                    self.metinGorunumu.ekiEkle(ek)
+                }
+            }
+        }
+        puntoGostergesiniGuncelle()
+    }
+
+    func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
+        // true, AppKit'in varsayılan açma yolunu da durdurur.
+        if let url = (link as? URL) ?? URL(string: String(describing: link)), disBaglantiGecerliMi(url) {
+            NSWorkspace.shared.open(url)
+        }
+        return true
+    }
+
     // MARK: Geri al / Yinele
 
     @objc func geriAlKomutu(_ sender: Any?) { geriAl() }
     @objc func ileriAlKomutu(_ sender: Any?) { ileriAl() }
+
+    @objc func bulKomutu(_ sender: NSMenuItem) {
+        metinGorunumu.yuzerGorunumleriGizle()
+        // Bul alanı odaktayken de aynı editörün yerel bulucusuna gider.
+        if sender.tag == NSTextFinder.Action.showFindInterface.rawValue || sender.tag == NSTextFinder.Action.showReplaceInterface.rawValue {
+            makeFirstResponder(metinGorunumu)
+        }
+        metinGorunumu.performFindPanelAction(sender)
+    }
 
     func geriAl() {
         guard let yonetici = metinGorunumu.undoManager, yonetici.canUndo else { return }
@@ -135,13 +142,18 @@ extension NotPenceresi {
     }
 
     func gecmisDugmeleriniGuncelle() {
-        baslikCubugu.gecmisDurumunuGoster(geriAlinabilir: metinGorunumu.undoManager?.canUndo ?? false,
-                                           ileriAlinabilir: metinGorunumu.undoManager?.canRedo ?? false)
+        baslikCubugu.gecmisDurumunuGoster(geriAlinabilir: anaSayfa.isHidden && (metinGorunumu.undoManager?.canUndo ?? false),
+                                           ileriAlinabilir: anaSayfa.isHidden && (metinGorunumu.undoManager?.canRedo ?? false))
     }
 
     /// Başka bir not açılırken geçmişi temizler; aksi halde ⌘Z önceki notun
     /// içeriğini şu anki notun üzerine geri getirebilir.
     func gecmisiSifirla() {
+        metinGorunumu.yuzerGorunumleriGizle()
+        metinGorunumu.bagTamamlamaAraligi = nil
+        metinGorunumu.kapatilanBagKonumu = nil
+        metinGorunumu.slashAraligi = nil
+        metinGorunumu.kapatilanSlashKonumu = nil
         metinGorunumu.undoManager?.removeAllActions()
         gecmisDugmeleriniGuncelle()
     }

@@ -49,3 +49,21 @@ func benzersizDosyaYolu(klasor: URL, taban: String, uzanti: String) -> URL {
     }
     return aday
 }
+
+/// Bir görsel dosyasını hedef klasöre, adı çakışmayacak biçimde kopyalar.
+///
+/// Kaynak olduğu yerde kalır: aynı görsel iki sayfada kullanılınca özgün
+/// sayfa dosyasını kaybetmemeli. Bayt bayt kopyalanır — yeniden kodlanmadığı
+/// için JPEG/HEIC gibi biçimler kalitesini yitirmez.
+/// `taban` verilmezse kaynağın kendi adı kullanılır.
+func gorselDosyasiniKopyala(_ kaynak: URL, hedefKlasor: URL, taban: String? = nil) -> URL? {
+    let fm = FileManager.default
+    guard fm.fileExists(atPath: kaynak.path) else { return nil }
+    try? fm.createDirectory(at: hedefKlasor, withIntermediateDirectories: true)
+
+    let uzanti = kaynak.pathExtension.isEmpty ? "png" : kaynak.pathExtension
+    let ad = guvenliDosyaAdi(taban ?? kaynak.deletingPathExtension().lastPathComponent)
+    let hedef = benzersizDosyaYolu(klasor: hedefKlasor, taban: ad, uzanti: uzanti)
+    guard (try? fm.copyItem(at: kaynak, to: hedef)) != nil else { return nil }
+    return hedef
+}

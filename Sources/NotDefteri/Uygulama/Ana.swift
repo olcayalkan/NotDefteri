@@ -12,10 +12,22 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.pencere = p
         p.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        let copKutusu = p.kenarPaneli.copKutusu
+        DispatchQueue.global(qos: .utility).async {
+            let hatalar = copKutusu.temizle(eskiOlanlar: true)
+            guard !hatalar.isEmpty else { return }
+            DispatchQueue.main.async {
+                let uyari = NSAlert()
+                uyari.messageText = "Eski çöp öğeleri temizlenemedi"
+                uyari.informativeText = hatalar.joined(separator: "\n")
+                uyari.runModal()
+            }
+        }
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
-        pencere?.kapanistaGerekirseKaydet()
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard pencere?.kapanistaGerekirseKaydet() != false else { return .terminateCancel }
+        return .terminateNow
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

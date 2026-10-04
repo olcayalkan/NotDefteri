@@ -41,6 +41,17 @@ final class NotSatirGorunumu: NSTableRowView {
         // Varsayılan mavi seçim çizimi yerine kendi vurgu view'ımızı kullanıyoruz.
     }
 
+    /// Sürüklenen sayfanın bırakılacağı satır: sistem mavisi yerine temanın
+    /// kendi koyu tonuyla çerçeve.
+    override func drawDraggingDestinationFeedback(in dirtyRect: NSRect) {
+        let cerceve = NSBezierPath(roundedRect: bounds.insetBy(dx: 4, dy: 1), xRadius: 6, yRadius: 6)
+        secimVurguRengi().withAlphaComponent(0.35).setFill()
+        cerceve.fill()
+        secimVurguRengi().koyulastir(0.12).setStroke()
+        cerceve.lineWidth = 1.5
+        cerceve.stroke()
+    }
+
     func temayiUygula() {
         vurguGorunumu.layer?.backgroundColor = secimVurguRengi().cgColor
     }

@@ -43,5 +43,3 @@ DerivedData/
 .obsidian/workspace-mobile.json
 .obsidian/graph.json
 
-# graphify uretilen Obsidian notlari (542 dosya, graph.jsondan turetilir)
-graphify-out/obsidian/

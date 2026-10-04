@@ -20,3 +20,9 @@ var gKenarPanelGenislik: CGFloat = {
 /// İmlecin o anki yazım puntosu (yalnızca yeni yazılacak metin için varsayılan).
 /// Kalıcı DEĞİLDİR ve var olan metnin yorumunu etkilemez; her açılışta tabana döner.
 var gYaziBoyutu: CGFloat = kTabanPunto
+
+/// Kayıt yokken Ana Sayfa açılır; kapatıldığında eski son-not davranışı korunur.
+var gAcilistaAnaSayfa: Bool {
+    get { UserDefaults.standard.object(forKey: "acilistaAnaSayfa") as? Bool ?? true }
+    set { UserDefaults.standard.set(newValue, forKey: "acilistaAnaSayfa") }
+}

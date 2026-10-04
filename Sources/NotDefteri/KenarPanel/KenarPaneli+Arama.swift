@@ -14,32 +14,98 @@ extension KenarPaneli {
         guard !yenilemeSuruyor else { return }
         yenilemeSuruyor = true
         defer { yenilemeSuruyor = false }
+        favoriler.olmayanlariDusur()
+        sayfaBaglantilari.olmayanSonAcilanlariDusur()
         tumKokDugumler = agaciYukle()
         tumNotlar = notlariDuzlestir(tumKokDugumler)
-        icerikOnbelleginiTazele()
+        let mevcut = Set(tumNotlar)
+        // Panel gizliyken de silinen notlar ana sayfa ve bağlantı önbelleğinde kalmaz.
+        icerikOnbellek = icerikOnbellek.filter { mevcut.contains($0.key) }
+        // Gezinme modeli güncel kalır; görünmeyen ağacın içerik okumaları bekler.
+        onbellekYenilemesiBekliyor = true
+        if gorunumGuncellemeleriEtkin { icerikOnbelleginiTazele() }
+        sayfaIndeksiniGuncelle()
+        baglantiOnbellegiDegisti?()
         filtreUygula()
     }
 
-    /// Arama önbelleğini günceller. Değişmemiş notlar yeniden okunmaz:
-    /// değiştirilme tarihi kontrolü, dosyayı okumaktan ~10 kat ucuz
-    /// (1000 notta 2 ms'ye karşı 25 ms).
-    ///
-    /// Not: `yenile()`in asıl maliyeti burada değil, `agaciYukle()`
-    /// taramasında (1000 notta ~65 ms, toplamın %72'si).
-    private func icerikOnbelleginiTazele() {
-        var yeni: [URL: OnbellekGirdisi] = [:]
-        yeni.reserveCapacity(tumNotlar.count)
+    func bekleyenGuncellemeleriUygula() {
+        if onbellekYenilemesiBekliyor { icerikOnbelleginiTazele() }
+        if filtreGuncellemesiBekliyor { filtreUygula() }
+        if kisaYolGuncellemesiBekliyor { kisaYollariYenile() }
+    }
 
-        for url in tumNotlar {
-            let tarih = degistirilmeTarihi(url)
-            if let eski = icerikOnbellek[url], eski.tarih == tarih {
-                yeni[url] = eski                      // değişmemiş: yeniden okumaya gerek yok
-            } else if let metin = try? String(contentsOf: url, encoding: .utf8) {
-                yeni[url] = OnbellekGirdisi(tarih: tarih, aranabilirMetin: isaretlemeleriTemizle(metin))
-            }
+    /// Arama önbelleğini seri arka plan kuyruğunda günceller; arayüz bu sırada eski
+    /// önbellekle çalışır, sonuç tek seferde uygulanır (yarım önbellek görünmez).
+    /// Değişmemiş notlar yeniden okunmaz: tarih kontrolü okumadan ~10 kat ucuz.
+    ///
+    /// Ölçüm (3584 not, %10'u 200 KB): ilk kurulum ~38 s, tarihle artımlı ~20-65 ms.
+    private func icerikOnbelleginiTazele() {
+        onbellekYenilemesiBekliyor = false
+        onbellekNesli += 1
+        let nesil = onbellekNesli, notlar = tumNotlar, eski = icerikOnbellek
+        let kutu = OnbellekKutusu()
+        onbellekKutusu = kutu
+        // Arka plan yalnızca kutuya yazar; görünüm nesnesine ana thread'de dokunulur.
+        onbellekKuyrugu.async { [weak self] in
+            let yeni = icerikOnbellegiUret(notlar, eski: eski)
+            kutu.girdiler = yeni
+            DispatchQueue.main.async { self?.icerikOnbelleginiUygula(yeni, nesil: nesil) }
         }
-        // Silinen notlar yeni sözlükte yok; böylece önbellek sınırsız büyümüyor.
-        icerikOnbellek = yeni
+    }
+
+    private func icerikOnbelleginiUygula(_ yeni: [URL: OnbellekGirdisi], nesil: Int) {
+        guard nesil == onbellekNesli, uygulananOnbellekNesli != nesil else { return }
+        uygulananOnbellekNesli = nesil
+        let mevcut = Set(tumNotlar)
+        // Tarama sürerken kayıtla gelen daha yeni girdi eski okumayla ezilmez.
+        var sonuc = icerikOnbellek.filter { mevcut.contains($0.key) }
+        for (url, girdi) in yeni where mevcut.contains(url) {
+            if let simdiki = sonuc[url], simdiki.tarih > girdi.tarih { continue }
+            sonuc[url] = girdi
+        }
+        icerikOnbellek = sonuc
+        baglantiOnbellegiDegisti?()
+        if !aramaAlani.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { filtrelemeyiPlanla() }
+    }
+
+    /// Başarılı kaydın metnini kullanır; diğer notları taramaya gerek yoktur.
+    func notIceriginiGuncelle(_ url: URL, metin: String) {
+        icerikOnbellek[url] = onbellekGirdisiUret(metin, tarih: degistirilmeTarihi(URL(fileURLWithPath: url.path)))
+        baglantiOnbellegiDegisti?()
+        if !aramaAlani.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Kayıt seçim delegesinden de gelebilir; reloadData'yı o bağlamdan çıkar.
+            filtrelemeyiPlanla()
+        }
+    }
+
+    /// Okuma yolları (Ana Sayfa, ⌘P, geri bağlantılar) beklemez; sonuç gelince
+    /// `baglantiOnbellegiDegisti` ile yeniden çizilir.
+    func icerikOnbelleginiIste() {
+        if onbellekYenilemesiBekliyor { icerikOnbelleginiTazele() }
+    }
+
+    /// Taramayı beklemez (UI donmasın); yazma yolları eski/eksik girdileri diskten okur.
+    func baglantiOnbelleginiHazirla() {
+        icerikOnbelleginiIste()
+    }
+
+    func sayfaIndeksiniGuncelle() {
+        // Yol başına kök klasör çözümü pahalı (3584 notta ~250 ms); değişmeyen sayfa yeniden kurulmaz.
+        let eskiler = Dictionary(sayfaBaglantilari.sayfalar.map { ($0.url, $0) }, uniquingKeysWith: { ilk, _ in ilk })
+        let sayfalar = tumNotlar.map { eskiler[$0] ?? SayfaSecenegi(url: $0) }
+        guard sayfalar != sayfaBaglantilari.sayfalar else { return }
+        sayfaBaglantilari.guncelle(sayfalar)
+        sayfaIndeksiDegisti?()
+    }
+
+    func baglantiVerenler(_ hedef: URL) -> [SayfaSecenegi] {
+        icerikOnbelleginiIste()
+        return sayfaBaglantilari.sayfalar.filter { sayfa in
+            icerikOnbellek[sayfa.url]?.bagHedefleri.contains {
+                sayfaBaglantilari.coz($0) == hedef
+            } ?? false
+        }.sorted { $0.yol.localizedStandardCompare($1.yol) == .orderedAscending }
     }
 
     /// Ağacı, görüntülenme sırasına göre düz bir not listesine çevirir.
@@ -73,18 +139,32 @@ extension KenarPaneli {
 
     private func notEsliyor(_ url: URL, sorgu: String) -> Bool {
         guard let girdi = icerikOnbellek[url] else { return false }
-        return aramaIcinSadelestir(girdi.aranabilirMetin).contains(sorgu)
+        return girdi.aranabilirMetin.contains(sorgu)
     }
 
     private func filtreUygula() {
+        aramaZamanlayicisi?.invalidate()
+        aramaZamanlayicisi = nil
+        guard gorunumGuncellemeleriEtkin else {
+            filtreGuncellemesiBekliyor = true
+            return
+        }
+        filtreGuncellemesiBekliyor = false
         let sorgu = aramaIcinSadelestir(aramaAlani.stringValue.trimmingCharacters(in: .whitespacesAndNewlines))
+        let aramaTemizlendi = aramaFiltresiEtkin && sorgu.isEmpty
+        aramaFiltresiEtkin = !sorgu.isEmpty
+        programatikSecimYapiliyor = true
+        defer { programatikSecimYapiliyor = false }
         kokDugumler = sorgu.isEmpty ? tumKokDugumler : suzulmusAgac(tumKokDugumler, sorgu: sorgu)
         notListesi = notlariDuzlestir(kokDugumler)
+        kisaYollariHazirla()
         tablo.reloadData()
 
-        programatikSecimYapiliyor = true
         if sorgu.isEmpty {
+            // reloadData aynı düğümlerin aramadaki açık durumunu koruyabilir.
+            tablo.collapseItem(nil, collapseChildren: true)
             acikKlasorleriGeriYukle(kokDugumler)
+            bolumleriAc()
         } else {
             // Arama sırasında eşleşmeler görünsün diye tüm klasörler açılır.
             tablo.expandItem(nil, expandChildren: true)
@@ -92,16 +172,18 @@ extension KenarPaneli {
 
         // Filtre değiştiğinde, üzerinde çalışılan not ağaçta hâlâ varsa doğru satırı
         // yeniden seç; yoksa eski (artık alakasız) bir satır seçili görünmesin.
-        if let acikNotURL, let dugum = dugumBul(acikNotURL, kokDugumler) {
-            atalariAc(acikNotURL)
+        if !anaSayfaSecili, let acikNotURL, let dugum = dugumBul(acikNotURL, kokDugumler) {
+            // Arama temizlenince açık notun ataları eski kapalı dalları açmasın.
+            if !aramaTemizlendi { atalariAc(acikNotURL) }
             let satir = tablo.row(forItem: dugum)
             if satir >= 0 {
                 tablo.selectRowIndexes(IndexSet(integer: satir), byExtendingSelection: false)
+            } else {
+                tablo.deselectAll(nil)
             }
         } else {
             tablo.deselectAll(nil)
         }
-        programatikSecimYapiliyor = false
     }
 
     private func dugumBul(_ url: URL, _ dugumler: [AgacDugumu]) -> AgacDugumu? {
@@ -157,7 +239,21 @@ extension KenarPaneli {
         // Aynı yol "Reentrant call to reloadData" uyarısının da kaynağıydı.
         guard (obj.object as AnyObject?) === aramaAlani else { return }
         aramaTemizleButonu.isHidden = aramaAlani.stringValue.isEmpty
-        filtreUygula()
+        filtrelemeyiPlanla()
+    }
+
+    private func filtrelemeyiPlanla() {
+        aramaZamanlayicisi?.invalidate()
+        guard gorunumGuncellemeleriEtkin else {
+            aramaZamanlayicisi = nil
+            filtreGuncellemesiBekliyor = true
+            return
+        }
+        let zamanlayici = Timer(timeInterval: 0.15, repeats: false) { [weak self] _ in
+            self?.filtreUygula()
+        }
+        aramaZamanlayicisi = zamanlayici
+        RunLoop.main.add(zamanlayici, forMode: .common)
     }
 
     @objc func aramaTemizleTiklandi() {
@@ -171,5 +267,27 @@ extension KenarPaneli {
     /// Panelden seçilerek açılan notlarda kullanılır.
     func acikNotuBildir(_ url: URL) {
         acikNotURL = url
+        kisaYollariPlanla()
     }
+}
+
+/// En son başlatılan taramanın sonucu; yalnızca `onbellekKuyrugu` içinde okunur/yazılır.
+final class OnbellekKutusu {
+    var girdiler: [URL: OnbellekGirdisi]?
+}
+
+/// Yalnızca Foundation; `onbellekKuyrugu` üzerinde çalışır, AppKit'e dokunmaz.
+private func icerikOnbellegiUret(_ notlar: [URL], eski: [URL: OnbellekGirdisi]) -> [URL: OnbellekGirdisi] {
+    var yeni: [URL: OnbellekGirdisi] = [:]
+    yeni.reserveCapacity(notlar.count)
+    for url in notlar {
+        // Taze URL: arka planda önbelleğe alınmış eski tarih değişikliği gizlemesin.
+        let tarih = degistirilmeTarihi(URL(fileURLWithPath: url.path))
+        if let girdi = eski[url], girdi.tarih == tarih {
+            yeni[url] = girdi                      // değişmemiş: yeniden okumaya gerek yok
+        } else if let metin = try? String(contentsOf: url, encoding: .utf8) {
+            yeni[url] = onbellekGirdisiUret(metin, tarih: tarih)
+        }
+    }
+    return yeni
 }

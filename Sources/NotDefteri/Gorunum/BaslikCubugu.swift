@@ -12,6 +12,9 @@ final class BaslikCubugu: NSView {
     var kenarPaneliDegistirTiklandi: (() -> Void)?
     var geriAlTiklandi: (() -> Void)?
     var ileriAlTiklandi: (() -> Void)?
+    var sayfaYoluTiklandi: ((URL) -> Void)?
+    private var sayfalar: [URL] = []
+    private let yol = NSStackView()
 
     let notAdiEtiketi = NSTextField(labelWithString: "Yeni Not")
 
@@ -52,6 +55,11 @@ final class BaslikCubugu: NSView {
         notAdiEtiketi.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         notAdiEtiketi.textColor = .darkGray
         notAdiEtiketi.lineBreakMode = .byTruncatingTail
+        yol.orientation = .horizontal
+        yol.spacing = 3
+        yol.distribution = .fillProportionally
+        yol.isHidden = true
+        addSubview(yol)
 
         for altGorunum in [kenarPaneliButon, yeniNotButon, geriAlButon, ileriAlButon, notAdiEtiketi, sabitleButon, arkayaAtButon, kapatButon] {
             addSubview(altGorunum)
@@ -98,6 +106,38 @@ final class BaslikCubugu: NSView {
         let etiketX = solX + (boyut + bosluk) * 4
         let etiketGenislik = max(0, sabitleButon.frame.minX - 8 - etiketX)
         notAdiEtiketi.frame = NSRect(x: etiketX, y: (bounds.height - 16) / 2, width: etiketGenislik, height: 16)
+        yol.frame = NSRect(x: etiketX, y: y, width: etiketGenislik, height: boyut)
+    }
+
+    func sayfaYolunuGoster(_ yeni: [URL]) {
+        guard sayfalar != yeni else { return }
+        sayfalar = yeni
+        yol.arrangedSubviews.forEach { yol.removeArrangedSubview($0); $0.removeFromSuperview() }
+        yol.isHidden = yeni.count < 2
+        notAdiEtiketi.isHidden = yeni.count >= 2
+        for (sira, url) in yeni.enumerated() {
+            if sira > 0 {
+                let ayirac = NSTextField(labelWithString: "›")
+                ayirac.textColor = .darkGray
+                yol.addArrangedSubview(ayirac)
+            }
+            let dugme = NSButton(title: sayfaAdi(url), target: self, action: #selector(yolaTiklandi(_:)))
+            dugme.tag = sira
+            dugme.isBordered = false
+            dugme.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+            dugme.contentTintColor = .darkGray
+            dugme.refusesFirstResponder = true
+            dugme.toolTip = sayfaAdi(url)
+            dugme.cell?.lineBreakMode = .byTruncatingMiddle
+            dugme.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            yol.addArrangedSubview(dugme)
+        }
+        needsLayout = true
+    }
+
+    @objc private func yolaTiklandi(_ sender: NSButton) {
+        guard sayfalar.indices.contains(sender.tag) else { return }
+        sayfaYoluTiklandi?(sayfalar[sender.tag])
     }
 
     @objc private func kenarPaneliButonaTiklandi() { kenarPaneliDegistirTiklandi?() }

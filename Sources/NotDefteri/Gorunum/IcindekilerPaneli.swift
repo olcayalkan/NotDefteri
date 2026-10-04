@@ -7,7 +7,7 @@ import AppKit
 final class IcindekilerPaneli: NSView {
 
     /// Bir başlık girdisi: metni, düzeyi ve metin içindeki konumu.
-    struct Girdi {
+    struct Girdi: Equatable {
         let metin: String
         let seviye: Int
         let konum: Int
@@ -15,9 +15,19 @@ final class IcindekilerPaneli: NSView {
 
     /// Bir başlığa gidilmek istendiğinde tetiklenir (metin içi karakter konumu).
     var basligaGitIstendi: ((Int) -> Void)?
+    var basliklarGuncellendi: (([Girdi]) -> Void)?
+    var sayfayaGitIstendi: ((URL) -> Void)?
+    private var baglantiVerenler: [SayfaSecenegi] = []
+    private var bagDugmeleri: [NSButton] = []
+    private let bagBasligi = NSTextField(labelWithString: "Bağlantı verenler")
+    private var bos: Bool { girdiler.isEmpty && baglantiVerenler.isEmpty }
 
     private(set) var girdiler: [Girdi] = []
-    private var etkinSira: Int?
+    private(set) var etkinSira: Int?
+    private var imlecKonumu = 0
+    private var guncellemeZamanlayicisi: Timer?
+    private weak var izlenenDepo: NSTextStorage?
+    private var depoIzleyicisi: NSObjectProtocol?
     private(set) var acik = false
     private var izlemeAlani: NSTrackingArea?
     private var satirlar: [SatirGorunumu] = []
@@ -51,11 +61,19 @@ final class IcindekilerPaneli: NSView {
         kaydirma.verticalScrollElasticity = .allowed
         kaydirma.documentView = icerik
         addSubview(kaydirma)
+        bagBasligi.font = .systemFont(ofSize: 11, weight: .semibold)
+        bagBasligi.textColor = .secondaryLabelColor
+        bagBasligi.isHidden = true
+        icerik.addSubview(bagBasligi)
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    deinit { NotificationCenter.default.removeObserver(self) }
+    deinit {
+        guncellemeZamanlayicisi?.invalidate()
+        if let depoIzleyicisi { NotificationCenter.default.removeObserver(depoIzleyicisi) }
+        NotificationCenter.default.removeObserver(self)
+    }
 
     /// Pencere yeniden boyutlanınca panel sağ üstte kalmalı ve azami
     /// yüksekliği yeniden hesaplanmalı; autoresizingMask bunu yapamıyor
@@ -70,18 +88,82 @@ final class IcindekilerPaneli: NSView {
     }
 
     @objc private func ustBoyutDegisti() {
-        guard !girdiler.isEmpty else { return }
+        guard !bos else { return }
         frame = hedefKare()
     }
 
     // MARK: İçerik
 
+    /// Seçim bildirimi textDidChange'den önce gelebilir; depo değiştiği anda
+    /// eski konumları geçersiz say ve hızlı düzenlemeleri tek taramada birleştir.
+    func icerigiGuncellemeyiPlanla(_ metinDeposu: NSTextStorage?) {
+        metinDeposunuIzle(metinDeposu)
+        guncellemeZamanlayicisi?.invalidate()
+        if let etkinSira { satirlar[etkinSira].etkin = false }
+        etkinSira = nil
+        let zamanlayici = Timer(timeInterval: 0.15, repeats: false) { [weak self, weak metinDeposu] _ in
+            self?.icerigiGuncelle(metinDeposu)
+        }
+        guncellemeZamanlayicisi = zamanlayici
+        RunLoop.main.add(zamanlayici, forMode: .common)
+    }
+
+    private func metinDeposunuIzle(_ metinDeposu: NSTextStorage?) {
+        guard izlenenDepo !== metinDeposu else { return }
+        if let depoIzleyicisi { NotificationCenter.default.removeObserver(depoIzleyicisi) }
+        depoIzleyicisi = nil
+        izlenenDepo = metinDeposu
+        guard let metinDeposu else { return }
+        depoIzleyicisi = NotificationCenter.default.addObserver(
+            forName: NSTextStorage.didProcessEditingNotification, object: metinDeposu, queue: nil
+        ) { [weak self, weak metinDeposu] _ in
+            self?.icerigiGuncellemeyiPlanla(metinDeposu)
+        }
+    }
+
     /// Metin deposundaki başlıkları tarayıp paneli yeniden kurar.
     func icerigiGuncelle(_ metinDeposu: NSTextStorage?) {
-        girdiler = basliklariTopla(metinDeposu)
-        satirlariKur()
-        isHidden = girdiler.isEmpty       // Başlık yoksa panel hiç görünmesin.
+        metinDeposunuIzle(metinDeposu)
+        guncellemeZamanlayicisi?.invalidate()
+        guncellemeZamanlayicisi = nil
+        let yeniGirdiler = basliklariTopla(metinDeposu)
+        if girdiler != yeniGirdiler {
+            girdiler = yeniGirdiler
+            etkinSira = nil
+            satirlariKur()
+        }
+        basliklarGuncellendi?(yeniGirdiler)
+        isHidden = bos       // Başlık yoksa panel hiç görünmesin.
+        frame = hedefKare()
         needsLayout = true
+        etkinBasligiGuncelle(imlecKonumu: imlecKonumu)
+    }
+
+    func baglantiVerenleriGuncelle(_ sayfalar: [SayfaSecenegi]) {
+        guard sayfalar != baglantiVerenler else { return }
+        baglantiVerenler = sayfalar
+        bagDugmeleri.forEach { $0.removeFromSuperview() }
+        bagDugmeleri = sayfalar.enumerated().map { sira, sayfa in
+            let dugme = NSButton(title: "", target: self, action: #selector(bagTiklandi(_:)))
+            dugme.tag = sira
+            dugme.font = .systemFont(ofSize: 11)
+            dugme.isBordered = false
+            dugme.alignment = .left
+            dugme.refusesFirstResponder = true
+            dugme.lineBreakMode = .byTruncatingTail
+            dugme.toolTip = sayfa.yol
+            dugme.setAccessibilityLabel("Bağlantı veren sayfa: \(sayfa.yol)")
+            icerik.addSubview(dugme)
+            return dugme
+        }
+        isHidden = bos
+        frame = hedefKare()
+        needsLayout = true
+    }
+
+    @objc private func bagTiklandi(_ gonderen: NSButton) {
+        guard baglantiVerenler.indices.contains(gonderen.tag) else { return }
+        sayfayaGitIstendi?(baglantiVerenler[gonderen.tag].url)
     }
 
     private func basliklariTopla(_ metinDeposu: NSTextStorage?) -> [Girdi] {
@@ -97,9 +179,14 @@ final class IcindekilerPaneli: NSView {
             var konum = aralik.location
             while konum < NSMaxRange(aralik) {
                 let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
-                let metin = ns.substring(with: paragraf).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !metin.isEmpty, sonuc.last?.konum != paragraf.location {
-                    sonuc.append(Girdi(metin: metin, seviye: seviye, konum: paragraf.location))
+                let metin = ns.substring(with: paragraf).replacingOccurrences(of: "\u{200B}", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                // Birleşen paragraflarda ortada eski başlık özniteliği kalabilir.
+                // Markdown üretimi gibi, başlık düzeyini paragraf başından al.
+                if !metin.isEmpty, sonuc.last?.konum != paragraf.location,
+                   let paragrafSeviyesi = metinDeposu.attribute(kBaslikSeviyesiAnahtari, at: paragraf.location, effectiveRange: nil) as? Int,
+                   (1...3).contains(paragrafSeviyesi) {
+                    sonuc.append(Girdi(metin: metin, seviye: paragrafSeviyesi, konum: paragraf.location))
                 }
                 konum = max(NSMaxRange(paragraf), konum + 1)
             }
@@ -109,10 +196,19 @@ final class IcindekilerPaneli: NSView {
 
     /// İmlecin bulunduğu başlığı vurgular ve gerekirse görünür alana kaydırır.
     func etkinBasligiGuncelle(imlecKonumu: Int) {
-        let yeni = girdiler.lastIndex { $0.konum <= imlecKonumu }
+        self.imlecKonumu = imlecKonumu
+        guard guncellemeZamanlayicisi == nil else { return }
+        var alt = 0
+        var ust = girdiler.count
+        while alt < ust {
+            let orta = alt + (ust - alt) / 2
+            if girdiler[orta].konum <= imlecKonumu { alt = orta + 1 } else { ust = orta }
+        }
+        let yeni: Int? = alt > 0 ? alt - 1 : nil
         guard yeni != etkinSira else { return }
+        if let etkinSira { satirlar[etkinSira].etkin = false }
         etkinSira = yeni
-        for (sira, satir) in satirlar.enumerated() { satir.etkin = (sira == yeni) }
+        if let yeni { satirlar[yeni].etkin = true }
         if acik, let yeni, satirlar.indices.contains(yeni) {
             icerik.scrollToVisible(satirlar[yeni].frame)
         }
@@ -122,7 +218,10 @@ final class IcindekilerPaneli: NSView {
         satirlar.forEach { $0.removeFromSuperview() }
         satirlar = girdiler.enumerated().map { sira, girdi in
             let satir = SatirGorunumu(girdi: girdi)
-            satir.tiklandi = { [weak self] in self?.basligaGitIstendi?(girdi.konum) }
+            satir.tiklandi = { [weak self] in
+                guard let self, self.guncellemeZamanlayicisi == nil else { return }
+                self.basligaGitIstendi?(girdi.konum)
+            }
             satir.etkin = (sira == etkinSira)
             satir.acikGoster(acik)
             icerik.addSubview(satir)
@@ -146,7 +245,7 @@ final class IcindekilerPaneli: NSView {
     override func mouseExited(with event: NSEvent) { aciklikAyarla(false) }
 
     private func aciklikAyarla(_ yeniDurum: Bool) {
-        guard acik != yeniDurum, !girdiler.isEmpty else { return }
+        guard acik != yeniDurum, !bos else { return }
         acik = yeniDurum
 
         NSAnimationContext.runAnimationGroup { baglam in
@@ -168,7 +267,8 @@ final class IcindekilerPaneli: NSView {
     func hedefKare() -> NSRect {
         guard let ust = superview else { return frame }
         let genislik = acik ? Self.acikGenislik : Self.daraltilmisGenislik
-        let istenen = CGFloat(girdiler.count) * satirYuksekligi + dikeyBosluk * 2
+        let bagYuksekligi = baglantiVerenler.isEmpty ? 0 : CGFloat(baglantiVerenler.count + 1) * satirYuksekligi
+        let istenen = CGFloat(girdiler.count) * satirYuksekligi + bagYuksekligi + dikeyBosluk * 2
         let enFazla = ust.bounds.height - kBaslikYuksekligi - ustBosluk * 2
         let yukseklik = min(istenen, max(0, enFazla))
         return NSRect(x: ust.bounds.width - genislik - sagBosluk,
@@ -181,9 +281,19 @@ final class IcindekilerPaneli: NSView {
         super.layout()
         kaydirma.frame = bounds.insetBy(dx: 0, dy: dikeyBosluk)
 
-        let icerikYuksekligi = CGFloat(satirlar.count) * satirYuksekligi
+        let icerikYuksekligi = CGFloat(satirlar.count + (baglantiVerenler.isEmpty ? 0 : baglantiVerenler.count + 1)) * satirYuksekligi
         icerik.frame = NSRect(x: 0, y: 0, width: kaydirma.contentSize.width,
                               height: max(icerikYuksekligi, kaydirma.contentSize.height))
+        let bagBasi = CGFloat(satirlar.count) * satirYuksekligi
+        bagBasligi.isHidden = baglantiVerenler.isEmpty || !acik
+        bagBasligi.frame = NSRect(x: 8, y: bagBasi + 3, width: max(0, icerik.bounds.width - 16), height: 16)
+        for (sira, dugme) in bagDugmeleri.enumerated() {
+            let sayfa = baglantiVerenler[sira]
+            dugme.title = acik ? "📄 \(sayfa.ad)" : "↩"
+            dugme.contentTintColor = kMetinRenk.withAlphaComponent(0.65)
+            dugme.frame = NSRect(x: acik ? 8 : 0, y: bagBasi + CGFloat(sira + 1) * satirYuksekligi,
+                                width: max(0, icerik.bounds.width - (acik ? 16 : 0)), height: satirYuksekligi)
+        }
         // Ters koordinatlı görünüm: ilk satır en üstte.
         for (sira, satir) in satirlar.enumerated() {
             satir.frame = NSRect(x: 0, y: CGFloat(sira) * satirYuksekligi,
