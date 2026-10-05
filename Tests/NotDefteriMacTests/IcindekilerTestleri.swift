@@ -1,6 +1,7 @@
 import XCTest
 import AppKit
-@testable import NotDefteri
+@testable import NotDefteriCekirdek
+@testable import NotDefteriMac
 
 /// İçindekiler panelinin başlık çıkarımı. Panelin kendisi arayüz ama
 /// başlıkları toplama mantığı metin deposundan okunuyor — test edilebilir.

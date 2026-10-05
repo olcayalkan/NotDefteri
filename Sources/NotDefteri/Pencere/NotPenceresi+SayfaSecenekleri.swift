@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 extension NotPenceresi {
     private func sayfaSecenekDugmesiniHazirla() {
@@ -45,7 +46,7 @@ extension NotPenceresi {
         guard anaSayfa.isHidden, mevcutDosyaURL == url, let depo = metinGorunumu.textStorage else { return }
         SayfaGecmisi.kaydet(metin: sayfaMarkdownunuUret(depo, ustbilgi: sayfaUstbilgisi), icerikURL: url, zorla: true)
         metinGorunumu.blokDuzenle(NSRange(location: 0, length: depo.length),
-                                  yeni: markdowndenAttributedStringUret(govde, taban: sayfaKlasoru(url)),
+                                  yeni: MacBelgeAdaptoru.markdownuAc(govde, taban: sayfaKlasoru(url)),
                                   secim: NSRange(location: 0, length: 0), yazim: metinGorunumu.typingAttributes)
         metinGorunumu.undoManager?.setActionName("Sürümü geri yükle")
         kaydetURLe(url, panelYenile: false)

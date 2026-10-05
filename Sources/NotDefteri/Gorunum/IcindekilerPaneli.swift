@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 /// Notun başlıklarından üretilen, sağ ÜSTE sabit içindekiler paneli.
 ///

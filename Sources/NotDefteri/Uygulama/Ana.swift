@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - Uygulama giriş noktası
 
@@ -45,15 +46,13 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 }
 
-/// Giriş noktası. `@main` kullanılıyor çünkü top-level kod içeren bir dosya
-/// (main.swift) test hedefinden `@testable import` ile alınamıyor.
-@main
-enum Ana {
+/// Ortak çalıştırıcının çağırdığı macOS giriş noktası.
+package enum Ana {
     /// Delege uygulama ömrü boyunca yaşamalı; `app.run()` bloklasa da
     /// sahipliği açıkça burada tutuyoruz.
     static let delege = UygulamaDelegesi()
 
-    static func main() {
+    package static func main() {
         let app = NSApplication.shared
         app.delegate = delege
         app.run()

@@ -4,11 +4,11 @@ import Foundation
 let kSiraDosyaAdi = ".sira.json"
 
 /// Kardeş sayfa adları (klasör adı ya da .md'siz dosya adı). `sabitler` hep en üstte durur.
-struct SayfaSirasi: Codable, Equatable {
-    var sabitler: [String]
-    var sira: [String]
+package struct SayfaSirasi: Codable, Equatable {
+    package var sabitler: [String]
+    package var sira: [String]
 
-    init(sabitler: [String] = [], sira: [String] = []) {
+    package init(sabitler: [String] = [], sira: [String] = []) {
         self.sabitler = sabitler
         self.sira = sira
     }
@@ -16,13 +16,13 @@ struct SayfaSirasi: Codable, Equatable {
     private enum CodingKeys: String, CodingKey { case sabitler, sira }
 
     // Elle düzenlenmiş dosyada bir anahtar eksikse diğeri yine geçerli sayılır.
-    init(from kodCozucu: Decoder) throws {
+    package init(from kodCozucu: Decoder) throws {
         let kutu = try kodCozucu.container(keyedBy: CodingKeys.self)
         sabitler = try kutu.decodeIfPresent([String].self, forKey: .sabitler) ?? []
         sira = try kutu.decodeIfPresent([String].self, forKey: .sira) ?? []
     }
 
-    var bos: Bool { sabitler.isEmpty && sira.isEmpty }
+    package var bos: Bool { sabitler.isEmpty && sira.isEmpty }
 }
 
 /// Dosya yoksa ya da bozuksa nil (çökme yok; sonraki yazım dosyayı yeniden kurar).
@@ -49,7 +49,7 @@ func siraUygula(_ dugumler: [AgacDugumu], _ kayit: SayfaSirasi?) -> [AgacDugumu]
 /// Yalnızca değişiklik varsa, notlar klasörü içindeki klasöre atomik yazar.
 /// Yazılamadıysa false (yol dışarıdaysa, sembolik bağsa, disk hatasında).
 @discardableResult
-func siraYaz(_ yeni: SayfaSirasi, klasor: URL) -> Bool {
+package func siraYaz(_ yeni: SayfaSirasi, klasor: URL) -> Bool {
     let fm = FileManager.default
     let yol = klasor.standardizedFileURL
     let kok = notlarKlasoru().standardizedFileURL
@@ -72,13 +72,13 @@ func siraYaz(_ yeni: SayfaSirasi, klasor: URL) -> Bool {
 
 /// Klasörün tüm kardeşlerini verilen sırayla kaydeder; `sabitler` içindekiler sabit kalır.
 @discardableResult
-func siraKaydet(klasor: URL, adlar: [String], sabitler: Set<String>) -> Bool {
+package func siraKaydet(klasor: URL, adlar: [String], sabitler: Set<String>) -> Bool {
     siraYaz(SayfaSirasi(sabitler: adlar.filter { sabitler.contains($0) },
                         sira: adlar.filter { !sabitler.contains($0) }), klasor: klasor)
 }
 
 /// Yeniden adlandırmada adı günceller, taşıma/silmede (`yeni` nil) kayıttan çıkarır.
-func siraAdiniDegistir(klasor: URL, eski: String, yeni: String?) {
+package func siraAdiniDegistir(klasor: URL, eski: String, yeni: String?) {
     guard var kayit = siraOku(klasor) else { return }
     func uygula(_ adlar: [String]) -> [String] { adlar.compactMap { $0 == eski ? yeni : $0 } }
     kayit.sabitler = uygula(kayit.sabitler)

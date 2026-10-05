@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 extension NotMetinGorunumu {
     func uyariKutulariniCiz(_ kirliAlan: NSRect) {
@@ -10,7 +11,7 @@ extension NotMetinGorunumu {
         // Yalnızca görünür aralık ölçülür; belge taranmaz.
         depo.enumerateAttribute(kUyariKutusuAnahtari, in: karakterler) { deger, aralik, _ in
             guard let kimlik = deger as? String,
-                  let blok = depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil) as? MetinBlogu else { return }
+                  let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil)) else { return }
             guard let kare = guvenliKare(karakter: aralik)?
                 .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y) else { return }
             let x = textContainerOrigin.x + kapsayici.lineFragmentPadding + CGFloat(blok.seviye) * 24
@@ -45,7 +46,7 @@ extension NotMetinGorunumu {
         let kapsam = ns.paragraphRange(for: NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length)))
         var son = NSMaxRange(kapsam)
         // Komşunun tüm metnini ancak kutu başı/devamı gerçekten değişecekse ölç.
-        if son < depo.length, let sonraki = depo.attribute(kMetinBloguAnahtari, at: son, effectiveRange: nil) as? MetinBlogu,
+        if son < depo.length, let sonraki = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: son, effectiveRange: nil)),
            sonraki.tur == .uyari {
             let devam = son > 0 && depo.attribute(kUyariKutusuAnahtari, at: son - 1, effectiveRange: nil) as? String == sonraki.uyariKimligi
             if sonraki.devam != devam { son = NSMaxRange(ns.paragraphRange(for: NSRange(location: son, length: 0))) }
@@ -53,19 +54,13 @@ extension NotMetinGorunumu {
         var konum = kapsam.location
         while konum < son {
             let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
-            if var blok = depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil) as? MetinBlogu, blok.tur == .uyari {
+            // Başı gizli işaretle kalan kutunun girintisini MacBelgeAdaptoru hizalar.
+            if var blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil)), blok.tur == .uyari {
                 let devam = konum > 0 && depo.attribute(kUyariKutusuAnahtari, at: konum - 1, effectiveRange: nil) as? String == blok.uyariKimligi
                 if blok.devam != devam {
                     blok.devam = devam
                     blok.kaynakOnEk = nil
                     depo.addAttributes(blok.oznitelikler, range: paragraf)
-                }
-                if !blok.devam, ns.character(at: konum) == 0x200B,
-                   let stil = depo.attribute(.paragraphStyle, at: konum, effectiveRange: nil) as? NSParagraphStyle,
-                   stil.firstLineHeadIndent != stil.headIndent {
-                    let yeniStil = stil.mutableCopy() as! NSMutableParagraphStyle
-                    yeniStil.firstLineHeadIndent = stil.headIndent
-                    depo.addAttribute(.paragraphStyle, value: yeniStil, range: paragraf)
                 }
             }
             konum = NSMaxRange(paragraf)
@@ -100,7 +95,7 @@ extension NotMetinGorunumu {
         var secim = selectedRange()
         while konum < yeni.length {
             var paragraf = yeni.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
-            guard var blok = yeni.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil) as? MetinBlogu else { break }
+            guard var blok = MetinBlogu(oznitelik: yeni.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil)) else { break }
             if let emoji { blok.emoji = emoji }
             if let renk { blok.renk = renk }
             blok.kaynakOnEk = nil

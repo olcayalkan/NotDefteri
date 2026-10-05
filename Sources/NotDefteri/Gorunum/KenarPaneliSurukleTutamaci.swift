@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - Kenar panelin genişliğini fare ile ayarlamak için sürükle tutamacı
 

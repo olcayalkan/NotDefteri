@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 /// Odağı editörde tutar; düğmeler metin seçimini değiştirmez.
 final class YuzerPanel: NSPanel {

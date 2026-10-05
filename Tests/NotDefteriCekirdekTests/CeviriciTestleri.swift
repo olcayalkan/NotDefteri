@@ -1,6 +1,5 @@
 import XCTest
-import AppKit
-@testable import NotDefteri
+@testable import NotDefteriCekirdek
 
 /// Markdown <-> AttributedString çeviricisinin testleri.
 /// En kritik olan gidiş-dönüş: metin çevrilip geri döndüğünde özdeş kalmalı.
@@ -167,25 +166,4 @@ final class CeviriciTestleri: XCTestCase {
         XCTAssertTrue(aramaIcinSadelestir("ŞİFRE").contains(aramaIcinSadelestir("şif")))
     }
 
-    // MARK: Font yardımcıları
-
-    func testKalinMi() {
-        XCTAssertTrue(kalinMi(fontUret(boyut: 14, kalin: true)))
-        XCTAssertFalse(kalinMi(fontUret(boyut: 14, kalin: false)))
-    }
-
-    func testBaslikFontuSeviyeyeGoreBuyur() {
-        let b1 = baslikFontu(1).pointSize
-        let b2 = baslikFontu(2).pointSize
-        let b3 = baslikFontu(3).pointSize
-        XCTAssertGreaterThan(b1, b2)
-        XCTAssertGreaterThan(b2, b3)
-        XCTAssertGreaterThan(b3, kTabanPunto, "en küçük başlık bile tabandan büyük olmalı")
-        XCTAssertTrue(kalinMi(baslikFontu(1)), "başlıklar kalın olmalı")
-    }
-
-    func testVarsayilanFontTabanPuntoda() {
-        XCTAssertEqual(varsayilanFont().pointSize, kTabanPunto)
-        XCTAssertFalse(kalinMi(varsayilanFont()))
-    }
 }

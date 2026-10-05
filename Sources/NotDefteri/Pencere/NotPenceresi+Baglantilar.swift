@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 extension NotPenceresi {
     @objc func hizliBulucuKomutu(_ gonderen: Any?) { hizliBulucuyuAc() }

@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 private final class KisayolNSWindow: NSWindow {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {

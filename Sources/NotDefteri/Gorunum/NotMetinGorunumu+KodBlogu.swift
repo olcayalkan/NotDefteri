@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 private let kKodTokenAnahtari = NSAttributedString.Key("kodToken")
 private let kodRenklendirmeKuyrugu = DispatchQueue(label: "NotDefteri.kod-renklendirme", qos: .userInitiated)
@@ -133,9 +134,9 @@ extension NotMetinGorunumu {
                 let aralik = NSRange(location: blok.aralik.location + token.aralik.location, length: token.aralik.length)
                 yerlesim.addTemporaryAttribute(kKodTokenAnahtari, value: token.tur, forCharacterRange: aralik)
             }
+            yerlesim.invalidateDisplay(forCharacterRange: blok.aralik)
         }
         kodBekleyenAraliklar.removeAll()
-        needsDisplay = true
     }
 
     func kodAraclariniGuncelle(noktada nokta: NSPoint?) {
@@ -147,6 +148,9 @@ extension NotMetinGorunumu {
         var aralik = NSRange()
         guard let bilgi = depo.attribute(kKodBloguAnahtari, at: konum, longestEffectiveRange: &aralik,
                                          in: NSRange(location: 0, length: depo.length)) as? [String: String] else {
+            kodAraclari.isHidden = true; return
+        }
+        guard !katlama.gizliMi(konum), !katlama.gizliMi(aralik.location) else {
             kodAraclari.isHidden = true; return
         }
         let glif = yerlesim.glyphIndexForCharacter(at: konum)
@@ -200,10 +204,7 @@ extension NotMetinGorunumu {
             if deger as? Bool == true { isaretler.append(alt) }
         }
         for alt in isaretler.reversed() { yeni.deleteCharacters(in: alt) }
-        let yazim: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedSystemFont(ofSize: kTabanPunto, weight: .regular),
-            .foregroundColor: kMetinRenk, .backgroundColor: kMetinRenk.withAlphaComponent(0.08),
-            kKodBloguAnahtari: kodBloguSinirlari(acilis: "```" + dil + "\n", kapanis: "```\n")]
+        let yazim = kodBloguOznitelikleri(kodBloguSinirlari(acilis: "```" + dil + "\n", kapanis: "```\n"))
         // Kod gövdesi inline Markdown özniteliklerini devralmaz.
         yeni.setAttributes(yazim, range: NSRange(location: 0, length: yeni.length))
         var isaret = yazim

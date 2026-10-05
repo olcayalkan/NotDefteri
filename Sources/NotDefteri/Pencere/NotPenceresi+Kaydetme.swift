@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - NotPenceresi: Kaydetme ve otomatik kayıt
 

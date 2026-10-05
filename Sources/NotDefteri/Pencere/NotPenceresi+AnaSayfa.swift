@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 extension NotPenceresi {
     @objc func anaSayfaKomutu(_ sender: Any?) { anaSayfayiGoster() }
@@ -104,7 +105,7 @@ extension NotPenceresi {
         let govde = sayfaUstbilgisiniAyir(metin).govde as NSString
         // Özgün kaynak satırları ile görünen paragraf uzunlukları farklıdır.
         // Aynı çevirici, yalnızca tıklamada, başlık/görsel/kod öncesindeki farkı çözer.
-        return markdowndenAttributedStringUret(govde.substring(to: gorev.govdeKonumu), taban: sayfaKlasoru(gorev.url)).length
+        return MacBelgeAdaptoru.markdownuAc(govde.substring(to: gorev.govdeKonumu), taban: sayfaKlasoru(gorev.url)).length
     }
 
     func yapilacagaGit(_ gorev: BekleyenYapilacak) {
@@ -129,7 +130,7 @@ extension NotPenceresi {
             let paragraf = depo.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
             let satir = NSMutableString(string: gorev.satir)
             satir.replaceCharacters(in: NSRange(location: gorev.kutuKonumu - gorev.govdeKonumu, length: 1), with: "x")
-            let yeniParagraf = markdowndenAttributedStringUret(satir as String, taban: sayfaKlasoru(gorev.url))
+            let yeniParagraf = MacBelgeAdaptoru.markdownuAc(satir as String, taban: sayfaKlasoru(gorev.url))
             // Ortak blok düzenleme yolu yalnızca hedef paragrafı değiştirir ve undo'yu korur.
             metinGorunumu.isEditable = true
             metinGorunumu.blokDuzenle(paragraf, yeni: yeniParagraf, secim: metinGorunumu.selectedRange(),

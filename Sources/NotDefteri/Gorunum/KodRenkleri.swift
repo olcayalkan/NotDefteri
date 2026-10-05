@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 func kodRengi(_ tur: KodTokenTuru, tema: Tema) -> NSColor {
     let zemin = tema.arkaplan.usingColorSpace(.genericRGB) ?? tema.arkaplan

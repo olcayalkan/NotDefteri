@@ -1,6 +1,7 @@
 import XCTest
 import AppKit
-@testable import NotDefteri
+@testable import NotDefteriCekirdek
+@testable import NotDefteriMac
 
 /// Bir sayfadaki içeriğin (metin + görsel) başka bir sayfaya kopyalanması.
 /// Kritik kural: kaynak dosya YERİNDE KALIR, hedefe kopyası çıkarılır.

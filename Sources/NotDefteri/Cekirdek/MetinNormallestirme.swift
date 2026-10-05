@@ -9,7 +9,7 @@ import Foundation
 /// `.diacriticInsensitive` "İ"nin noktasını silip "I" yapıyor, ardından
 /// tr_TR küçültmesi onu "ı"ya çeviriyordu; sonuçta "istanbul" araması
 /// "İstanbul" başlıklı notu bulamıyordu.
-func aramaIcinSadelestir(_ metin: String) -> String {
+package func aramaIcinSadelestir(_ metin: String) -> String {
     var sade = metin
     for harf in ["İ", "I", "ı"] {
         sade = sade.replacingOccurrences(of: harf, with: "i")

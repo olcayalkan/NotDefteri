@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 extension KenarPaneli {
     /// Dal taşınması seyrek bir işlem; yalnızca önbellekte etkilenen hedefi olan dosyalar okunur.

@@ -1,17 +1,17 @@
 import Foundation
 
-struct CopBilgisi: Codable {
-    let ozgunYol: String
-    let silinmeTarihi: Date
+package struct CopBilgisi: Codable {
+    package let ozgunYol: String
+    package let silinmeTarihi: Date
     /// nil: salt kapsayıcı, index.md: yeni düzen, diğer: eski düz not.
-    let icerikDosyasi: String?
+    package let icerikDosyasi: String?
 }
 
-struct CopOgesi {
-    let klasor: URL
-    let bilgi: CopBilgisi
-    var ad: String { (bilgi.ozgunYol as NSString).lastPathComponent }
-    var icerikURL: URL? {
+package struct CopOgesi {
+    package let klasor: URL
+    package let bilgi: CopBilgisi
+    package var ad: String { NSString(string: bilgi.ozgunYol).lastPathComponent }
+    package var icerikURL: URL? {
         guard let dosya = bilgi.icerikDosyasi else { return nil }
         return dosya == kIcerikDosyaAdi
             ? klasor.appendingPathComponent(ad).appendingPathComponent(dosya)
@@ -20,14 +20,14 @@ struct CopOgesi {
 }
 
 /// Açılış temizliği ve kullanıcı işlemleri aynı kilidi paylaşır. UI içermez.
-final class CopKutusu {
+package final class CopKutusu {
     private let kok: URL
     private let kilit = NSLock()
     private let fm = FileManager.default
     private var cop: URL { kok.appendingPathComponent(".cop", isDirectory: true) }
     private let bilgiAdi = ".cop-bilgi.json"
 
-    init(kok: URL = notlarKlasoru()) { self.kok = kok.resolvingSymlinksInPath().standardizedFileURL }
+    package init(kok: URL = notlarKlasoru()) { self.kok = kok.resolvingSymlinksInPath().standardizedFileURL }
 
     private func hata(_ mesaj: String) -> NSError {
         NSError(domain: "NotDefteri.CopKutusu", code: 1, userInfo: [NSLocalizedDescriptionKey: mesaj])
@@ -67,7 +67,7 @@ final class CopKutusu {
         cozumleyici.dateDecodingStrategy = .iso8601
         let bilgi = try cozumleyici.decode(CopBilgisi.self, from: Data(contentsOf: url))
         let parcalar = bilgi.ozgunYol.components(separatedBy: "/")
-        let dosya = bilgi.icerikDosyasi as NSString?
+        let dosya = bilgi.icerikDosyasi.map { NSString(string: $0) }
         guard !parcalar.isEmpty, parcalar.allSatisfy({ !$0.isEmpty && !$0.hasPrefix(".") && !$0.contains("\0") }),
               dosya == nil || bilgi.icerikDosyasi == kIcerikDosyaAdi
                 || (dosya?.deletingPathExtension == parcalar.last && dosya?.pathExtension.lowercased() == "md") else {
@@ -82,7 +82,7 @@ final class CopKutusu {
         return try fm.contentsOfDirectory(at: cop, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
     }
 
-    func ogeler() throws -> (ogeler: [CopOgesi], hatalar: [String]) {
+    package func ogeler() throws -> (ogeler: [CopOgesi], hatalar: [String]) {
         kilit.lock(); defer { kilit.unlock() }
         var ogeler: [CopOgesi] = []
         var hatalar: [String] = []
@@ -123,7 +123,7 @@ final class CopKutusu {
     }
 
     @discardableResult
-    func sil(_ dugum: AgacDugumu) throws -> CopOgesi {
+    package func sil(_ dugum: AgacDugumu) throws -> CopOgesi {
         kilit.lock(); defer { kilit.unlock() }
         let kaynak = dugum.klasorURL.standardizedFileURL
         try yoluDogrula(kaynak)
@@ -158,7 +158,7 @@ final class CopKutusu {
     }
 
     @discardableResult
-    func geriYukle(_ oge: CopOgesi) throws -> URL {
+    package func geriYukle(_ oge: CopOgesi) throws -> URL {
         kilit.lock(); defer { kilit.unlock() }
         let oge = try bilgiyiOku(oge.klasor)
         var hedef = kok.appendingPathComponent(oge.bilgi.ozgunYol)
@@ -180,7 +180,7 @@ final class CopKutusu {
         try yoluDogrula(hedef)
         var yollar: [(URL, URL)] = []
         let eskiDuzen = oge.bilgi.icerikDosyasi.map { $0 != kIcerikDosyaAdi } ?? false
-        let dosyaHedefi = hedef.appendingPathExtension((oge.bilgi.icerikDosyasi as NSString?)?.pathExtension ?? "md")
+        let dosyaHedefi = hedef.appendingPathExtension(oge.bilgi.icerikDosyasi.map { NSString(string: $0).pathExtension } ?? "md")
         if eskiDuzen, let dosya = oge.icerikURL, varMi(dosya) {
             yollar.append((dosya, dosyaHedefi))
         }
@@ -192,14 +192,14 @@ final class CopKutusu {
         return eskiDuzen ? dosyaHedefi : hedef.appendingPathComponent(kIcerikDosyaAdi)
     }
 
-    func kaliciSil(_ oge: CopOgesi) throws {
+    package func kaliciSil(_ oge: CopOgesi) throws {
         kilit.lock(); defer { kilit.unlock() }
         try ogeyiDogrula(oge.klasor)
         try fm.removeItem(at: oge.klasor)
     }
 
     /// Bir bozuk öğe diğerlerinin temizliğini engellemez; hatalar UI katmanına döner.
-    func temizle(eskiOlanlar: Bool) -> [String] {
+    package func temizle(eskiOlanlar: Bool) -> [String] {
         kilit.lock(); defer { kilit.unlock() }
         var hatalar: [String] = []
         do {

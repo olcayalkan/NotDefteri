@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // Çağrı imzaları korunur; pencere ve sürükle-bırak yollarının uyarıları da bu katmandadır.
 func benzersizSayfaURL(taban: String, klasor: URL) -> URL {

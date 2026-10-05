@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 import UniformTypeIdentifiers
 
 // MARK: - NotPenceresi: Eğik çizgi komutları, başlıklar, geri al/yinele

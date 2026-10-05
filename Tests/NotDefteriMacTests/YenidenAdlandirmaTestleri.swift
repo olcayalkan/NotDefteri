@@ -1,5 +1,7 @@
 import XCTest
-@testable import NotDefteri
+import AppKit
+@testable import NotDefteriCekirdek
+@testable import NotDefteriMac
 
 /// Sayfa yeniden adlandırma. Alt sayfalar ve görseller sayfanın klasörünün
 /// içinde durduğu için tek `moveItem` ile taşınmaları gerekir.

@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 /// Kopyalanan seçimi notun kendi biçiminde (Markdown + kaynak klasör)
 /// taşıyan özel pano tipi.
@@ -32,7 +33,7 @@ final class NotMetinGorunumu: NSTextView {
     var hamYapistirmaModu = false
     var blokDuzenleniyor = false
     var sayfaYukleniyor = false {
-        didSet { if sayfaYukleniyor { kodDurumunuSifirla() } }
+        didSet { if sayfaYukleniyor { kodDurumunuSifirla(); bekleyenBagBoyamasi = nil } }
     }
     var baglarGuncelleniyor = false
     let sayfaBulucusu = HizliBulucu()
@@ -51,9 +52,33 @@ final class NotMetinGorunumu: NSTextView {
     var kodBekleyenAraliklar: [NSRange] = []
     var kodZamanlayicisi: Timer?
     var kodSurumu = 0
+    /// Depo düzenlemesi bitince boyanacak sayfa bağı aralığı (bkz. didProcessEditing).
+    var bekleyenBagBoyamasi: NSRange?
     private weak var izlenenKodDeposu: NSTextStorage?
+    private weak var izlenenKaydirmaIcerigi: NSClipView?
     let kodAraclari = KodBloguAraclari()
     let katlama = KatlamaDurumu()
+    let belgeAdaptoru = MacBelgeAdaptoru()
+
+    /// Kod yazım özniteliklerini anlamsal yazar; görünüm her atamada adaptörden türetilir.
+    override var typingAttributes: [NSAttributedString.Key: Any] {
+        get { super.typingAttributes }
+        set { super.typingAttributes = belgeAdaptoru.gorunumlu(newValue) }
+    }
+
+    override func changeFont(_ sender: Any?) {
+        guard isEditable, let yonetici = sender as? NSFontManager, let depo = textStorage else { return }
+        let secim = selectedRange()
+        if secim.length == 0 {
+            typingAttributes = belgeAdaptoru.fontuDegistir(yonetici, oznitelikler: typingAttributes)
+            return
+        }
+        let yeni = NSMutableAttributedString(attributedString: depo.attributedSubstring(from: secim))
+        yeni.enumerateAttributes(in: NSRange(location: 0, length: yeni.length)) { o, alt, _ in
+            yeni.setAttributes(belgeAdaptoru.fontuDegistir(yonetici, oznitelikler: o), range: alt)
+        }
+        blokDuzenle(secim, yeni: yeni, secim: secim, yazim: typingAttributes)
+    }
 
     override var backgroundColor: NSColor {
         didSet {
@@ -64,6 +89,15 @@ final class NotMetinGorunumu: NSTextView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        if let eski = izlenenKaydirmaIcerigi {
+            NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: eski)
+        }
+        izlenenKaydirmaIcerigi = window == nil ? nil : enclosingScrollView?.contentView
+        if let icerik = izlenenKaydirmaIcerigi {
+            icerik.postsBoundsChangedNotifications = true
+            NotificationCenter.default.addObserver(self, selector: #selector(kodVeResimAraclariniGuncelle(_:)),
+                                                   name: NSView.boundsDidChangeNotification, object: icerik)
+        }
         guard let depo = textStorage, izlenenKodDeposu !== depo else { return }
         if let eski = izlenenKodDeposu {
             NotificationCenter.default.removeObserver(self, name: NSTextStorage.didProcessEditingNotification, object: eski)
@@ -74,9 +108,6 @@ final class NotMetinGorunumu: NSTextView {
                                                name: NSTextStorage.didProcessEditingNotification, object: depo)
         NotificationCenter.default.addObserver(self, selector: #selector(katlamaDeposuDegisti(_:)),
                                                name: NSTextStorage.didProcessEditingNotification, object: depo)
-        NotificationCenter.default.removeObserver(self, name: NSTextView.didChangeSelectionNotification, object: self)
-        NotificationCenter.default.addObserver(self, selector: #selector(katlamaSecimiDegisti(_:)),
-                                               name: NSTextView.didChangeSelectionNotification, object: self)
         kodBekleyenAraliklar = [NSRange(location: 0, length: depo.length)]
         kodRenklendirmeyiPlanla()
         addSubview(kodAraclari)
@@ -90,7 +121,7 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func keyDown(with event: NSEvent) {
-        if katlamaKisayolunuUygula(event) { return }
+        if window?.firstResponder === self, katlamaKisayolunuUygula(event) { return }
         secimCubugu.gizle()
         if sayfaBulucusu.gorunur, !hasMarkedText(), event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
             switch event.keyCode {
@@ -129,7 +160,14 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        katlamaKisayolunuUygula(event) || super.performKeyEquivalent(with: event)
+        (window?.firstResponder === self && katlamaKisayolunuUygula(event)) || super.performKeyEquivalent(with: event)
+    }
+
+    override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(katlamaKomutu(_:)) {
+            return isEditable && !katlama.basliklar.isEmpty
+        }
+        return super.validateMenuItem(menuItem)
     }
 
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting flag: Bool) {
@@ -149,6 +187,7 @@ final class NotMetinGorunumu: NSTextView {
         super.didChangeText()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            self.kodVeResimAraclariniGuncelle()
             self.sayfaBulucusunuGuncelle()
             if !self.sayfaBulucusu.gorunur { self.blokMenusunuGuncelle() }
         }
@@ -187,6 +226,7 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func insertNewline(_ sender: Any?) {
+        katlamaYeniSatirOncesi()
         blokYaziminiGuncelle()
         if !hasMarkedText(), blokKisayolunuUygula("\n") || bloktaYeniSatir() { return }
         super.insertNewline(sender)
@@ -257,6 +297,9 @@ final class NotMetinGorunumu: NSTextView {
         super.draw(dirtyRect)
         blokCizgileriniCiz(dirtyRect)
         katlamaIsaretleriniCiz(dirtyRect)
+    }
+
+    @objc private func kodVeResimAraclariniGuncelle(_ bildirim: Notification? = nil) {
         // Kaydırma ve yeniden dizilimde yalnızca önbellekteki hücreyi denetle.
         let nokta = window.flatMap { $0.isKeyWindow ? convert($0.mouseLocationOutsideOfEventStream, from: nil) : nil }
         kodAraclariniGuncelle(noktada: nokta)
@@ -290,7 +333,7 @@ final class NotMetinGorunumu: NSTextView {
         blokMenusu.gizle()
         if event.modifierFlags.contains(.command), let depo = textStorage {
             let konum = characterIndexForInsertion(at: nokta)
-            if konum < depo.length, let bag = depo.attribute(.link, at: konum, effectiveRange: nil),
+            if konum < depo.length, let bag = depo.attribute(kBaglantiAnahtari, at: konum, effectiveRange: nil),
                let url = (bag as? URL) ?? URL(string: String(describing: bag)) {
                 if disBaglantiGecerliMi(url) { NSWorkspace.shared.open(url) }
                 return
@@ -304,7 +347,7 @@ final class NotMetinGorunumu: NSTextView {
         let nokta = convert(event.locationInWindow, from: nil)
         let konum = characterIndexForInsertion(at: nokta)
         if let depo = textStorage, konum < depo.length,
-           (depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil) as? MetinBlogu)?.tur == .uyari {
+           MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur == .uyari {
             setSelectedRange(NSRange(location: konum, length: 0))
             return uyariRenkMenusu()
         }
@@ -324,7 +367,7 @@ final class NotMetinGorunumu: NSTextView {
         }
     }
 
-    private func resimTutamaclariniGuncelle(_ hucre: ResimEkiHucresi?) {
+    func resimTutamaclariniGuncelle(_ hucre: ResimEkiHucresi?) {
         guard uzerindekiResimHucresi !== hucre else { return }
         if let onceki = uzerindekiResimHucresi {
             onceki.tutamaclarGorunur = false
@@ -350,8 +393,8 @@ final class NotMetinGorunumu: NSTextView {
         let glifler = yerlesim.glyphRange(forBoundingRect: gorunen, in: kapsayici)
         let karakterler = yerlesim.characterRange(forGlyphRange: glifler, actualGlyphRange: nil)
         var bulunan: (hucre: ResimEkiHucresi, cerceve: NSRect)?
-        depo.enumerateAttribute(.attachment, in: karakterler, options: []) { deger, _, durdur in
-            guard let ek = deger as? ResimEki, let hucre = ek.attachmentCell as? ResimEkiHucresi,
+        depo.enumerateAttribute(.attachment, in: karakterler, options: []) { deger, aralik, durdur in
+            guard !self.katlama.gizliMi(aralik.location), let ek = deger as? ResimEki, let hucre = ek.attachmentCell as? ResimEkiHucresi,
                   !hucre.cizimCercevesi.isEmpty, hucre.cizimCercevesi.contains(nokta) else { return }
             bulunan = (hucre, hucre.cizimCercevesi)
             durdur.pointee = true
@@ -371,7 +414,7 @@ final class NotMetinGorunumu: NSTextView {
         if hamYapistirmaModu {
             if let zengin = panodanZenginMetin(pboard) {
                 if let icerik = disGorselleriSayfayaAl(zengin) {
-                    icerigiEkle(icerik, kaynakBiciminiKoru: true)
+                    icerigiEkle(MacBelgeAdaptoru.disIcerigiAnlamsalaCevir(icerik, kaynakBicimi: true), kaynakBiciminiKoru: true)
                 }
                 return true
             }
@@ -384,8 +427,9 @@ final class NotMetinGorunumu: NSTextView {
             return true
         }
         if let zengin = panodanZenginMetin(pboard) {
-            if let icerik = disGorselleriSayfayaAl(disIcerigiNotBicimineCevir(zengin)) {
-                icerigiEkle(icerik)
+            // Ekler önce sayfaya yazılır; anlamsal dönüşüm görseli dosya yoluyla taşır.
+            if let icerik = disGorselleriSayfayaAl(zengin) {
+                icerigiEkle(disIcerigiNotBicimineCevir(MacBelgeAdaptoru.disIcerigiAnlamsalaCevir(icerik)))
             }
             return true
         }
@@ -417,7 +461,8 @@ final class NotMetinGorunumu: NSTextView {
     /// Panodaki düz metni Markdown olarak yorumlayıp notun biçimine çevirir.
     private func disPanoIcerigi(_ pano: NSPasteboard) -> NSAttributedString? {
         guard let metin = pano.string(forType: .string), !metin.isEmpty else { return nil }
-        let icerik = disMetniNotBicimineCevir(metin, taban: sayfaTabanKlasoru?())
+        let taban = sayfaTabanKlasoru?() ?? notlarKlasoru()
+        let icerik = MacBelgeAdaptoru.belgeyiAc(disMetniNotBicimineCevir(metin, taban: taban), taban: taban)
         return icerik.length > 0 ? icerik : nil
     }
 
@@ -532,10 +577,9 @@ final class NotMetinGorunumu: NSTextView {
         let aralik = selectedRange()
         if !kodda, icerik.length > 0, let depo = textStorage {
             let ns = depo.mutableString
-            let duz: [NSAttributedString.Key: Any] = [.font: varsayilanFont(), .foregroundColor: kMetinRenk]
             if icerik.attribute(kKodBloguAnahtari, at: 0, effectiveRange: nil) != nil,
                aralik.location > 0, ns.character(at: aralik.location - 1) != 10 {
-                icerik.insert(NSAttributedString(string: "\n", attributes: duz), at: 0)
+                icerik.insert(NSAttributedString(string: "\n"), at: 0)
             }
             if NSMaxRange(aralik) < ns.length, ns.character(at: NSMaxRange(aralik)) != 10 {
                 var sonBlok = NSRange()
@@ -548,10 +592,7 @@ final class NotMetinGorunumu: NSTextView {
                     if sinirlar["kapanis"]?.hasSuffix("\n") != true { sinirlar["kapanis", default: "```"] += "\n" }
                     icerik.addAttribute(kKodBloguAnahtari, value: sinirlar, range: sonBlok)
                     if !icerik.string.hasSuffix("\n") {
-                        icerik.append(NSAttributedString(string: "\n", attributes: [
-                            .font: NSFont.monospacedSystemFont(ofSize: kTabanPunto, weight: .regular),
-                            .foregroundColor: kMetinRenk, .backgroundColor: kMetinRenk.withAlphaComponent(0.08),
-                            kKodBloguAnahtari: sinirlar]))
+                        icerik.append(NSAttributedString(string: "\n", attributes: kodBloguOznitelikleri(sinirlar)))
                     }
                 }
             }
@@ -562,7 +603,7 @@ final class NotMetinGorunumu: NSTextView {
         textStorage?.endEditing()
         didChangeText()
         setSelectedRange(NSRange(location: aralik.location + icerik.length, length: 0))
-        if !kaynakBiciminiKoru, !kodda { typingAttributes = [.font: varsayilanFont(), .foregroundColor: kMetinRenk] }
+        if !kaynakBiciminiKoru, !kodda { typingAttributes = [:] }
     }
 
     /// İmlecin bulunduğu yerden yukarı doğru en yakın başlık satırının metni.
@@ -604,14 +645,13 @@ final class NotMetinGorunumu: NSTextView {
         let satirSonundaMi = NSMaxRange(aralik) >= ns.length || ns.character(at: NSMaxRange(aralik)) == 10
 
         // Görsel ve çevresindeki satır sonları normal metin biçiminde olsun (başlık değil).
-        let duzOznitelik: [NSAttributedString.Key: Any] = [.font: varsayilanFont(), .foregroundColor: kMetinRenk]
-
         let eklenecek = NSMutableAttributedString()
-        if !satirBasindaMi { eklenecek.append(NSAttributedString(string: "\n", attributes: duzOznitelik)) }
+        if !satirBasindaMi { eklenecek.append(NSAttributedString(string: "\n")) }
         let gorselAralikBasi = eklenecek.length
-        eklenecek.append(NSAttributedString(attachment: ek))
-        eklenecek.addAttribute(.foregroundColor, value: kMetinRenk, range: NSRange(location: gorselAralikBasi, length: 1))
-        if !satirSonundaMi { eklenecek.append(NSAttributedString(string: "\n", attributes: duzOznitelik)) }
+        var gorselOznitelikleri: [NSAttributedString.Key: Any] = [.attachment: ek]
+        gorselOznitelikleri[kGorselAnahtari] = MacBelgeAdaptoru.gorselAnlamsali(ek)
+        eklenecek.append(NSAttributedString(string: "\u{FFFC}", attributes: gorselOznitelikleri))
+        if !satirSonundaMi { eklenecek.append(NSAttributedString(string: "\n")) }
 
         guard shouldChangeText(in: aralik, replacementString: eklenecek.string) else { return }
         textStorage?.beginEditing()
@@ -620,6 +660,6 @@ final class NotMetinGorunumu: NSTextView {
         didChangeText()
         // İmleci görselden hemen sonraya al ve yazımın normal biçimde sürmesini sağla.
         setSelectedRange(NSRange(location: aralik.location + gorselAralikBasi + 1, length: 0))
-        typingAttributes = duzOznitelik
+        typingAttributes = [:]
     }
 }

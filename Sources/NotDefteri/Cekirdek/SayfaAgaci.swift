@@ -2,14 +2,16 @@ import Foundation
 
 /// Dosyadaki frontmatter bloğu `kaynak`ta ham durur; yalnızca bilinen alanlar güncellenir,
 /// bilinmeyen satırlar (ör. Obsidian tags/aliases) sırası ve yazılışıyla korunur.
-struct SayfaUstbilgisi: Equatable {
-    var genislik = ""
-    var yazi = ""
-    var kaynak = ""
+package struct SayfaUstbilgisi: Equatable {
+    package var genislik = ""
+    package var yazi = ""
+    package var kaynak = ""
     var kaynakGenislik = ""
     var kaynakYazi = ""
 
-    var markdown: String {
+    package init() {}
+
+    package var markdown: String {
         if genislik == kaynakGenislik, yazi == kaynakYazi { return kaynak }
         let satirSonu = kaynak.contains("\r\n") ? "\r\n" : "\n"
         let yeni = ["genislik": genislik, "yazi": yazi]
@@ -45,8 +47,8 @@ private func ustbilgiAnahtari(_ satir: String) -> String? {
 
 /// Başta `---` ile açılıp en fazla 200 satır içinde `---` ile kapanan, YAML benzeri bloktur
 /// (en az bir `anahtar:` satırı; devam/liste/yorum/boş satırlar serbest). Aksi hâlde frontmatter değildir.
-func sayfaUstbilgisiniAyir(_ metin: String) -> (bilgi: SayfaUstbilgisi, govde: String) {
-    let ns = metin as NSString
+package func sayfaUstbilgisiniAyir(_ metin: String) -> (bilgi: SayfaUstbilgisi, govde: String) {
+    let ns = NSString(string: metin)
     var konum = 0
     var bilgi = SayfaUstbilgisi()
     var anahtarlar = Set<String>()
@@ -84,7 +86,7 @@ func sayfaUstbilgisiniAyir(_ metin: String) -> (bilgi: SayfaUstbilgisi, govde: S
 }
 
 /// Yalnızca ata klasörlerini inceler; tüm ağacı taramaz. Eski düz notlar da açılır.
-func sayfaYolu(_ url: URL, kok: URL = notlarKlasoru()) -> [URL] {
+package func sayfaYolu(_ url: URL, kok: URL = notlarKlasoru()) -> [URL] {
     var sonuc = [url]
     var klasor = ustKlasor(url)
     let kokYolu = kok.standardizedFileURL.path
@@ -101,7 +103,7 @@ func sayfaYolu(_ url: URL, kok: URL = notlarKlasoru()) -> [URL] {
 // MARK: - Sayfa ağacı modeli (her sayfa kendi klasörü)
 
 /// Bir sayfa klasörünün içindeki metin dosyasının adı.
-let kIcerikDosyaAdi = "index.md"
+package let kIcerikDosyaAdi = "index.md"
 
 /// Sayfa klasörü düzeni:
 ///   SSRF/
@@ -116,50 +118,50 @@ func klasorSayfasiMi(_ klasor: URL) -> Bool {
 
 /// Sayfanın kendi klasörü: yeni düzende index.md'yi içeren klasör, eski düz
 /// notlarda notun adını taşıyan kardeş klasör. Görseller ve alt sayfalar buradadır.
-func sayfaKlasoru(_ icerikURL: URL) -> URL {
+package func sayfaKlasoru(_ icerikURL: URL) -> URL {
     icerikURL.lastPathComponent == kIcerikDosyaAdi
         ? icerikURL.deletingLastPathComponent()
         : icerikURL.deletingPathExtension()
 }
 
 /// Sayfanın görünen adı.
-func sayfaAdi(_ icerikURL: URL) -> String {
+package func sayfaAdi(_ icerikURL: URL) -> String {
     sayfaKlasoru(icerikURL).lastPathComponent
 }
 
 /// Sayfanın bulunduğu üst klasör (kardeşlerinin de durduğu yer).
-func ustKlasor(_ icerikURL: URL) -> URL {
+package func ustKlasor(_ icerikURL: URL) -> URL {
     sayfaKlasoru(icerikURL).deletingLastPathComponent()
 }
 
 /// Ağacın bir düğümü: bir sayfa ya da (eski yapıdan kalmış) salt kapsayıcı klasör.
-final class AgacDugumu {
+package final class AgacDugumu {
     /// Düzenlenecek metin dosyası; kapsayıcı klasörlerde nil.
-    let icerikURL: URL?
+    package let icerikURL: URL?
     /// Alt sayfaların ve görsellerin durduğu klasör.
-    let klasorURL: URL
-    var cocuklar: [AgacDugumu]
+    package let klasorURL: URL
+    package var cocuklar: [AgacDugumu]
     /// Klasörün .sira.json kaydında sabitlenmiş mi (siraUygula işaretler).
-    var sabit = false
+    package var sabit = false
 
-    init(icerikURL: URL?, klasorURL: URL, cocuklar: [AgacDugumu] = []) {
+    package init(icerikURL: URL?, klasorURL: URL, cocuklar: [AgacDugumu] = []) {
         self.icerikURL = icerikURL
         self.klasorURL = klasorURL
         self.cocuklar = cocuklar
     }
 
-    var sayfaMi: Bool { icerikURL != nil }
-    var ad: String { klasorURL.lastPathComponent }
+    package var sayfaMi: Bool { icerikURL != nil }
+    package var ad: String { klasorURL.lastPathComponent }
     /// Alt sayfaların oluşturulacağı klasör.
-    var cocuklarKlasoru: URL { klasorURL }
+    package var cocuklarKlasoru: URL { klasorURL }
 }
 
-func degistirilmeTarihi(_ url: URL) -> Date {
+package func degistirilmeTarihi(_ url: URL) -> Date {
     (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
 }
 
 /// Klasörü özyinelemeli tarayıp sayfa ağacını kurar.
-func agaciYukle(_ klasor: URL = notlarKlasoru()) -> [AgacDugumu] {
+package func agaciYukle(_ klasor: URL = notlarKlasoru()) -> [AgacDugumu] {
     let fm = FileManager.default
     guard let icerik = try? fm.contentsOfDirectory(at: klasor,
                                                     includingPropertiesForKeys: [.contentModificationDateKey, .isDirectoryKey],
@@ -210,7 +212,7 @@ func agaciYukle(_ klasor: URL = notlarKlasoru()) -> [AgacDugumu] {
 }
 
 /// Ağacın gizleyeceği ya da tek bir klasör adı olmayan adları reddeder.
-func sayfaAdiGecerliMi(_ ad: String) -> Bool {
+package func sayfaAdiGecerliMi(_ ad: String) -> Bool {
     !ad.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         && !ad.hasPrefix(".")
         && !ad.contains("/") && !ad.contains(":") && !ad.contains("\0")
@@ -222,17 +224,17 @@ func sayfaAdiGecerliMi(_ ad: String) -> Bool {
 /// Verilen klasörün içinde, adı çakışmayan yeni bir sayfa klasörü yolu üretir.
 /// Dönen değer sayfanın index.md yoludur; dosya/klasör henüz oluşturulmaz.
 /// Geçersiz adlar "Yeni Sayfa" adına düşer; çağıran uyarı gereğini sonuçtan öğrenir.
-func benzersizSayfaURLSonucu(taban: String, klasor: URL) -> (url: URL, gecersizAd: Bool) {
+package func benzersizSayfaURLSonucu(taban: String, klasor: URL) -> (url: URL, gecersizAd: Bool) {
     let gecersizAd = !sayfaAdiGecerliMi(taban)
     let ad = gecersizAd ? "Yeni Sayfa" : taban
     return (benzersizTasimaHedefi(ad: ad, klasor: klasor).appendingPathComponent(kIcerikDosyaAdi), gecersizAd)
 }
 
 /// İkinci parça taşınamadığında ilk parçanın geri alma sonucunu da taşır.
-struct SayfaTasimaHatasi: Error {
-    let neden: Error
-    let geriAlmaHatasi: Error?
-    let dosyaURL: URL
+package struct SayfaTasimaHatasi: Error {
+    package let neden: Error
+    package let geriAlmaHatasi: Error?
+    package let dosyaURL: URL
 }
 
 /// Sayfayı yeniden adlandırır. Yeni düzende yalnızca klasör taşınır (alt sayfalar
@@ -240,7 +242,7 @@ struct SayfaTasimaHatasi: Error {
 /// hem dosya hem varsa alt dal klasörü taşınır. Yeni içerik yolunu döner.
 /// İkinci parçanın taşıma hatası, geri alma bilgisiyle fırlatılır.
 @discardableResult
-func sayfayiYenidenAdlandirmaSonucu(_ icerikURL: URL, yeniAd: String) throws -> URL? {
+package func sayfayiYenidenAdlandirmaSonucu(_ icerikURL: URL, yeniAd: String) throws -> URL? {
     guard sayfaAdiGecerliMi(yeniAd) else { return nil }
     let fm = FileManager.default
     let ust = ustKlasor(icerikURL)
@@ -283,7 +285,7 @@ private func eskiSayfayiTasi(_ icerikURL: URL, hedef: URL) throws -> URL? {
 /// Eski düz notu ("Ad.md") yeni düzene taşır: "Ad/index.md".
 /// Notun alt dallarını tutan "Ad/" klasörü zaten varsa dosya onun içine alınır.
 @discardableResult
-func sayfayiKlasoreDonustur(_ icerikURL: URL) -> URL? {
+package func sayfayiKlasoreDonustur(_ icerikURL: URL) -> URL? {
     guard icerikURL.lastPathComponent != kIcerikDosyaAdi else { return icerikURL }
     let fm = FileManager.default
     let klasor = sayfaKlasoru(icerikURL)
@@ -303,7 +305,7 @@ func sayfayiKlasoreDonustur(_ icerikURL: URL) -> URL? {
 ///
 /// Kendi altına taşımaya izin verilseydi `moveItem` klasörü kendi torununa
 /// taşıyıp dalı tamamen erişilemez hâle getirirdi.
-func tasimaGecerliMi(kaynakKlasor: URL, hedefKlasor: URL, mevcutUst: URL) -> Bool {
+package func tasimaGecerliMi(kaynakKlasor: URL, hedefKlasor: URL, mevcutUst: URL) -> Bool {
     let kaynak = kaynakKlasor.standardizedFileURL.path
     let hedef = hedefKlasor.standardizedFileURL.path
     guard hedef != kaynak, !hedef.hasPrefix(kaynak + "/") else { return false }
@@ -330,7 +332,7 @@ private func benzersizTasimaHedefi(ad: String, klasor: URL) -> URL {
 /// Yeni içerik yolunu döner; geçersiz taşıma ya da ilk adım hatasında nil.
 /// İkinci parçanın taşıma hatası, geri alma bilgisiyle fırlatılır.
 @discardableResult
-func sayfaTasimaSonucu(_ icerikURL: URL, hedefKlasor: URL) throws -> URL? {
+package func sayfaTasimaSonucu(_ icerikURL: URL, hedefKlasor: URL) throws -> URL? {
     let fm = FileManager.default
     let kaynakKlasor = sayfaKlasoru(icerikURL)
     guard tasimaGecerliMi(kaynakKlasor: kaynakKlasor, hedefKlasor: hedefKlasor,
@@ -351,7 +353,7 @@ func sayfaTasimaSonucu(_ icerikURL: URL, hedefKlasor: URL) throws -> URL? {
 
 /// Eski yapıdan kalan salt kapsayıcı klasörü taşır. Yeni klasör yolunu döner.
 @discardableResult
-func klasoruTasi(_ klasorURL: URL, hedefKlasor: URL) -> URL? {
+package func klasoruTasi(_ klasorURL: URL, hedefKlasor: URL) -> URL? {
     let fm = FileManager.default
     guard tasimaGecerliMi(kaynakKlasor: klasorURL, hedefKlasor: hedefKlasor,
                           mevcutUst: klasorURL.deletingLastPathComponent()) else { return nil }
@@ -363,7 +365,7 @@ func klasoruTasi(_ klasorURL: URL, hedefKlasor: URL) -> URL? {
 }
 
 /// Bağlantı yolu köke görelidir; kapsayıcı klasörler de ad çakışmasını ayırır.
-func sayfaBagYolu(_ url: URL) -> String {
+package func sayfaBagYolu(_ url: URL) -> String {
     let yol = sayfaKlasoru(url).standardizedFileURL.path
     let kok = notlarKlasoru().standardizedFileURL.path + "/"
     return yol.hasPrefix(kok) ? String(yol.dropFirst(kok.count)) : sayfaAdi(url)

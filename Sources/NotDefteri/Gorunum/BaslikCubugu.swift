@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - Özel başlık çubuğu (Yeni Not / Sabitle / Arkaya At / Kapat)
 

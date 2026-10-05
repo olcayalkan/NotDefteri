@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 /// Aynı sonuç listesi ⌘P aramasında ve [[ tamamlamasında kullanılır.
 final class HizliBulucu: NSView, NSTextFieldDelegate {

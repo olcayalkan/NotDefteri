@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - Kenar panel (arama + not ağacı + punto kısayolu)
 

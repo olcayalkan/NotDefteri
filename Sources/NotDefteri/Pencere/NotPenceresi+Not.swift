@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - NotPenceresi: Not açma ve oluşturma
 
@@ -36,9 +37,10 @@ extension NotPenceresi {
         sayfaUstbilgisi = sayfa.bilgi
         metinGorunumu.katlamaSayfasiniAc(url)
         metinGorunumu.sayfaYukleniyor = true
-        metinGorunumu.textStorage?.setAttributedString(markdowndenAttributedStringUret(sayfa.govde, taban: sayfaKlasoru(url)))
+        metinGorunumu.textStorage?.setAttributedString(MacBelgeAdaptoru.markdownuAc(sayfa.govde, taban: sayfaKlasoru(url)))
         metinGorunumu.sayfaYukleniyor = false
         metinGorunumu.setSelectedRange(NSRange(location: 0, length: 0))
+        if metinGorunumu.string.isEmpty { metinGorunumu.typingAttributes = [:] }
         mevcutDosyaURL = url
         if yenidenYukle { sayfaDosyalariniTazele() }
         sonDuzenleme = degistirilmeTarihi(url)
@@ -87,6 +89,7 @@ extension NotPenceresi {
         metinGorunumu.katlamaSayfasiniAc(nil)
         let bosOznitelik: [NSAttributedString.Key: Any] = [.font: varsayilanFont(), .foregroundColor: kMetinRenk]
         metinGorunumu.textStorage?.setAttributedString(NSAttributedString(string: "", attributes: bosOznitelik))
+        metinGorunumu.typingAttributes = [:]
         mevcutDosyaURL = nil
         geriBaglantilariTazele()
         sayfaUstbilgisi = SayfaUstbilgisi()

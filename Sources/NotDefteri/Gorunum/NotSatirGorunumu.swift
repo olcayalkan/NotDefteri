@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - Not satırı (seçili notun dış kaplamasını animasyonlu şekilde vurgular)
 

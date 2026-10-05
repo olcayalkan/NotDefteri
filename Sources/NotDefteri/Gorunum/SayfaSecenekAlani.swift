@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 /// Editörün üstündeki ince şerit; fare üzerindeyken "•••" sayfa seçenekleri düğmesini gösterir.
 final class SayfaSecenekAlani: NSView {

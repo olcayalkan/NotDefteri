@@ -1,5 +1,7 @@
 import XCTest
-@testable import NotDefteri
+import AppKit
+@testable import NotDefteriCekirdek
+@testable import NotDefteriMac
 
 /// Sayfaların sürükle-bırakla başka bir sayfanın altına taşınması.
 /// Sayfanın her şeyi kendi klasöründe olduğu için taşıma tek `moveItem`;

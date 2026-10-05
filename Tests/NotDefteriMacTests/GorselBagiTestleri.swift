@@ -1,5 +1,7 @@
 import XCTest
-@testable import NotDefteri
+import AppKit
+@testable import NotDefteriCekirdek
+@testable import NotDefteriMac
 
 /// Görsel bağlarının sayfa taşınmalarına dayanıklılığı.
 /// Bağlar göreli (`Görseller/x.png`) ve `Görseller/` klasörü sayfanın
