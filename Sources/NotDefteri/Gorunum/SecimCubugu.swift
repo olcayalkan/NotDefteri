@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 final class SecimCubugu: NSView {
     private lazy var panel = YuzerPanel(gorunum: self)

@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 import UniformTypeIdentifiers
 
 // MARK: - NotPenceresi: Görsel ekleme
@@ -48,21 +49,24 @@ extension NotPenceresi {
     /// kopyasına sahip olur — sayfalar taşınınca bağlar kopmaz.
     func kopyalananIcerigiHazirla(markdown: String, kaynakTaban: URL?) -> NSAttributedString? {
         let taban = kaynakTaban ?? notlarKlasoru()
-        let icerik = NSMutableAttributedString(attributedString: yapistirmaMarkdownunuCevir(markdown, taban: taban))
+        let icerik = NSMutableAttributedString(attributedString: MacBelgeAdaptoru.markdownuAc(markdown, taban: taban))
         guard icerik.length > 0 else { return nil }
 
-        // Kopyalar önce toplanır, sonra sondan başa uygulanır: aralıklar kaymasın.
-        var yenilenecekler: [(NSRange, ResimEki)] = []
+        // Kopyalar önce toplanır, sonra uygulanır. Anlamsal görsel yalnızca yol değiştirir;
+        // boyut aynen kalır, ek görünümü editöre girince adaptörde üretilir.
+        var yenilenecekler: [(NSRange, [String: Any])] = []
         var kopyalanamayan: URL?
-        icerik.enumerateAttribute(.attachment, in: NSRange(location: 0, length: icerik.length), options: []) { deger, aralik, durdur in
-            guard let eski = deger as? ResimEki, let kaynak = eski.dosyaURL else { return }
-            guard let yeni = gorseliKopyala(kaynak, bolumBasligi: nil) else {
+        icerik.enumerateAttribute(kGorselAnahtari, in: NSRange(location: 0, length: icerik.length), options: []) { deger, aralik, durdur in
+            guard var gorsel = deger as? [String: Any], let kaynak = gorsel["dosyaURL"] as? URL else { return }
+            guard let hedef = gorselDosyasiniKopyala(kaynak, hedefKlasor: sayfaninGorselKlasoru(), taban: nil),
+                  NSImage(contentsOf: hedef) != nil else {
                 kopyalanamayan = kaynak
                 durdur.pointee = true
                 return
             }
-            yeni.gosterimBoyutu = eski.gosterimBoyutu
-            yenilenecekler.append((aralik, yeni))
+            gorsel["dosyaURL"] = hedef
+            gorsel["yol"] = "\(kGorsellerKlasorAdi)/\(hedef.lastPathComponent)"
+            yenilenecekler.append((aralik, gorsel))
         }
         if let kaynak = kopyalanamayan {
             let uyari = NSAlert()
@@ -73,10 +77,8 @@ extension NotPenceresi {
             uyari.runModal()
             return nil
         }
-        for (aralik, ek) in yenilenecekler.reversed() {
-            let parca = NSMutableAttributedString(attachment: ek)
-            parca.addAttribute(.foregroundColor, value: kMetinRenk, range: NSRange(location: 0, length: parca.length))
-            icerik.replaceCharacters(in: aralik, with: parca)
+        for (aralik, gorsel) in yenilenecekler {
+            icerik.addAttribute(kGorselAnahtari, value: gorsel, range: aralik)
         }
         return icerik
     }

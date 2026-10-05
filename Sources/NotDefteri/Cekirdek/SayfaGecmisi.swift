@@ -3,12 +3,12 @@ import Foundation
 /// Sayfa sürümleri: sayfa klasöründeki gizli `.gecmis/<yyyy-MM-dd_HH-mm-ss>.md` dosyaları.
 /// Klasör sayfayla birlikte taşındığı/silindiği için ek bakım gerekmez; `.gecmis`
 /// gizli olduğundan ağaç taraması (skipsHiddenFiles) onu görmez.
-struct SayfaSurumu {
-    let url: URL
-    let tarih: Date
+package struct SayfaSurumu {
+    package let url: URL
+    package let tarih: Date
 }
 
-enum SayfaGecmisi {
+package enum SayfaGecmisi {
     static let klasorAdi = ".gecmis"
     static let enAzAralik: TimeInterval = 600
     static let enFazlaSurum = 50
@@ -23,13 +23,13 @@ enum SayfaGecmisi {
         return b
     }
 
-    static func klasor(_ icerikURL: URL) -> URL {
+    package static func klasor(_ icerikURL: URL) -> URL {
         sayfaKlasoru(icerikURL).appendingPathComponent(klasorAdi, isDirectory: true)
     }
 
     /// Başarılı kayıttan sonra çağrılır; hata sessizce yutulur (kayıt zaten başarılı).
     /// `zorla`: zaman/değişim şartlarına bakmadan (aynı içerik değilse) sürüm saklar.
-    static func kaydet(metin: String, icerikURL: URL, zorla: Bool = false) {
+    package static func kaydet(metin: String, icerikURL: URL, zorla: Bool = false) {
         kuyruk.async {
             let fm = FileManager.default
             let dizin = klasor(icerikURL)
@@ -60,10 +60,10 @@ enum SayfaGecmisi {
     }
 
     /// Yeniden eskiye sıralı sürümler; ana thread'i bloklamamak için kuyrukta okunur.
-    static func listele(_ icerikURL: URL, tamamlandi: @escaping ([SayfaSurumu]) -> Void) {
+    package static func listele(_ icerikURL: URL, tamamlandi: @escaping ([SayfaSurumu]) -> Void) {
         kuyruk.async {
             let sonuc = surumleriOku(klasor(icerikURL), bicim: bicim())
-            DispatchQueue.main.async { tamamlandi(sonuc) }
+            Platform.anaIsParcaciginda { tamamlandi(sonuc) }
         }
     }
 

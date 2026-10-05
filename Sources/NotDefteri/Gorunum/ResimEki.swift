@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - Görsel eki (tutamaçlarından çekilerek boyutlandırılabilir)
 
@@ -14,6 +15,8 @@ func resimBoyutuGecerliMi(_ boyut: NSSize) -> Bool {
 /// Metnin içine gömülen görsel. Dosya yolunu ve gösterim boyutunu taşır.
 final class ResimEki: NSTextAttachment {
     var dosyaURL: URL?
+    /// Boyutsuz Markdown'a geri dönüldüğünde diskten yeniden çözmeden kullanılır.
+    var dogalGosterimBoyutu = NSSize(width: 200, height: 150)
     /// Notta yazılı olan bağ yolu ("Görseller/Başlık1.png"). Eski notların
     /// "ekler/..." bağlarını olduğu gibi korumak için saklanır.
     var bagYolu: String?
@@ -110,6 +113,7 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
               let ekIndeksi = ekinIndeksi(metinDeposu) else { return false }
 
         let baslangicBoyutu = gosterimBoyutu
+        let baslangicAnlamsali = metinDeposu.attribute(kGorselAnahtari, at: ekIndeksi, effectiveRange: nil) as? [String: Any]
         // Satıra sığdırılan görsel, ilk harekette saklanan büyük boyutuna sıçramasın.
         let baslangicEni = cellFrame.width
         let enFazlaEn = min(maksimumEn(metinGorunumu), kEnBuyukResimBoyutu,
@@ -141,19 +145,23 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
             NSCursor.resizeLeftRight.set()
         }
         if gosterimBoyutu != baslangicBoyutu {
-            geriAlmayiKaydet(boyut: baslangicBoyutu, metinGorunumu: metinGorunumu)
+            geriAlmayiKaydet(boyut: baslangicBoyutu, anlamsal: baslangicAnlamsali, metinGorunumu: metinGorunumu)
             metinGorunumu.didChangeText()
+        } else if let baslangicAnlamsali {
+            // Sürükleyip başladığı yere dönmek boyutsuz kaynağa boyut eklememeli.
+            yerlesimiTazele(metinGorunumu, ekIndeksi: ekIndeksi, anlamsal: baslangicAnlamsali)
         }
         return true
     }
 
-    private func geriAlmayiKaydet(boyut: NSSize, metinGorunumu: NSTextView) {
+    private func geriAlmayiKaydet(boyut: NSSize, anlamsal: [String: Any]?, metinGorunumu: NSTextView) {
         metinGorunumu.undoManager?.registerUndo(withTarget: self) { [weak metinGorunumu] hucre in
             guard let metinGorunumu, let depo = metinGorunumu.textStorage,
                   let indeks = hucre.ekinIndeksi(depo) else { return }
-            hucre.geriAlmayiKaydet(boyut: hucre.gosterimBoyutu, metinGorunumu: metinGorunumu)
+            let mevcut = depo.attribute(kGorselAnahtari, at: indeks, effectiveRange: nil) as? [String: Any]
+            hucre.geriAlmayiKaydet(boyut: hucre.gosterimBoyutu, anlamsal: mevcut, metinGorunumu: metinGorunumu)
             hucre.gosterimBoyutu = boyut
-            hucre.yerlesimiTazele(metinGorunumu, ekIndeksi: indeks)
+            hucre.yerlesimiTazele(metinGorunumu, ekIndeksi: indeks, anlamsal: anlamsal)
             metinGorunumu.didChangeText()
         }
         metinGorunumu.undoManager?.setActionName("Görsel Boyutlandırma")
@@ -167,10 +175,16 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
         return max(1, kapsayici.size.width - kapsayici.lineFragmentPadding * 2)
     }
 
-    /// Hücre boyutu değişince satır yerleşimi yeniden hesaplanmalı.
-    private func yerlesimiTazele(_ metinGorunumu: NSTextView, ekIndeksi: Int) {
+    /// Kayıt boyutu yalnızca anlamsal görselden okur; öznitelik düzenlemesi yerleşimi de yeniler.
+    private func yerlesimiTazele(_ metinGorunumu: NSTextView, ekIndeksi: Int, anlamsal: [String: Any]? = nil) {
         guard let metinDeposu = metinGorunumu.textStorage else { return }
-        metinDeposu.edited(.editedAttributes, range: NSRange(location: ekIndeksi, length: 1), changeInLength: 0)
+        let aralik = NSRange(location: ekIndeksi, length: 1)
+        if let ek = metinDeposu.attribute(.attachment, at: ekIndeksi, effectiveRange: nil) as? ResimEki,
+           let gorsel = anlamsal ?? MacBelgeAdaptoru.gorselAnlamsali(ek) {
+            metinDeposu.addAttribute(kGorselAnahtari, value: gorsel, range: aralik)
+        } else {
+            metinDeposu.edited(.editedAttributes, range: aralik, changeInLength: 0)
+        }
         metinGorunumu.needsDisplay = true
     }
 
@@ -196,14 +210,13 @@ func resimEkiUret(gorsel: NSImage, dosyaURL: URL, bagYolu: String? = nil, goster
     let oran = gercekBoyut.height > 0 ? gercekBoyut.width / gercekBoyut.height : 1
     hucre.enBoyOrani = oran.isFinite && oran > 0 ? min(max(oran, 1 / kEnBuyukResimBoyutu), kEnBuyukResimBoyutu) : 1
 
-    if let istenen = gosterimBoyutu, resimBoyutuGecerliMi(istenen), istenen.width >= kEnKucukResimEni {
-        hucre.gosterimBoyutu = istenen
-    } else {
-        // Yeni eklenen görsel çok büyükse makul bir başlangıç genişliğine indirilir.
-        let baslangicEni = gercekBoyut.width.isFinite && gercekBoyut.width > 0 ? min(gercekBoyut.width, 360) : 200
-        hucre.gosterimBoyutu = NSSize(width: max(1, baslangicEni.rounded()),
-                                     height: min(kEnBuyukResimBoyutu, max(1, (baslangicEni / hucre.enBoyOrani).rounded())))
-    }
+    // Yeni eklenen görsel çok büyükse makul bir başlangıç genişliğine indirilir.
+    let baslangicEni = gercekBoyut.width.isFinite && gercekBoyut.width > 0 ? min(gercekBoyut.width, 360) : 200
+    ek.dogalGosterimBoyutu = NSSize(width: max(1, baslangicEni.rounded()),
+        height: min(kEnBuyukResimBoyutu, max(1, (baslangicEni / hucre.enBoyOrani).rounded())))
+    hucre.gosterimBoyutu = gosterimBoyutu.flatMap {
+        resimBoyutuGecerliMi($0) && $0.width >= kEnKucukResimEni ? $0 : nil
+    } ?? ek.dogalGosterimBoyutu
 
     ek.attachmentCell = hucre
     ek.dosyaURL = dosyaURL

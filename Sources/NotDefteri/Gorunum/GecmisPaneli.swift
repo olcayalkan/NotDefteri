@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 /// Sayfa geçmişi: solda sürüm listesi, sağda salt okunur önizleme.
 final class GecmisPaneli: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
@@ -87,7 +88,8 @@ final class GecmisPaneli: NSViewController, NSTableViewDataSource, NSTableViewDe
         yukle.isEnabled = surumler.indices.contains(satir)
         guard yukle.isEnabled else { return }
         let metin = surumMetni(surumler[satir])
-        onizleme.textStorage?.setAttributedString(markdowndenAttributedStringUret(sayfaUstbilgisiniAyir(metin).govde, taban: sayfaKlasoru(sayfaURL)))
+        let belge = MacBelgeAdaptoru.markdownuAc(sayfaUstbilgisiniAyir(metin).govde, taban: sayfaKlasoru(sayfaURL))
+        onizleme.textStorage?.setAttributedString(belge)
     }
 
     private func surumMetni(_ surum: SayfaSurumu) -> String {

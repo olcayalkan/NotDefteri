@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 final class CopKutusuPaneli: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
     private let copKutusu: CopKutusu

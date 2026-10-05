@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 import UniformTypeIdentifiers
 
 extension NotPenceresi {
@@ -47,7 +48,8 @@ extension NotPenceresi {
         do {
             guard let sayfa = try aktarilacakSayfa(),
                   let hedef = aktarimHedefi(ad: sayfaAdi(sayfa.url), uzanti: "html") else { return }
-            let html = try htmlUret(markdown: sayfa.markdown, baslik: sayfaAdi(sayfa.url), taban: sayfaKlasoru(sayfa.url))
+            let html = try MacBelgeAdaptoru.htmlGorselleriniUyarla(
+                htmlUret(markdown: sayfa.markdown, baslik: sayfaAdi(sayfa.url), taban: sayfaKlasoru(sayfa.url)))
             try html.write(to: hedef, atomically: true, encoding: .utf8)
         } catch { aktarimHatasiniBildir(error) }
     }
@@ -66,10 +68,11 @@ extension NotPenceresi {
             // Yalnızca bu sayfada kullanılan görseller kopyalanır; Markdown baytları değişmez.
             // Eski notların ekler/... bağları da aynı göreli konumda çalışır.
             let govde = sayfaUstbilgisiniAyir(sayfa.markdown)
-            let metin = markdowndenAttributedStringUret(govde.govde, taban: taban)
+            let metin = MacBelgeAdaptoru.markdownuAc(govde.govde, taban: taban)
             var hata: Error?
-            metin.enumerateAttribute(.attachment, in: NSRange(location: 0, length: metin.length)) { deger, _, _ in
-                guard let ek = deger as? ResimEki, let kaynak = ek.dosyaURL, let yol = ek.bagYolu else { return }
+            metin.enumerateAttribute(kGorselAnahtari, in: NSRange(location: 0, length: metin.length)) { deger, _, _ in
+                guard let gorsel = deger as? [String: Any], let kaynak = gorsel["dosyaURL"] as? URL,
+                      let yol = gorsel["yol"] as? String else { return }
                 do { try aktarimGorseliniKopyala(kaynak, hedef: guvenliAktarimYolu(yol, klasor: klasor)) }
                 catch { hata = error }
             }

@@ -1,5 +1,5 @@
 import XCTest
-@testable import NotDefteri
+@testable import NotDefteriCekirdek
 
 /// `NotKaydedici` testleri. Pencere kurmadan çalışır — kayıt mantığının
 /// arayüzden ayrılmasının asıl kazancı bu.

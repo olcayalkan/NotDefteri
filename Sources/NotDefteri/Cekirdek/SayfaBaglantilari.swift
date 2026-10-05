@@ -1,17 +1,17 @@
 import Foundation
 
-func disBaglantiGecerliMi(_ url: URL) -> Bool {
+package func disBaglantiGecerliMi(_ url: URL) -> Bool {
     ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "")
 }
 
-struct SayfaBagi {
-    let aralik: NSRange
-    let hedef: String
+package struct SayfaBagi {
+    package let aralik: NSRange
+    package let hedef: String
 }
 
 /// Kaçışlar ve kod ayıraçları atlanır; açılış/kayıtta veya yalnızca değişen paragrafta kullanılır.
-func sayfaBaglariniBul(_ metin: String) -> [SayfaBagi] {
-    let ns = metin as NSString
+package func sayfaBaglariniBul(_ metin: String) -> [SayfaBagi] {
+    let ns = NSString(string: metin)
     var sonuc: [SayfaBagi] = []
     var i = 0
     while i < ns.length {
@@ -73,39 +73,41 @@ func sayfaBaglariniBul(_ metin: String) -> [SayfaBagi] {
     return sonuc
 }
 
-struct SayfaSecenegi: Equatable {
-    let url: URL
-    let ad: String
-    let yol: String
+package struct SayfaSecenegi: Equatable {
+    package let url: URL
+    package let ad: String
+    package let yol: String
     let sadeAd: String
     let sadeYol: String
 
-    init(url: URL) {
+    package init(url: URL) {
         self.url = url
         ad = sayfaAdi(url)
         yol = sayfaBagYolu(url)
         sadeAd = aramaIcinSadelestir(ad)
         sadeYol = aramaIcinSadelestir(yol)
     }
-    var ustYol: String { yol.split(separator: "/").dropLast().joined(separator: "/") }
+    package var ustYol: String { yol.split(separator: "/").dropLast().joined(separator: "/") }
 }
 
 /// Sayfa adları bir kez indekslenir; tuşlarda dosya okuma veya gövde tarama yoktur.
-final class SayfaBaglantilari {
-    private(set) var sayfalar: [SayfaSecenegi] = []
+package final class SayfaBaglantilari {
+    package init() {}
+
+    package private(set) var sayfalar: [SayfaSecenegi] = []
     private var hedefler: [String: [URL]] = [:]
     private var urlIndeksi: [URL: SayfaSecenegi] = [:]
-    private(set) var sonAcilanlar = (UserDefaults.standard.stringArray(forKey: "sonAcilanSayfalar") ?? []).map { URL(fileURLWithPath: $0) }
+    package private(set) var sonAcilanlar = (UserDefaults.standard.stringArray(forKey: "sonAcilanSayfalar") ?? []).map { URL(fileURLWithPath: $0) }
 
     private var sonAcilmaTarihleri = UserDefaults.standard.dictionary(forKey: "sonAcilmaTarihleri") as? [String: Double] ?? [:]
 
-    func sonAcilmaTarihi(_ url: URL) -> Date? {
+    package func sonAcilmaTarihi(_ url: URL) -> Date? {
         sonAcilmaTarihleri[url.path].map { Date(timeIntervalSince1970: $0) }
     }
 
-    var sonAcilanlarDegisti: (() -> Void)?
+    package var sonAcilanlarDegisti: (() -> Void)?
 
-    func olmayanSonAcilanlariDusur() {
+    package func olmayanSonAcilanlariDusur() {
         let kalan = sonAcilanlar.filter { FileManager.default.fileExists(atPath: $0.path) }
         guard kalan != sonAcilanlar else { return }
         sonAcilanlar = kalan
@@ -120,7 +122,7 @@ final class SayfaBaglantilari {
         sonAcilanlarDegisti?()
     }
 
-    func guncelle(_ sayfalar: [SayfaSecenegi]) {
+    package func guncelle(_ sayfalar: [SayfaSecenegi]) {
         self.sayfalar = sayfalar
         hedefler = [:]
         urlIndeksi = [:]
@@ -130,24 +132,24 @@ final class SayfaBaglantilari {
         }
     }
 
-    func coz(_ hedef: String) -> URL? {
+    package func coz(_ hedef: String) -> URL? {
         let adaylar = hedefler[hedef.trimmingCharacters(in: .whitespaces)] ?? []
         return adaylar.count == 1 ? adaylar[0] : nil
     }
-    func belirsizMi(_ hedef: String) -> Bool { (hedefler[hedef]?.count ?? 0) > 1 }
-    func bagMetni(_ url: URL) -> String {
+    package func belirsizMi(_ hedef: String) -> Bool { (hedefler[hedef]?.count ?? 0) > 1 }
+    package func bagMetni(_ url: URL) -> String {
         guard let sayfa = urlIndeksi[url] else { return sayfaAdi(url) }
         return (hedefler[sayfa.ad]?.count ?? 0) == 1 ? sayfa.ad
             : (sayfa.yol.contains("/") ? sayfa.yol : "./" + sayfa.yol)
     }
-    func acildi(_ url: URL) {
+    package func acildi(_ url: URL) {
         sonAcilmaTarihleri[url.path] = Date().timeIntervalSince1970
         sonAcilanlar.removeAll { $0 == url }
         sonAcilanlar.insert(url, at: 0)
         sonAcilanlar = Array(sonAcilanlar.prefix(30))
         sonAcilanlariKaydet()
     }
-    func yollariTasi(_ donustur: (URL) -> URL) {
+    package func yollariTasi(_ donustur: (URL) -> URL) {
         var yeniTarihler: [String: Double] = [:]
         for (yol, tarih) in sonAcilmaTarihleri {
             let yeni = donustur(URL(fileURLWithPath: yol)).path
@@ -158,7 +160,7 @@ final class SayfaBaglantilari {
         sonAcilanlariKaydet()
     }
 
-    func ara(_ sorgu: String) -> [SayfaSecenegi] {
+    package func ara(_ sorgu: String) -> [SayfaSecenegi] {
         let sade = aramaIcinSadelestir(sorgu.trimmingCharacters(in: .whitespacesAndNewlines))
         if sade.isEmpty { return sonAcilanlar.compactMap { urlIndeksi[$0] } }
         return sayfalar.compactMap { sayfa -> (SayfaSecenegi, Int)? in
@@ -170,7 +172,7 @@ final class SayfaBaglantilari {
     }
 
     /// Eski hedefler, taşınan dal ve yeni ad çakışmaları birlikte değerlendirilir.
-    func yenidenYazimlar(yeni: SayfaBaglantilari, donustur: (URL) -> URL) -> [String: String] {
+    package func yenidenYazimlar(yeni: SayfaBaglantilari, donustur: (URL) -> URL) -> [String: String] {
         var sonuc: [String: String] = [:]
         for (hedef, adaylar) in hedefler where adaylar.count == 1 {
             let eskiURL = adaylar[0]
@@ -199,14 +201,14 @@ private func bulanikPuan(_ metin: String, sorgu: String) -> Int? {
     return nil
 }
 
-func sayfaBaglariniDegistir(_ metin: String, hedefler: [String: String]) -> String {
+package func sayfaBaglariniDegistir(_ metin: String, hedefler: [String: String]) -> String {
     let sonuc = NSMutableString(string: metin)
     for bag in sayfaBaglariniBul(metin).reversed() {
         if let yeni = hedefler[bag.hedef.trimmingCharacters(in: .whitespaces)] {
             sonuc.replaceCharacters(in: bag.aralik, with: "[[\(yeni)]]")
         }
     }
-    return sonuc as String
+    return String(sonuc)
 }
 
 /// Çevirici ve bağlantı indeksi kodun kapsamı konusunda aynı kuralları kullanır.
@@ -217,5 +219,5 @@ func kodBloguAyiraci(_ satir: String) -> String? {
 
 func kodBloguKapanisi(_ metin: String, ayirac: String, sonrasinda: Int) -> NSRange? {
     let desen = try! NSRegularExpression(pattern: "(?m)^" + ayirac + "[ \t]*(?:\r?\n|$)")
-    return desen.firstMatch(in: metin, range: NSRange(location: sonrasinda, length: (metin as NSString).length - sonrasinda))?.range
+    return desen.firstMatch(in: metin, range: NSRange(location: sonrasinda, length: NSString(string: metin).length - sonrasinda))?.range
 }

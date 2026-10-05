@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - KenarPaneli: Sayfaları sürükleyip taşıma
 //

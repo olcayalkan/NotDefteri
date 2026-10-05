@@ -84,6 +84,41 @@ Or use one of the pre-configured commands (in Claude Code):
 /research-assistant # For deep dives into topics
 ```
 
+## NotDefteri'yi Linux'ta çalıştırma (Ubuntu 22.04)
+
+Linux arayüzü, sayfa ağacını listeleyen minimal bir GTK4 penceresidir. Not düzenleme henüz Linux arayüzünde yoktur. macOS uygulaması AppKit kullanır; `swift run`, `./calistir.sh` ve `.build/debug/NotDefteri` girişleri korunur.
+
+Linux kurulumu ve derlemesi bu macOS makinesinde doğrulanmadı; aşağıdaki kurulum adımları taslaktır. Ubuntu 22.04 masaüstü oturumunda, depo kökünden çalıştırın:
+
+```bash
+./scripts/linux-kur.sh
+```
+
+Betik `sudo apt-get` ile GTK4 geliştirme paketini (`libgtk-4-dev`), `pkg-config` ve Swift sistem bağımlılıklarını kurar. Çalışan bir Swift bulunamazsa [Swiftly](https://www.swift.org/install/linux/) üzerinden `.swift-version` dosyasındaki 6.2.4 sürümünü kurar. Ardından `swift build` ve `swift run` komutlarını yürütür. Kurulum internet ve sudo yetkisi gerektirir; pencere için grafik oturumu gerekir.
+
+Swiftly kuruluysa temel sürümü kurup seçin:
+
+```bash
+swiftly install 6.2.4
+swiftly use 6.2.4
+```
+
+Depo kökündeki `.swift-version`, Swiftly'nin bu dizin ve alt dizinlerinde 6.2.4 sürümünü otomatik seçmesini sağlar. [Swiftly sürüm seçimi belgesi](https://www.swift.org/swiftly/documentation/swiftly/use-toolchains/), tek komut için `+sürüm` seçicisinin komuttan sonra kullanımını da açıklar.
+
+GTK API tabanı 4.6'dır. Manifest `swift-tools-version:5.9` ve Swift 5 dil modunu kullanır. Swift 6.4.0 ile Linux derlemesi de ayrıca doğrulanmalıdır. Swiftly ile bu sürümü depo dosyasını değiştirmeden denemek için:
+
+```bash
+swiftly install 6.4.0
+swiftly run swift build +6.4.0
+swiftly run swift run +6.4.0
+```
+
+Bağımlılıklar hazırken normal başlatma `swift run` komutudur. Pencerenin başlığı “NotDefteri” olmalı; alt sayfalar girintili listelenmelidir. Çekirdek not konumunu XDG belgeler ayarından alır; ayar yoksa `~/Documents/NotDefteri` kullanır. Boş klasörde pencere not konumunu gösterir.
+
+Kurulum doğrulaması için `swift --version`, `pkg-config --modversion gtk4` ve `swift build` çıktısını kontrol edin. Linux'ta ortak çekirdek, CGtk başlıkları/linkleme, NotDefteriLinux ve çalıştırıcı derlenmelidir. Çekirdek test hedefini çalıştırmadan derlemek için `swift build --build-tests` kullanın.
+
+Betik sistem paketleri ve kullanıcı hesabına Swiftly/Swift ekler; otomatik kaldırma işlemi yoktur. Pencereyi kapatmak uygulamayı sonlandırır. İlk Ubuntu denemesindeki derleme ve pencere sonucunu geliştiriciye iletin.
+
 ## Folder Structure
 
 ```

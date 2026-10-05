@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 final class SayfaDosyalariAlani: NSView, NSTableViewDataSource, NSTableViewDelegate {
     var dosyaSecildi: ((SayfaDosyasi) -> Void)?

@@ -1,11 +1,11 @@
 import Foundation
 
-enum SayfaSablonu: String, CaseIterable {
+package enum SayfaSablonu: String, CaseIterable {
     case toplanti = "Toplantı notu"
     case gunluk = "Günlük"
     case proje = "Proje"
 
-    func markdown(tarih: Date = Date()) -> String {
+    package func markdown(tarih: Date = Date()) -> String {
         switch self {
         case .toplanti:
             return "# Toplantı notu\n\nTarih: \(gunlukSayfaAdi(tarih))\nKatılımcılar: \n\n## Gündem\n\n- \n\n## Kararlar\n\n- \n\n## Yapılacaklar\n\n- [ ] \n"
@@ -17,7 +17,7 @@ enum SayfaSablonu: String, CaseIterable {
     }
 }
 
-func gunlukSayfaAdi(_ tarih: Date = Date()) -> String {
+package func gunlukSayfaAdi(_ tarih: Date = Date()) -> String {
     let bicim = DateFormatter()
     bicim.locale = Locale(identifier: "en_US_POSIX")
     bicim.calendar = Calendar(identifier: .gregorian)

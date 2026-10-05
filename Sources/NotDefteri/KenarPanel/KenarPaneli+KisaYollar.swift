@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 final class KenarBolumu: NSObject {
     let ad: String

@@ -1,8 +1,8 @@
 import Foundation
 
-enum KodTokenTuru { case anahtarKelime, metin, sayi, yorum, tur, fonksiyon, `operator` }
+package enum KodTokenTuru { case anahtarKelime, metin, sayi, yorum, tur, fonksiyon, `operator` }
 
-func dilAdiniNormallestir(_ etiket: String) -> String? {
+package func dilAdiniNormallestir(_ etiket: String) -> String? {
     switch etiket.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) {
     case "swift": return "swift"
     case "go", "golang": return "go"
@@ -55,10 +55,10 @@ private let kodDesenleri: [String: NSRegularExpression] = {
     return sonuc
 }()
 
-func kodVurgula(_ kod: String, dil: String?) -> [(aralik: NSRange, tur: KodTokenTuru)] {
+package func kodVurgula(_ kod: String, dil: String?) -> [(aralik: NSRange, tur: KodTokenTuru)] {
     guard let dil, let ad = dilAdiniNormallestir(dil), let desen = kodDesenleri[ad] else { return [] }
     let turler: [KodTokenTuru] = [.yorum, .metin, .sayi, .anahtarKelime]
-    return desen.matches(in: kod, range: NSRange(location: 0, length: (kod as NSString).length)).map { eslesme in
+    return desen.matches(in: kod, range: NSRange(location: 0, length: NSString(string: kod).length)).map { eslesme in
         let grup = (1...4).first { eslesme.range(at: $0).location != NSNotFound }!
         return (eslesme.range, turler[grup - 1])
     }

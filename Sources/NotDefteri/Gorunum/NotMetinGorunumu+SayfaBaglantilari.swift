@@ -1,14 +1,25 @@
 import AppKit
+import NotDefteriCekirdek
 
 extension NotMetinGorunumu: NSTextStorageDelegate {
     func textStorage(_ textStorage: NSTextStorage, willProcessEditing editedMask: NSTextStorageEditActions,
                      range editedRange: NSRange, changeInLength delta: Int) {
+        guard !yaziOlcegiUygulaniyor, !baglarGuncelleniyor else { return }
         if !sayfaYukleniyor, !baglarGuncelleniyor, !yaziOlcegiUygulaniyor {
             baglarGuncelleniyor = true
             uyariSinirlariniGuncelle(textStorage, aralik: editedRange)
             baglarGuncelleniyor = false
             kelimeSayisiniGuncelle(textStorage, aralik: editedRange, fark: delta)
-            yaziOlceginiUygula(textStorage, aralik: editedRange)
+        }
+        // Yükleme dahil her düzenlemede görünüm anlamsaldan türetilir. Uyarı sınırı
+        // komşu paragrafı da değiştirebildiği için bir sonraki paragraf da kapsanır.
+        if !yaziOlcegiUygulaniyor, textStorage.length > 0 {
+            let ns = textStorage.mutableString
+            var paragraf = ns.paragraphRange(for: NSIntersectionRange(editedRange, NSRange(location: 0, length: ns.length)))
+            if NSMaxRange(paragraf) < ns.length {
+                paragraf = NSUnionRange(paragraf, ns.paragraphRange(for: NSRange(location: NSMaxRange(paragraf), length: 0)))
+            }
+            belgeAdaptoru.gorunumuUygula(textStorage, aralik: paragraf)
         }
         guard !sayfaYukleniyor, !baglarGuncelleniyor, textStorage.length > 0 else { return }
         baglarGuncelleniyor = true
@@ -22,7 +33,7 @@ extension NotMetinGorunumu: NSTextStorageDelegate {
             let aralik = NSRange(location: paragraf.location + bag.aralik.location, length: bag.aralik.length)
             var kodVeyaBag = false
             textStorage.enumerateAttributes(in: aralik) { oznitelikler, _, durdur in
-                if oznitelikler[kKodBloguAnahtari] != nil || oznitelikler[kSatirIciKodAnahtari] != nil || oznitelikler[.link] != nil || oznitelikler[kKacisliKoseParantezAnahtari] != nil {
+                if oznitelikler[kKodBloguAnahtari] != nil || oznitelikler[kSatirIciKodAnahtari] != nil || oznitelikler[kBaglantiAnahtari] != nil || oznitelikler[kKacisliKoseParantezAnahtari] != nil {
                     kodVeyaBag = true; durdur.pointee = true
                 }
             }
@@ -32,9 +43,29 @@ extension NotMetinGorunumu: NSTextStorageDelegate {
 
     func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
                      range editedRange: NSRange, changeInLength delta: Int) {
-        guard !sayfaYukleniyor, !baglarGuncelleniyor, textStorage.length > 0 else { return }
+        guard !sayfaYukleniyor, !baglarGuncelleniyor, !yaziOlcegiUygulaniyor, textStorage.length > 0 else { return }
+        // Yerleşim yöneticisi düzenlemeyi bu çağrıdan SONRA işler. Geçici öznitelik değişikliği
+        // eski glif tablosunda görüntü geçersizleştirir; belge sonunda silmede NSRangeException
+        // atar ve editör tuş almaz olur. Boyama işlem bitince yapılır; bekleyen aralık sonraki
+        // düzenlemelerle kaydırılır.
         let sinirli = NSIntersectionRange(editedRange, NSRange(location: 0, length: textStorage.length))
-        sayfaBaglariniBoya(aralik: textStorage.mutableString.paragraphRange(for: sinirli))
+        var aralik = textStorage.mutableString.paragraphRange(for: sinirli)
+        if let bekleyen = bekleyenBagBoyamasi {
+            let eskiSon = NSMaxRange(editedRange) - delta
+            func kaydir(_ konum: Int) -> Int {
+                konum < editedRange.location ? konum : konum >= eskiSon ? konum + delta : NSMaxRange(editedRange)
+            }
+            let bas = kaydir(bekleyen.location)
+            aralik = NSUnionRange(aralik, NSRange(location: bas, length: max(0, kaydir(NSMaxRange(bekleyen)) - bas)))
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let aralik = self.bekleyenBagBoyamasi, let depo = self.textStorage else { return }
+                self.bekleyenBagBoyamasi = nil
+                let sinirli = NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length))
+                self.sayfaBaglariniBoya(aralik: depo.mutableString.paragraphRange(for: sinirli))
+            }
+        }
+        bekleyenBagBoyamasi = aralik
     }
 
     /// Görsel renkler geçicidir; Markdown kaynağı, fontlar ve undo öznitelikleri değişmez.
@@ -70,7 +101,7 @@ extension NotMetinGorunumu: NSTextStorageDelegate {
         guard bas.location != NSNotFound, bas.location != kapatilanBagKonumu,
               depo.attribute(kKodBloguAnahtari, at: bas.location, effectiveRange: nil) == nil,
               depo.attribute(kSatirIciKodAnahtari, at: bas.location, effectiveRange: nil) == nil,
-              depo.attribute(.link, at: bas.location, effectiveRange: nil) == nil,
+              depo.attribute(kBaglantiAnahtari, at: bas.location, effectiveRange: nil) == nil,
               depo.attribute(kKacisliKoseParantezAnahtari, at: bas.location, effectiveRange: nil) == nil,
               depo.attribute(kKacisliKoseParantezAnahtari, at: bas.location + 1, effectiveRange: nil) == nil else {
             sayfaBulucusu.gizle(); bagTamamlamaAraligi = nil; return

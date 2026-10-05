@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 /// Katlama bilgisi metin deposuna öznitelik olarak bile yazılmaz.
 final class KatlamaDurumu {
@@ -11,9 +12,12 @@ final class KatlamaDurumu {
 
     var basliklar: [Baslik] = []
     var gizliAraliklar: [NSRange] = []
+    var yerlesimdekiGizliAraliklar: [NSRange] = []
     var gorunenBasliklar: [Int] = []
     var metinUzunlugu = 0
     var fare: NSPoint?
+    var fareBaslikKonumu: Int?
+    var fareKenarKaresi: NSRect?
     var yol: String?
     var yuklenecek: Set<String>?
     static var sayfalar: [String: [String]] = [:]
@@ -87,6 +91,8 @@ extension NotMetinGorunumu {
         katlama.gizliAraliklar = []
         katlama.gorunenBasliklar = []
         katlama.fare = nil
+        katlama.fareBaslikKonumu = nil
+        katlama.fareKenarKaresi = nil
         katlama.metinUzunlugu = 0
         let onek = notlarKlasoru().standardizedFileURL.path + "/"
         katlama.yol = url.flatMap { url in
@@ -147,19 +153,15 @@ extension NotMetinGorunumu {
         katlama.basliklar[sira].bolum.length = max(0, son - katlama.basliklar[sira].bolum.location)
     }
 
-    @objc func katlamaSecimiDegisti(_ bildirim: Notification) {
-        for aralik in selectedRanges { katliAraligiAc(aralik.rangeValue) }
-    }
-
     /// Depo bildiriminde yalnızca önbellekteki konumlar kaydırılır. Yapı hesabı
     /// içindekilerden gelir. Undo/redo'nun değiştirdiği eski aralık da açılır.
     @objc func katlamaDeposuDegisti(_ bildirim: Notification) {
-        guard !katlama.basliklar.isEmpty, !sayfaYukleniyor, !yaziOlcegiUygulaniyor, !baglarGuncelleniyor,
+        guard !katlama.basliklar.isEmpty, !sayfaYukleniyor, !yaziOlcegiUygulaniyor,
               let depo = bildirim.object as? NSTextStorage, depo.editedRange.location != NSNotFound else { return }
         let yeni = depo.editedRange
         let fark = depo.editedMask.contains(.editedCharacters) ? depo.changeInLength : 0
         let eski = NSRange(location: yeni.location, length: max(0, yeni.length - fark))
-        katliAraligiAc(eski)
+        if !baglarGuncelleniyor { katliAraligiAc(eski) }
         guard depo.editedMask.contains(.editedCharacters) else { return }
         func kaydir(_ konum: Int) -> Int {
             if konum < eski.location { return konum }
@@ -184,9 +186,16 @@ extension NotMetinGorunumu {
         katlama.metinUzunlugu = depo.length
         katlama.gorunurluguGuncelle()
         if katlama.basliklar.count != eskiAdet { katlama.sakla() }
-        // Yerleşim yöneticisi düzenlenen kısmı zaten geçersiz kılar. Aralıkları
-        // değiştirmek metin/undo/kayıt akışına hiçbir ek düzenleme göndermez.
-        needsDisplay = true
+        // Düzenlemeyle kayan glifler AppKit tarafından taşınır. Başlık silinmesi
+        // gibi gizli kapsamı ayrıca değiştiren işlemler yeniden yerleşim ister.
+        // Yerleşimin gerçekte tuttuğu aralık kaydırılır: yukarıdaki açma işlem sonuna
+        // ertelendiyse fark kaybolmaz.
+        katlama.yerlesimdekiGizliAraliklar = katlama.yerlesimdekiGizliAraliklar.compactMap { aralik in
+            let bas = kaydir(aralik.location)
+            let uzunluk = max(0, kaydir(NSMaxRange(aralik)) - bas)
+            return uzunluk > 0 ? NSRange(location: bas, length: uzunluk) : nil
+        }
+        katlamaYerlesiminiGuncelle()
     }
 
     func katliAraligiAc(_ aralik: NSRange, basligiDaAc: Bool = false) {
@@ -208,10 +217,33 @@ extension NotMetinGorunumu {
     }
 
     private func katlamaYerlesiminiGuncelle() {
-        guard let depo = textStorage, let yerlesim = layoutManager else { return }
-        yerlesim.invalidateGlyphs(forCharacterRange: NSRange(location: 0, length: depo.length),
-                                 changeInLength: 0, actualCharacterRange: nil)
+        guard let depo = textStorage, let yerlesim = layoutManager,
+              katlama.yerlesimdekiGizliAraliklar != katlama.gizliAraliklar else { return }
+        // Depo düzenlemesi sürerken yerleşim yöneticisi eski uzunluktadır; tüm metni
+        // geçersiz kılmak var olmayan glifi sorgular. İşlem bitince yeniden denenir.
+        guard depo.editedMask.isEmpty else {
+            DispatchQueue.main.async { [weak self] in self?.katlamaYerlesiminiGuncelle() }
+            return
+        }
+        katlama.yerlesimdekiGizliAraliklar = katlama.gizliAraliklar
+        kodAraclari.isHidden = true
+        resimTutamaclariniGuncelle(nil)
+        let aralik = NSRange(location: 0, length: depo.length)
+        yerlesim.invalidateGlyphs(forCharacterRange: aralik, changeInLength: 0, actualCharacterRange: nil)
+        yerlesim.invalidateLayout(forCharacterRange: aralik, actualCharacterRange: nil)
         needsDisplay = true
+    }
+
+    /// Başlık sonunda Enter, imleci bölümün yeni ilk paragrafına taşır.
+    /// Toplu paragraf değişimi başlamadan aç; yeni satır gizli sınıra kaymasın.
+    func katlamaYeniSatirOncesi() {
+        let secim = selectedRange()
+        guard !hasMarkedText(), secim.length == 0, let depo = textStorage,
+              secim.location <= depo.length else { return }
+        var son = 0
+        depo.mutableString.getParagraphStart(nil, end: nil, contentsEnd: &son, for: secim)
+        guard secim.location == son else { return }
+        katliAraligiAc(secim, basligiDaAc: true)
     }
 
     func katlamaKisayolunuUygula(_ olay: NSEvent) -> Bool {
@@ -228,6 +260,13 @@ extension NotMetinGorunumu {
         let hedef = katlama.basliklar.lastIndex { $0.girdi.konum <= konum }
         katlamaDurumunuDegistir(katla, siralar: tumu ? Array(katlama.basliklar.indices) : hedef.map { [$0] } ?? [])
         return true
+    }
+
+    @objc func katlamaKomutu(_ sender: NSMenuItem) {
+        guard isEditable, !katlama.basliklar.isEmpty else { return }
+        let hedef = katlama.basliklar.lastIndex { $0.girdi.konum <= selectedRange().location }
+        katlamaDurumunuDegistir(sender.tag % 2 == 0,
+                               siralar: sender.tag >= 2 ? Array(katlama.basliklar.indices) : hedef.map { [$0] } ?? [])
     }
 
     private func katlamaDurumunuDegistir(_ katla: Bool, siralar: [Int]) {
@@ -247,7 +286,22 @@ extension NotMetinGorunumu {
 
     func katlamaFaresiniGuncelle(_ nokta: NSPoint?) {
         katlama.fare = nokta
-        needsDisplay = true
+        let sira = nokta.flatMap { nokta in
+            visibleRect.contains(nokta) ? gorunenKatlamaBasliklari().first {
+                katlama.basliklar[$0].bolum.length > 0
+                    && katlamaBaslikKaresi($0).insetBy(dx: -22, dy: 0).contains(nokta)
+            } : nil
+        }
+        let konum = sira.map { katlama.basliklar[$0].girdi.konum }
+        let kare = sira.map { sira in
+            let baslik = katlamaBaslikKaresi(sira)
+            return NSRect(x: baslik.minX - 22, y: baslik.minY, width: 22, height: baslik.height)
+        }
+        guard katlama.fareBaslikKonumu != konum || katlama.fareKenarKaresi != kare else { return }
+        if let eski = katlama.fareKenarKaresi { setNeedsDisplay(eski) }
+        katlama.fareBaslikKonumu = konum
+        katlama.fareKenarKaresi = kare
+        if let kare { setNeedsDisplay(kare) }
     }
 
     private func gorunenKatlamaBasliklari() -> ArraySlice<Int> {
@@ -262,8 +316,12 @@ extension NotMetinGorunumu {
     }
 
     private func katlamaBaslikKaresi(_ sira: Int) -> NSRect {
-        guard let yerlesim = layoutManager else { return .zero }
-        let glif = yerlesim.glyphIndexForCharacter(at: katlama.basliklar[sira].girdi.konum)
+        guard katlama.basliklar.indices.contains(sira), let depo = textStorage,
+              let yerlesim = layoutManager else { return .zero }
+        let konum = katlama.basliklar[sira].girdi.konum
+        guard konum >= 0, konum < depo.length, !katlama.gizliMi(konum) else { return .zero }
+        let glif = yerlesim.glyphIndexForCharacter(at: konum)
+        guard glif < yerlesim.numberOfGlyphs else { return .zero }
         return yerlesim.lineFragmentUsedRect(forGlyphAt: glif, effectiveRange: nil)
             .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
     }
@@ -286,12 +344,12 @@ extension NotMetinGorunumu {
     }
 
     private func katlamaUcNoktasiniCiz(_ baslik: KatlamaDurumu.Baslik, yazi: [NSAttributedString.Key: Any]) {
-        guard let yerlesim = layoutManager, let depo = textStorage, let kapsayici = textContainer else { return }
+        guard let depo = textStorage, let kapsayici = textContainer else { return }
         var son = min(NSMaxRange(baslik.paragraf), depo.length) - 1
+        guard son >= 0, son >= baslik.paragraf.location, son < depo.length else { return }
         while son > baslik.paragraf.location, CharacterSet.whitespacesAndNewlines.contains(UnicodeScalar(depo.mutableString.character(at: son)) ?? " ") { son -= 1 }
-        let glif = yerlesim.glyphIndexForCharacter(at: son)
-        let kare = yerlesim.boundingRect(forGlyphRange: NSRange(location: glif, length: 1), in: kapsayici)
-            .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
+        guard let kare = guvenliKare(karakter: NSRange(location: son, length: 1))?
+            .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y) else { return }
         ("…" as NSString).draw(at: NSPoint(x: min(kare.maxX + 5, textContainerOrigin.x + kapsayici.size.width - 16), y: kare.minY), withAttributes: yazi)
     }
 

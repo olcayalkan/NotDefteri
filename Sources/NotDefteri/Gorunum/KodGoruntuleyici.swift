@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 /// Bağımsız NSTextView Markdown yorumlamaz; dosyanın tamamı salt okunur kalır.
 final class KodGoruntuleyici: NSViewController {

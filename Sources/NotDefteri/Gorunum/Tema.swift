@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - Tema
 
@@ -30,7 +31,10 @@ let temaListesi: [Tema] = [
 ]
 
 /// O an seçili tema. Seçim `gTemaIndex` üzerinden yapılır (bkz. `Ayarlar.swift`).
-var aktifTema: Tema { temaListesi[gTemaIndex] }
+var aktifTema: Tema {
+    if !temaListesi.indices.contains(gTemaIndex) { gTemaIndex = 0 }
+    return temaListesi[gTemaIndex]
+}
 
 // MARK: - Temadan türetilen renkler
 

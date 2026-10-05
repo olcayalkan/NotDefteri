@@ -1,6 +1,7 @@
 import XCTest
 import AppKit
-@testable import NotDefteri
+@testable import NotDefteriCekirdek
+@testable import NotDefteriMac
 
 /// Dışarıdan yapıştırılan içeriğin notun yazım biçimine uydurulması.
 final class YapistirmaTestleri: XCTestCase {

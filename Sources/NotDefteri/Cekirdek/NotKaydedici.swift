@@ -5,9 +5,9 @@ import Foundation
 /// Pencereden bağımsızdır: metni dışarıdan alır, sonucu döndürür. Uyarı
 /// göstermek, kenar paneli tazelemek gibi arayüz tepkileri çağıranın işidir.
 /// Böylece kayıt mantığı arayüz kurmadan test edilebiliyor.
-final class NotKaydedici {
+package final class NotKaydedici {
 
-    enum Sonuc: Equatable {
+    package enum Sonuc: Equatable {
         /// Dosya diske yazıldı.
         case yazildi
         /// Aynı içerik zaten diskte; yazmaya gerek yoktu.
@@ -17,38 +17,38 @@ final class NotKaydedici {
     }
 
     /// Diske en son yazılan metin. Aynı içeriği tekrar yazmamak için tutulur.
-    private(set) var sonYazilanIcerik: String?
+    package private(set) var sonYazilanIcerik: String?
 
     /// Kaydedilmemiş değişiklik var mı?
-    private(set) var duzenlendiMi = false
+    package private(set) var duzenlendiMi = false
 
-    private var zamanlayici: Timer?
+    private var zamanlayici: ZamanlayiciIptal?
     private let aralik: TimeInterval
     private let dosyaYoneticisi: FileManager
 
-    init(aralik: TimeInterval = kOtomatikKayitAraligi,
+    package init(aralik: TimeInterval = kOtomatikKayitAraligi,
          dosyaYoneticisi: FileManager = .default) {
         self.aralik = aralik
         self.dosyaYoneticisi = dosyaYoneticisi
     }
 
-    deinit { zamanlayici?.invalidate() }
+    deinit { zamanlayici?() }
 
     // MARK: Durum
 
     /// Başka bir not açıldığında/oluşturulduğunda çağrılır.
-    func sifirla(sonYazilan: String?) {
+    package func sifirla(sonYazilan: String?) {
         sonYazilanIcerik = sonYazilan
         duzenlendiMi = false
         bekleyeniIptalEt()
     }
 
-    func degisiklikIsaretle() {
+    package func degisiklikIsaretle() {
         duzenlendiMi = true
     }
 
     /// İçerik diskle aynı olduğu anlaşıldığında; yazmadan "temiz" işaretler.
-    func temizIsaretle() {
+    package func temizIsaretle() {
         duzenlendiMi = false
     }
 
@@ -58,7 +58,7 @@ final class NotKaydedici {
     ///
     /// Aynı dosyaya aynı içeriği tekrar yazmayız. Ama hedef değiştiyse ya da
     /// dosya diskten silinmişse yazmak gerekir.
-    func yazmakGerekli(metin: String, url: URL, mevcutURL: URL?) -> Bool {
+    package func yazmakGerekli(metin: String, url: URL, mevcutURL: URL?) -> Bool {
         metin != sonYazilanIcerik
             || url != mevcutURL
             || !dosyaYoneticisi.fileExists(atPath: url.path)
@@ -69,7 +69,7 @@ final class NotKaydedici {
     /// Başarısızlıkta `sonYazilanIcerik` ve `duzenlendiMi` **değişmez**;
     /// aksi hâlde not kaydedilmediği hâlde "kaydedildi" sayılıyor, sonraki
     /// otomatik kayıtlar da atlıyordu.
-    func yaz(metin: String, url: URL, mevcutURL: URL?) -> Sonuc {
+    package func yaz(metin: String, url: URL, mevcutURL: URL?) -> Sonuc {
         guard yazmakGerekli(metin: metin, url: url, mevcutURL: mevcutURL) else {
             duzenlendiMi = false
             return .gerekmedi
@@ -93,19 +93,16 @@ final class NotKaydedici {
     /// Tek atımlık zamanlayıcı kurar. Zaten kuruluysa yenisi açılmaz, yani
     /// kesintisiz yazarken de en fazla `aralik` saniyede bir disk yazımı olur;
     /// boştayken hiç zamanlayıcı dönmez.
-    func zamanlayiciKur(_ eylem: @escaping () -> Void) {
+    package func zamanlayiciKur(_ eylem: @escaping () -> Void) {
         guard zamanlayici == nil else { return }
-        let yeni = Timer(timeInterval: aralik, repeats: false) { [weak self] _ in
+        zamanlayici = Platform.zamanlayici(aralik) { [weak self] in
             self?.zamanlayici = nil
             eylem()
         }
-        yeni.tolerance = 1  // Sistemin uyandırmaları birleştirmesine izin verir (enerji dostu).
-        RunLoop.main.add(yeni, forMode: .common)  // Menü/kaydırma sırasında da işler.
-        zamanlayici = yeni
     }
 
-    func bekleyeniIptalEt() {
-        zamanlayici?.invalidate()
+    package func bekleyeniIptalEt() {
+        zamanlayici?()
         zamanlayici = nil
     }
 

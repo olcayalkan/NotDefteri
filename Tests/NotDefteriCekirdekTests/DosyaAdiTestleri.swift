@@ -1,5 +1,5 @@
 import XCTest
-@testable import NotDefteri
+@testable import NotDefteriCekirdek
 
 /// Görsel dosya adlarının güvenli üretimi.
 /// Bu testler gerçek bir veri kaybının regresyon korumasıdır: bölüm başlığı

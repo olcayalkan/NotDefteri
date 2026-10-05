@@ -1,5 +1,5 @@
 import XCTest
-@testable import NotDefteri
+@testable import NotDefteriCekirdek
 
 /// Arama önbelleğinin girdi tipi ve tazeleme mantığı.
 /// Önbellek `KenarPaneli` içinde olduğu için burada davranışın çekirdeği

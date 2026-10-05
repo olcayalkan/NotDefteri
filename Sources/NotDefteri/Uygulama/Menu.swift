@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 // MARK: - Menü
 
@@ -109,6 +110,17 @@ func anaMenuyuOlustur(delege: UygulamaDelegesi) -> NSMenu {
     }
     temaMenuOgesi.submenu = temaAltMenu
     gorunumMenu.addItem(temaMenuOgesi)
+    gorunumMenu.addItem(NSMenuItem.separator())
+    let katlamaKomutlari: [(String, String, NSEvent.ModifierFlags)] = [
+        ("Bölümü katla", "[", [.command, .option]),
+        ("Bölümü aç", "]", [.command, .option]),
+        ("Tümünü katla", "[", [.command, .option, .shift]),
+        ("Tümünü aç", "]", [.command, .option, .shift])]
+    for (tag, komut) in katlamaKomutlari.enumerated() {
+        let oge = gorunumMenu.addItem(withTitle: komut.0, action: #selector(NotMetinGorunumu.katlamaKomutu(_:)), keyEquivalent: komut.1)
+        oge.tag = tag
+        oge.keyEquivalentModifierMask = komut.2
+    }
     gorunumMenuOgesi.submenu = gorunumMenu
     anaMenu.addItem(gorunumMenuOgesi)
 

@@ -1,7 +1,7 @@
-import AppKit
+import Foundation
 
 /// Editörle aynı sözdizimini okur; HTML'e yalnızca kaçırılmış metin ve izinli bağlar girer.
-func htmlKacir(_ metin: String) -> String {
+package func htmlKacir(_ metin: String) -> String {
     metin.replacingOccurrences(of: "&", with: "&amp;")
         .replacingOccurrences(of: "<", with: "&lt;")
         .replacingOccurrences(of: ">", with: "&gt;")
@@ -9,22 +9,21 @@ func htmlKacir(_ metin: String) -> String {
         .replacingOccurrences(of: "'", with: "&#39;")
 }
 
-func htmlGorseli(_ url: URL) throws -> String {
-    // SVG gibi etkin içerik taşıyabilen kaynaklar da durağan PNG'ye çevrilir.
-    guard let resim = NSImage(contentsOf: url), let tiff = resim.tiffRepresentation,
-          let bitmap = NSBitmapImageRep(data: tiff),
-          let veri = bitmap.representation(using: .png, properties: [:]) else {
-        throw CocoaError(.fileReadCorruptFile, userInfo: [NSFilePathErrorKey: url.path])
-    }
+package func htmlGorseli(_ url: URL) throws -> String {
+    let mimeTurleri = ["png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+        "gif": "image/gif", "webp": "image/webp", "svg": "image/svg+xml",
+        "tif": "image/tiff", "tiff": "image/tiff", "bmp": "image/bmp",
+        "heic": "image/heic", "heif": "image/heif", "avif": "image/avif", "ico": "image/x-icon"]
+    let mime = mimeTurleri[url.pathExtension.lowercased()] ?? "application/octet-stream"
     // ponytail: büyük görseller de gömülür; boyut sınırı veya ayrı dosya yönetimi yok.
-    return "data:image/png;base64," + veri.base64EncodedString()
+    return "data:\(mime);base64," + (try Data(contentsOf: url)).base64EncodedString()
 }
 
-func htmlUret(markdown: String, baslik: String, taban: URL) throws -> String {
+package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> String {
     let sayfa = sayfaUstbilgisiniAyir(markdown)
     let metin = markdowndenAttributedStringUret(sayfa.govde, taban: taban)
     var govde = "<header><h1>\(htmlKacir(baslik))</h1></header>"
-    let ns = metin.string as NSString
+    let ns = NSString(string: metin.string)
     var konum = 0
     while konum < metin.length {
         var aralik = ns.paragraphRange(for: NSRange(location: konum, length: 0))
@@ -38,27 +37,28 @@ func htmlUret(markdown: String, baslik: String, taban: URL) throws -> String {
         metin.enumerateAttributes(in: aralik) { oznitelikler, alt, _ in
             guard oznitelikler[kBlokIsaretiAnahtari] as? Bool != true,
                   oznitelikler[kBosKodSatiriAnahtari] as? Bool != true else { return }
-            if let ek = oznitelikler[.attachment] as? ResimEki, let url = ek.dosyaURL {
+            if let gorsel = oznitelikler[kGorselAnahtari] as? [String: Any], let url = gorsel["dosyaURL"] as? URL {
                 // Notlar klasörü dışındaki görsel gömülmez (alt metin kaynakta tutulmadığından boş kalır).
                 let kok = notlarKlasoru().standardizedFileURL.resolvingSymlinksInPath().path + "/"
                 guard url.standardizedFileURL.resolvingSymlinksInPath().path.hasPrefix(kok) else { return }
                 do {
-                    icerik += "<img alt=\"\" style=\"width:\(Int(ek.gosterimBoyutu.width))px\" src=\"\(try htmlGorseli(url))\">"
+                    let en = gorsel["genislik"] as? Double
+                    let stil = en.flatMap { $0.isFinite && (1...10_000).contains($0) ? " style=\"width:\(Int($0))px\"" : nil } ?? ""
+                    icerik += "<img alt=\"\"\(stil) src=\"\(try htmlGorseli(url))\">"
                 } catch { hata = error }
                 return
             }
             var yazi = htmlKacir(ns.substring(with: alt))
             if o[kKodBloguAnahtari] == nil {
-                let font = oznitelikler[.font] as? NSFont ?? varsayilanFont()
                 if oznitelikler[kSatirIciKodAnahtari] as? Bool == true { yazi = "<code>\(yazi)</code>" }
                 else {
-                    if kalinMi(font) { yazi = "<strong>\(yazi)</strong>" }
-                    if italikMi(font) { yazi = "<em>\(yazi)</em>" }
+                    if oznitelikler[kKalinAnahtari] as? Bool == true { yazi = "<strong>\(yazi)</strong>" }
+                    if oznitelikler[kItalikAnahtari] as? Bool == true { yazi = "<em>\(yazi)</em>" }
                     if oznitelikler[kUstuCiziliAnahtari] as? Bool == true { yazi = "<del>\(yazi)</del>" }
                     if oznitelikler[kVurguAnahtari] as? Bool == true { yazi = "<mark>\(yazi)</mark>" }
                 }
                 if oznitelikler[kSayfaBagiAnahtari] == nil,
-                   let url = oznitelikler[.link] as? URL, disBaglantiGecerliMi(url) {
+                   let url = oznitelikler[kBaglantiAnahtari] as? URL, disBaglantiGecerliMi(url) {
                     yazi = "<a href=\"\(htmlKacir(url.absoluteString))\">\(yazi)</a>"
                 }
             }
@@ -66,7 +66,7 @@ func htmlUret(markdown: String, baslik: String, taban: URL) throws -> String {
         }
         if let hata { throw hata }
         if o[kKodBloguAnahtari] != nil { govde += "<pre><code>\(icerik)</code></pre>" }
-        else if let blok = o[kMetinBloguAnahtari] as? MetinBlogu {
+        else if let blok = MetinBlogu(oznitelik: o[kMetinBloguAnahtari]) {
             let girinti = "style=\"margin-left:\(blok.seviye * 24)px\""
             switch blok.tur {
             case .madde: govde += "<ul \(girinti)><li>\(icerik)</li></ul>"

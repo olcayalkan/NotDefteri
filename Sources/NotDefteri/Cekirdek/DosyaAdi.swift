@@ -16,7 +16,7 @@ private let kTehlikeliKarakterler = CharacterSet(charactersIn: "/:()[]{}#?*|<>\"
 /// - Baş/son tireler ve boşluklar kırpılır.
 /// - En fazla `enFazlaUzunluk` karakter (uzun başlıklar dosya adını şişirmesin).
 /// - Sonuç boş kalırsa `varsayilan` kullanılır.
-func guvenliDosyaAdi(_ metin: String,
+package func guvenliDosyaAdi(_ metin: String,
                      varsayilan: String = "Görsel",
                      enFazlaUzunluk: Int = 40) -> String {
     // Tehlikeli karakterleri tireye çevir.
@@ -40,7 +40,7 @@ func guvenliDosyaAdi(_ metin: String,
 
 /// Verilen klasörde adı çakışmayan bir dosya yolu üretir.
 /// "Ad.png" doluysa "Ad-2.png", "Ad-3.png" diye devam eder.
-func benzersizDosyaYolu(klasor: URL, taban: String, uzanti: String) -> URL {
+package func benzersizDosyaYolu(klasor: URL, taban: String, uzanti: String) -> URL {
     var aday = klasor.appendingPathComponent("\(taban).\(uzanti)")
     var sayac = 2
     while FileManager.default.fileExists(atPath: aday.path) {
@@ -56,7 +56,7 @@ func benzersizDosyaYolu(klasor: URL, taban: String, uzanti: String) -> URL {
 /// sayfa dosyasını kaybetmemeli. Bayt bayt kopyalanır — yeniden kodlanmadığı
 /// için JPEG/HEIC gibi biçimler kalitesini yitirmez.
 /// `taban` verilmezse kaynağın kendi adı kullanılır.
-func gorselDosyasiniKopyala(_ kaynak: URL, hedefKlasor: URL, taban: String? = nil) -> URL? {
+package func gorselDosyasiniKopyala(_ kaynak: URL, hedefKlasor: URL, taban: String? = nil) -> URL? {
     let fm = FileManager.default
     guard fm.fileExists(atPath: kaynak.path) else { return nil }
     try? fm.createDirectory(at: hedefKlasor, withIntermediateDirectories: true)

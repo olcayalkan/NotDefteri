@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 extension NotMetinGorunumu {
     /// Sadece açılışta tüm metin alınır; yazarken gölge metindeki değişen paragraf sayılır.
@@ -38,36 +39,24 @@ extension NotMetinGorunumu {
         return parca as String
     }
 
+    /// Görünüm ölçeği yalnızca adaptörde durur; anlamsal punto ve kaynak Markdown değişmez.
     func sayfaYaziOlceginiUygula(kucuk: Bool) {
         kucukYazi = kucuk
-        if let depo = textStorage { yaziOlceginiUygula(depo, aralik: NSRange(location: 0, length: depo.length)) }
+        let olcek: CGFloat = kucuk ? 0.85 : 1
+        guard belgeAdaptoru.olcek != olcek else { return }
+        belgeAdaptoru.olcek = olcek
+        if let depo = textStorage, !yaziOlcegiUygulaniyor {
+            yaziOlcegiUygulaniyor = true
+            depo.beginEditing()
+            belgeAdaptoru.gorunumuUygula(depo, aralik: NSRange(location: 0, length: depo.length))
+            depo.endEditing()
+            yaziOlcegiUygulaniyor = false
+        }
         yazimOlceginiGuncelle()
     }
 
-    /// Görünüm ölçeği kayıt sırasında geri alınır; punto etiketleri ve kaynak Markdown değişmez.
-    func yaziOlceginiUygula(_ depo: NSTextStorage, aralik: NSRange) {
-        guard !yaziOlcegiUygulaniyor else { return }
-        yaziOlcegiUygulaniyor = true
-        defer { yaziOlcegiUygulaniyor = false }
-        let hedef: CGFloat = kucukYazi ? 0.85 : 1
-        depo.beginEditing()
-        depo.enumerateAttributes(in: aralik) { oznitelikler, alt, _ in
-            let eski = (oznitelikler[kSayfaYaziOlcegiAnahtari] as? CGFloat) ?? 1
-            guard eski != hedef else { return }
-            let font = (oznitelikler[.font] as? NSFont) ?? varsayilanFont()
-            depo.addAttributes([.font: NSFontManager.shared.convert(font, toSize: font.pointSize / eski * hedef),
-                                kSayfaYaziOlcegiAnahtari: hedef], range: alt)
-        }
-        depo.endEditing()
-    }
-
+    /// Yazım görünümü (ölçekli font) güncel anlamsaldan yeniden türetilir.
     func yazimOlceginiGuncelle() {
-        var yazim = typingAttributes
-        let eski = (yazim[kSayfaYaziOlcegiAnahtari] as? CGFloat) ?? 1
-        let hedef: CGFloat = kucukYazi ? 0.85 : 1
-        let font = (yazim[.font] as? NSFont) ?? varsayilanFont()
-        yazim[.font] = NSFontManager.shared.convert(font, toSize: font.pointSize / eski * hedef)
-        yazim[kSayfaYaziOlcegiAnahtari] = hedef
-        typingAttributes = yazim
+        typingAttributes = typingAttributes
     }
 }

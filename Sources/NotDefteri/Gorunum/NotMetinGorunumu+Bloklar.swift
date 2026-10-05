@@ -1,4 +1,5 @@
 import AppKit
+import NotDefteriCekirdek
 
 extension NotMetinGorunumu {
     func paragrafAraligi() -> NSRange {
@@ -8,57 +9,46 @@ extension NotMetinGorunumu {
 
     func blok(_ aralik: NSRange) -> MetinBlogu? {
         guard let depo = textStorage, aralik.location < depo.length else { return nil }
-        return depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil) as? MetinBlogu
+        return MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
     }
 
     /// Yazım, görünüm işaretinin özniteliğini devralırsa kullanıcı metni kayıt dışında kalır.
+    /// Yalnızca anlamsal anahtarlar düzenlenir; font/renk `typingAttributes` atamasında türetilir.
     func blokYaziminiGuncelle() {
         guard let depo = textStorage else { return }
         var oznitelikler = typingAttributes
-        let oncekiBlok = oznitelikler[kMetinBloguAnahtari] as? MetinBlogu
+        let oncekiBlok = MetinBlogu(oznitelik: oznitelikler[kMetinBloguAnahtari])
         oznitelikler.removeValue(forKey: kBlokIsaretiAnahtari)
         oznitelikler.removeValue(forKey: kBosKodSatiriAnahtari)
         // NSString deposu, her tuşta tüm belgeyi Swift String'e kopyalamayı önler.
         let aralik = depo.mutableString.paragraphRange(for: NSRange(location: selectedRange().location, length: 0))
         if let blok = blok(aralik) {
             oznitelikler.merge(blok.oznitelikler) { _, yeni in yeni }
-            if oznitelikler[kUstuCiziliAnahtari] == nil { oznitelikler.removeValue(forKey: .strikethroughStyle) }
-            oznitelikler[.foregroundColor] = kMetinRenk
-            if blok.tur == .yapilacak, blok.tamamlandi {
-                oznitelikler[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
-                oznitelikler[.foregroundColor] = kMetinRenk.withAlphaComponent(0.45)
-            }
         } else {
-            oznitelikler.removeValue(forKey: kMetinBloguAnahtari)
-            oznitelikler.removeValue(forKey: kUyariKutusuAnahtari)
-            if oncekiBlok != nil {
-                oznitelikler.removeValue(forKey: .paragraphStyle)
-                if oznitelikler[kUstuCiziliAnahtari] == nil { oznitelikler.removeValue(forKey: .strikethroughStyle) }
-                oznitelikler[.foregroundColor] = kMetinRenk
+            for anahtar in [kMetinBloguAnahtari, kUyariKutusuAnahtari, kParagrafGeometrisiAnahtari] {
+                oznitelikler.removeValue(forKey: anahtar)
             }
+            if oncekiBlok?.tur == .uyari { oznitelikler.removeValue(forKey: kBlokKimligiAnahtari) }
         }
         let baslik = aralik.location < depo.length
             ? depo.attribute(kBaslikSeviyesiAnahtari, at: aralik.location, effectiveRange: nil) as? Int : nil
         if let baslik {
             oznitelikler[kBaslikSeviyesiAnahtari] = baslik
         } else if oznitelikler[kBaslikSeviyesiAnahtari] != nil {
+            // Başlıktan çıkan yazım düz gövde fontuna döner.
             oznitelikler.removeValue(forKey: kBaslikSeviyesiAnahtari)
-            oznitelikler[.font] = varsayilanFont()
-            oznitelikler.removeValue(forKey: kSayfaYaziOlcegiAnahtari)
+            for anahtar in kFontAnlamAnahtarlari { oznitelikler.removeValue(forKey: anahtar) }
         }
         let kod = aralik.location < depo.length
-            ? depo.attribute(kKodBloguAnahtari, at: aralik.location, effectiveRange: nil) : nil
+            ? depo.attribute(kKodBloguAnahtari, at: aralik.location, effectiveRange: nil) as? [String: String] : nil
         if let kod {
-            oznitelikler[kKodBloguAnahtari] = kod
-            let font = (oznitelikler[.font] as? NSFont) ?? varsayilanFont()
-            oznitelikler[.font] = NSFont.monospacedSystemFont(ofSize: font.pointSize, weight: .regular)
-            oznitelikler[.backgroundColor] = kMetinRenk.withAlphaComponent(0.08)
+            // Kod fontu düz eş aralıklıdır; kalın/italik devralınmaz, punto korunur.
+            oznitelikler.merge(kodBloguOznitelikleri(kod)) { _, yeni in yeni }
+            oznitelikler.removeValue(forKey: kKalinAnahtari)
+            oznitelikler.removeValue(forKey: kItalikAnahtari)
         } else if aralik.location < depo.length, oznitelikler[kKodBloguAnahtari] != nil {
-            oznitelikler.removeValue(forKey: kKodBloguAnahtari)
-            oznitelikler[.font] = varsayilanFont()
-            oznitelikler.removeValue(forKey: kSayfaYaziOlcegiAnahtari)
-            if oznitelikler[kVurguAnahtari] == nil, oznitelikler[kSatirIciKodAnahtari] == nil {
-                oznitelikler.removeValue(forKey: .backgroundColor)
+            for anahtar in [kKodBloguAnahtari, kKodBloguDiliAnahtari, kBlokKimligiAnahtari] + kFontAnlamAnahtarlari {
+                oznitelikler.removeValue(forKey: anahtar)
             }
         }
         typingAttributes = oznitelikler
@@ -69,12 +59,10 @@ extension NotMetinGorunumu {
                 typingAttributes = oznitelikler
             }
         }
-        yazimOlceginiGuncelle()
     }
 
-    private var duzYazim: [NSAttributedString.Key: Any] {
-        [.font: varsayilanFont(), .foregroundColor: kMetinRenk]
-    }
+    /// Düz gövde: anlamsal öznitelik yok, görünüm adaptörden gelir.
+    private var duzYazim: [NSAttributedString.Key: Any] { [:] }
 
     /// Yalnızca yapısal değişimde komşu liste taranır; normal yazım bu yola girmez.
     private func listeAraliginiGenislet(_ aralik: NSRange) -> NSRange {
@@ -205,11 +193,13 @@ extension NotMetinGorunumu {
         }
         secim.length = min(secim.length, max(0, paragraf.location + yeni.length - secim.location))
         blokBiciminiKaldir(yeni)
-        yeni.removeAttribute(kKodBloguAnahtari, range: NSRange(location: 0, length: yeni.length))
-        yeni.removeAttribute(kSayfaYaziOlcegiAnahtari, range: NSRange(location: 0, length: yeni.length))
+        let tumu = NSRange(location: 0, length: yeni.length)
+        yeni.removeAttribute(kKodBloguAnahtari, range: tumu)
+        yeni.removeAttribute(kKodBloguDiliAnahtari, range: tumu)
+        // Başlık da düz metin de paragrafın tek fontunu alır: kalın/italik/punto düşer.
+        fontAnlamlariniKaldir(yeni, aralik: tumu)
         var yazim = duzYazim
         if seviye > 0 {
-            yazim[.font] = baslikFontu(seviye)
             yazim[kBaslikSeviyesiAnahtari] = seviye
             if yeni.length == 0 {
                 var isaretOznitelikleri = yazim
@@ -220,7 +210,6 @@ extension NotMetinGorunumu {
             yeni.addAttributes(yazim, range: NSRange(location: 0, length: yeni.length))
         } else {
             yeni.removeAttribute(kBaslikSeviyesiAnahtari, range: NSRange(location: 0, length: yeni.length))
-            yeni.addAttribute(.font, value: varsayilanFont(), range: NSRange(location: 0, length: yeni.length))
         }
         blokDuzenle(paragraf, yeni: yeni, secim: secim, yazim: yazim, numarala: blok(paragraf)?.listeMi == true,
                     geriMetin: geriMetin, geriSecim: geriSecim)
@@ -247,9 +236,8 @@ extension NotMetinGorunumu {
             yeni.removeAttribute(kBlokIsaretiAnahtari, range: alt)
             yeni.removeAttribute(kMetinBloguAnahtari, range: alt)
             yeni.removeAttribute(kUyariKutusuAnahtari, range: alt)
-            yeni.removeAttribute(.paragraphStyle, range: alt)
-            yeni.removeAttribute(kSayfaYaziOlcegiAnahtari, range: alt)
-            yeni.addAttribute(.font, value: varsayilanFont(), range: alt)
+            yeni.removeAttribute(kParagrafGeometrisiAnahtari, range: alt)
+            fontAnlamlariniKaldir(yeni, aralik: alt)
             blokDuzenle(paragraf, yeni: yeni, secim: NSRange(location: secim.location + 1, length: 0), yazim: duzYazim)
             return true
         }
@@ -283,8 +271,6 @@ extension NotMetinGorunumu {
         blokBiciminiUygula(blok, metne: yeni, aralik: alt)
         var yazim = typingAttributes
         yazim.removeValue(forKey: kBlokIsaretiAnahtari)
-        yazim.removeValue(forKey: .strikethroughStyle)
-        yazim[.foregroundColor] = kMetinRenk
         yazim.merge(blok.oznitelikler) { _, yeni in yeni }
         blokDuzenle(paragraf, yeni: yeni,
                     secim: NSRange(location: paragraf.location + altBaslangic + yeniIsaret.length, length: 0),
@@ -302,7 +288,7 @@ extension NotMetinGorunumu {
         var yazim = typingAttributes
         while konum < yeni.length {
             let alt = (yeni.string as NSString).paragraphRange(for: NSRange(location: konum, length: 0))
-            if var blok = yeni.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil) as? MetinBlogu,
+            if var blok = MetinBlogu(oznitelik: yeni.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil)),
                blok.tur != .ayirici, blok.tur != .uyari {
                 blok.seviye = max(0, blok.seviye + fark)
                 blok.kaynakOnEk = nil
@@ -352,8 +338,6 @@ extension NotMetinGorunumu {
         var yazim = typingAttributes
         if selectedRange().location >= paragraf.location, selectedRange().location < NSMaxRange(paragraf) {
             yazim.merge(blok.oznitelikler) { _, yeni in yeni }
-            yazim[.foregroundColor] = blok.tamamlandi ? kMetinRenk.withAlphaComponent(0.45) : kMetinRenk
-            yazim[.strikethroughStyle] = blok.tamamlandi ? NSUnderlineStyle.single.rawValue : nil
         }
         blokDuzenle(paragraf, yeni: yeni, secim: selectedRange(), yazim: yazim)
         return true
@@ -366,7 +350,7 @@ extension NotMetinGorunumu {
         let karakterler = yerlesim.characterRange(forGlyphRange: glifler, actualGlyphRange: nil)
         var sonParagraf = -1
         depo.enumerateAttribute(kMetinBloguAnahtari, in: karakterler) { deger, aralik, _ in
-            guard let blok = deger as? MetinBlogu, blok.tur == .alinti || blok.tur == .ayirici else { return }
+            guard let blok = MetinBlogu(oznitelik: deger), blok.tur == .alinti || blok.tur == .ayirici else { return }
             var konum = aralik.location
             while konum < NSMaxRange(aralik) {
                 let paragraf = depo.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
@@ -409,9 +393,9 @@ extension NotMetinGorunumu {
         let tumu = NSRange(location: 0, length: yeni.length)
         yeni.removeAttribute(kBaslikSeviyesiAnahtari, range: tumu)
         yeni.removeAttribute(kKodBloguAnahtari, range: tumu)
-        yeni.removeAttribute(kSayfaYaziOlcegiAnahtari, range: tumu)
-        yeni.addAttribute(.font, value: varsayilanFont(), range: tumu)
-        var yazim: [NSAttributedString.Key: Any] = [.font: varsayilanFont(), .foregroundColor: kMetinRenk]
+        yeni.removeAttribute(kKodBloguDiliAnahtari, range: tumu)
+        fontAnlamlariniKaldir(yeni, aralik: tumu)
+        var yazim = duzYazim
         var isaretUzunlugu = 0
         if let blok {
             blokBiciminiUygula(blok, metne: yeni, aralik: tumu)
@@ -420,9 +404,7 @@ extension NotMetinGorunumu {
             isaretUzunlugu = isaret.length
             if blok.tur != .ayirici { yazim.merge(blok.oznitelikler) { _, yeni in yeni } }
         } else if kod {
-            yazim[.font] = NSFont.monospacedSystemFont(ofSize: kTabanPunto, weight: .regular)
-            yazim[.backgroundColor] = kMetinRenk.withAlphaComponent(0.08)
-            yazim[kKodBloguAnahtari] = ["acilis": "```\n", "kapanis": "```\n", "kimlik": UUID().uuidString]
+            yazim = kodBloguOznitelikleri(kodBloguSinirlari(acilis: "```\n", kapanis: "```\n"))
             yeni.addAttributes(yazim, range: tumu)
             var isaret = yazim
             isaret[kBlokIsaretiAnahtari] = true
@@ -442,7 +424,7 @@ extension NotMetinGorunumu {
         guard let depo = textStorage, let yerlesim = layoutManager, let kapsayici = textContainer,
               aralik.location != NSNotFound else { return nil }
         let kirpilmis = NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length))
-        guard kirpilmis.length > 0 else { return nil }
+        guard kirpilmis.length > 0, !katlama.gizliMi(kirpilmis.location) else { return nil }
         let glifler = yerlesim.glyphRange(forCharacterRange: kirpilmis, actualCharacterRange: nil)
         guard glifler.location != NSNotFound, NSMaxRange(glifler) <= yerlesim.numberOfGlyphs else { return nil }
         return yerlesim.boundingRect(forGlyphRange: glifler, in: kapsayici)
