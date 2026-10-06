@@ -854,7 +854,7 @@ private final class LinuxPanoHTML {
             ("(?m)[ \\t]+$", "", true)
         ]
         for (desen, yeni, regex) in kurallar {
-            sonuc.mutableString.replaceOccurrences(of: desen, with: yeni, options: regex ? .regularExpression : [], range: NSRange(location: 0, length: sonuc.length))
+            _ = sonuc.mutableString.replaceOccurrences(of: desen, with: yeni, options: regex ? .regularExpression : [], range: NSRange(location: 0, length: sonuc.length))
         }
     }
 }

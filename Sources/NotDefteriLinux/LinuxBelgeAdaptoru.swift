@@ -28,7 +28,7 @@ func gNesneOzelligi(_ nesne: UnsafeMutableRawPointer, _ ad: String, _ deger: GDe
 /// her düzenlemede yalnızca değişen paragraflar için anlamsaldan türetilir. Kayıt
 /// etiketleri hiç okumaz; böylece görünüm ayarları dosyaya sızamaz.
 final class LinuxBelgeAdaptoru {
-    private(set) var belge = NSMutableAttributedString()
+    private(set) var belge = NSMutableAttributedString(string: "")
     /// Belgeyi kendimiz değiştirirken tampon sinyalleri aynalanmaz.
     private(set) var programatik = false
     private let tampon: UnsafeMutablePointer<GtkTextBuffer>
