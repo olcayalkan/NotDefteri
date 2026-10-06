@@ -93,7 +93,7 @@ private final class DisaAktarIslemi {
     }
 
     func pdf() {
-        kaydet(uzanti: "pdf") { sayfa, hedef, pencere in
+        kaydet(uzanti: "pdf") { [weak self] sayfa, hedef, pencere in
             try MarkdownDisaAktar.gorselKaynaklariniDogrula(sayfa)
             PdfBaskisi(sayfa: sayfa, baslik: sayfaAdi(sayfa.url)).yaz(hedef: hedef, ust: pencere.pencere) { [weak self] hata in
                 if let hata { self?.bildir(hata) }

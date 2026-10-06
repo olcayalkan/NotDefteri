@@ -100,7 +100,7 @@ final class LinuxCopKutusu {
         yuklemeNesli &+= 1
         let nesil = yuklemeNesli
         gtk_label_set_text(nd_label(durum), "Yükleniyor…")
-        DispatchQueue.global(qos: .userInitiated).async { [copKutusu] in
+        DispatchQueue.global(qos: .userInitiated).async { [copKutusu, weak self] in
             let sonuc = Result { try copKutusu.ogeler() }
             Platform.anaIsParcaciginda { [weak self] in
                 guard let self, self.yuklemeNesli == nesil else { return }

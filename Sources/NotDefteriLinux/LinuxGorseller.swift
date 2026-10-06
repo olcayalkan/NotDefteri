@@ -216,7 +216,7 @@ private final class LinuxGorselYoneticisi {
         func bosluk(_ s: NSAttributedString, sondaki: Bool) -> Bool {
             (sondaki ? s.string.last : s.string.first)?.isWhitespace == true
         }
-        let toplam = NSMutableAttributedString()
+        let toplam = NSMutableAttributedString(string: "")
         if e1.length == 0, e2.length == 0, k2 == k1 + y1.length {
             guard !bosluk(y1, sondaki: true) || bosluk(y2, sondaki: false) else { return nil }
             toplam.append(y1); toplam.append(y2)
