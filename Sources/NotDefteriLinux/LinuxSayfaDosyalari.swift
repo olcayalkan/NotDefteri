@@ -14,18 +14,22 @@ enum LinuxSayfaDosyalari {
         })
     }
 
+    /// Işaretçi arka plan kuyruğundan yalnızca taşınır; GTK'ya yalnızca ana iş parçacığında dokunulur.
+    private struct PencereIsaretcisi: @unchecked Sendable { let deger: UnsafeMutablePointer<GtkWidget> }
+
     private static let kuyruk = DispatchQueue(label: "NotDefteriLinux.sayfa-dosyalari", qos: .userInitiated)
 
     /// Linux'ta Finder karşılığı: dosyanın bulunduğu klasörü varsayılan dosya yöneticisinde açar.
     /// Dosyanın kendisi açılmaz (çalıştırılabilir olabilir); URI yalnızca doğrulanmış yoldan üretilen file:// klasörüdür.
     /// `sonuc` ana iş parçacığında çağrılır; nil başarıdır.
     static func klasordeGoster(ust: UnsafeMutablePointer<GtkWidget>, url: URL, kok: URL, sonuc: @escaping (Error?) -> Void) {
+        let pencere = PencereIsaretcisi(deger: ust)
         kuyruk.async {
             let dogrulama = Result { try SayfaDosyalari.dogrula(url, kok: kok) }
             Platform.anaIsParcaciginda {
                 switch dogrulama {
                 case .success:
-                    gtk_show_uri(nd_window(ust), url.deletingLastPathComponent().absoluteString, 0)
+                    gtk_show_uri(nd_window(pencere.deger), url.deletingLastPathComponent().absoluteString, 0)
                     sonuc(nil)
                 case .failure(let hata): sonuc(hata)
                 }
