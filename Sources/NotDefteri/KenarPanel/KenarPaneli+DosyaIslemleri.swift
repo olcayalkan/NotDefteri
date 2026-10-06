@@ -25,7 +25,7 @@ func sayfayiTasi(_ icerikURL: URL, hedefKlasor: URL) -> URL? {
     sayfaTasimaUyarisiIle { try sayfaTasimaSonucu(icerikURL, hedefKlasor: hedefKlasor) }
 }
 
-private func sayfaTasimaUyarisiIle(_ islem: () throws -> URL?) -> URL? {
+func sayfaTasimaUyarisiIle(_ islem: () throws -> URL?) -> URL? {
     do {
         return try islem()
     } catch {
@@ -121,10 +121,10 @@ extension KenarPaneli {
             }
         } else {
             // Salt kapsayıcı klasör (eski yapıdan).
-            let ust = dugum.klasorURL.deletingLastPathComponent()
             guard yeniAd != dugum.ad else { return }
-            let aday = benzersizSayfaURL(taban: yeniAd, klasor: ust).deletingLastPathComponent()
-            guard (try? FileManager.default.moveItem(at: dugum.klasorURL, to: aday)) != nil else { return }
+            guard let aday = sayfaTasimaUyarisiIle({
+                try klasoruYenidenAdlandir(dugum.klasorURL, yeniAd: yeniAd)
+            }) else { return }
             yeniCocukKlasoru = aday
         }
         siraAdiniDegistir(klasor: eskiCocukKlasoru.deletingLastPathComponent(),
@@ -141,13 +141,13 @@ extension KenarPaneli {
     /// açık not taşınan dalın ALTINDAysa yol öneki değiştirilerek bildirilir;
     /// yoksa editör silinmiş bir yolu kaydetmeye çalışıyordu.
     func acikDaliTasindiOlarakIsle(eskiKlasor: URL, yeniKlasor: URL, eskiIcerik: URL?, yeniIcerik: URL?) {
-        if let eskiIcerik, let yeniIcerik, acikNotURL == eskiIcerik {
-            acikNotURL = yeniIcerik
-            notYenidenAdlandirildi?(eskiIcerik, yeniIcerik)
-        } else if let acik = acikNotURL, acik.path.hasPrefix(eskiKlasor.path + "/") {
-            let yeniURL = URL(fileURLWithPath: yeniKlasor.path + acik.path.dropFirst(eskiKlasor.path.count))
-            acikNotURL = yeniURL
-            notYenidenAdlandirildi?(acik, yeniURL)
+        if let acik = acikNotURL {
+            let yeni = SayfaBaglantilari.tasinanURL(acik, eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,
+                                                   eskiIcerik: eskiIcerik, yeniIcerik: yeniIcerik)
+            if yeni != acik {
+                acikNotURL = yeni
+                notYenidenAdlandirildi?(acik, yeni)
+            }
         }
         acikKlasorleriTasi(eski: eskiKlasor.path, yeni: yeniKlasor.path)
         dalBaglantilariniGuncelle(eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,

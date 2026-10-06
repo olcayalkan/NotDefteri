@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 extension NotPenceresi {
     /// Bekleyen düzenlemeyi mevcut kayıt yoluyla tamamlar; çıktı diskten okunur.
-    private func aktarilacakSayfa() throws -> (url: URL, veri: Data, markdown: String)? {
+    private func aktarilacakSayfa() throws -> MarkdownAktarimSayfasi? {
         guard anaSayfa.isHidden else { return nil }
         otomatikKayitBekleyeniIptalEt()
         if let url = mevcutDosyaURL {
@@ -14,9 +14,7 @@ extension NotPenceresi {
             guard kaydetURLe(url) else { return nil }
         }
         guard let url = mevcutDosyaURL else { return nil }
-        let veri = try Data(contentsOf: url)
-        guard let markdown = String(data: veri, encoding: .utf8) else { throw CocoaError(.fileReadInapplicableStringEncoding) }
-        return (url, veri, markdown)
+        return try MarkdownDisaAktar.oku(url)
     }
 
     private func aktarimHatasiniBildir(_ hata: Error) {
@@ -48,6 +46,7 @@ extension NotPenceresi {
         do {
             guard let sayfa = try aktarilacakSayfa(),
                   let hedef = aktarimHedefi(ad: sayfaAdi(sayfa.url), uzanti: "html") else { return }
+            try MarkdownDisaAktar.gorselKaynaklariniDogrula(sayfa)
             let html = try MacBelgeAdaptoru.htmlGorselleriniUyarla(
                 htmlUret(markdown: sayfa.markdown, baslik: sayfaAdi(sayfa.url), taban: sayfaKlasoru(sayfa.url)))
             try html.write(to: hedef, atomically: true, encoding: .utf8)
@@ -58,47 +57,8 @@ extension NotPenceresi {
         do {
             guard let sayfa = try aktarilacakSayfa(),
                   let hedef = aktarimHedefi(ad: sayfaAdi(sayfa.url), uzanti: "md") else { return }
-            let taban = sayfaKlasoru(sayfa.url)
-            let klasor = hedef.deletingLastPathComponent()
-            guard klasor.standardizedFileURL.resolvingSymlinksInPath() != taban.standardizedFileURL.resolvingSymlinksInPath() else {
-                throw CocoaError(.fileWriteInvalidFileName, userInfo: [NSLocalizedDescriptionKey: "Kaynak sayfanın dışında bir klasör seçin."])
-            }
-            try FileManager.default.createDirectory(at: klasor.appendingPathComponent("Görseller", isDirectory: true),
-                withIntermediateDirectories: true)
-            // Yalnızca bu sayfada kullanılan görseller kopyalanır; Markdown baytları değişmez.
-            // Eski notların ekler/... bağları da aynı göreli konumda çalışır.
-            let govde = sayfaUstbilgisiniAyir(sayfa.markdown)
-            let metin = MacBelgeAdaptoru.markdownuAc(govde.govde, taban: taban)
-            var hata: Error?
-            metin.enumerateAttribute(kGorselAnahtari, in: NSRange(location: 0, length: metin.length)) { deger, _, _ in
-                guard let gorsel = deger as? [String: Any], let kaynak = gorsel["dosyaURL"] as? URL,
-                      let yol = gorsel["yol"] as? String else { return }
-                do { try aktarimGorseliniKopyala(kaynak, hedef: guvenliAktarimYolu(yol, klasor: klasor)) }
-                catch { hata = error }
-            }
-            if let hata { throw hata }
-            try sayfa.veri.write(to: hedef, options: .atomic)
+            try MarkdownDisaAktar.aktar(sayfa, hedef: hedef, gorselDogrula: { NSImage(contentsOf: $0) != nil })
         } catch { aktarimHatasiniBildir(error) }
-    }
-
-    private func guvenliAktarimYolu(_ yol: String, klasor: URL) throws -> URL {
-        let hedef = klasor.appendingPathComponent(yol).standardizedFileURL.resolvingSymlinksInPath()
-        guard hedef.path.hasPrefix(klasor.standardizedFileURL.resolvingSymlinksInPath().path + "/") else {
-            throw CocoaError(.fileWriteInvalidFileName)
-        }
-        return hedef
-    }
-
-    private func aktarimGorseliniKopyala(_ kaynak: URL, hedef: URL) throws {
-        let veri = try Data(contentsOf: kaynak)
-        if FileManager.default.fileExists(atPath: hedef.path) {
-            guard try Data(contentsOf: hedef) == veri else {
-                throw CocoaError(.fileWriteFileExists, userInfo: [NSFilePathErrorKey: hedef.path])
-            }
-            return
-        }
-        try FileManager.default.createDirectory(at: hedef.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try veri.write(to: hedef, options: .withoutOverwriting)
     }
 
     @objc func disaAktarPDF(_ sender: Any?) {

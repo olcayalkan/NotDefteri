@@ -48,13 +48,14 @@ private let bagSilinecekC: @convention(c) (gpointer?, UnsafeMutablePointer<GtkTe
 }
 
 enum LinuxBulucu {
-    static func kur(pencere: LinuxPencere, editor: LinuxEditor) {
-        let bulucu = SayfaBulucusu(pencere: pencere, editor: editor)
+    static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
+        let bulucu = SayfaBulucusu(pencere: pencere, editor: editor, baglantilar: panel.sayfaBaglantilari)
         // Editör kancaları bileşeni yaşatır; bileşenin editör/pencere bağı zayıftır.
         editor.tusOncesi.append { bulucu.tus($0, $1) }
         editor.degisiklikSonrasi.append { bulucu.degisti() }
-        editor.notAcildi.append { bulucu.notAcildi($0) }
-        pencere.kisayolEkle("<Control>p") { [weak bulucu] in bulucu?.merkezdeAc() }
+        LinuxEklentiler.yasamDongusunuIzle(editor) { bulucu.durumDegisti() }
+        panel.veriDegisti.append { [weak bulucu] in bulucu?.veriDegisti() }
+        pencere.menuEkle(["Not", "Hızlı Sayfa Bulucu"], kisayol: "<Control>p") { [weak bulucu] in bulucu?.merkezdeAc() }
     }
 }
 
@@ -62,7 +63,7 @@ enum LinuxBulucu {
 private final class SayfaBulucusu {
     private weak var pencere: LinuxPencere?
     private weak var editor: LinuxEditor?
-    private let baglantilar = SayfaBaglantilari()
+    private let baglantilar: SayfaBaglantilari
     private let panel = gtk_popover_new()!
     private let arama = gtk_search_entry_new()!
     private let liste = gtk_list_box_new()!
@@ -92,16 +93,16 @@ private final class SayfaBulucusu {
     private var indeksNesli = 0
     private var sayfaOnbellegi: [URL: SayfaSecenegi] = [:]
 
-    init(pencere: LinuxPencere, editor: LinuxEditor) {
+    init(pencere: LinuxPencere, editor: LinuxEditor, baglantilar: SayfaBaglantilari) {
         self.pencere = pencere
         self.editor = editor
+        self.baglantilar = baglantilar
         bagEtiketi = Self.bagEtiketi(editor.tampon, ad: "nd-sayfa-bagi", renk: "#2a6fdb")
         solukBagEtiketi = Self.bagEtiketi(editor.tampon, ad: "nd-olmayan-sayfa-bagi", renk: "rgba(42,111,219,0.35)")
         g_object_ref_sink(UnsafeMutableRawPointer(panel)) // Gizlenince parent'tan ayrı da yaşar.
         arayuzuKur()
         sinyalleriKur(pencere, editor)
         indeksiYenile()
-        if let url = editor.acikURL { baglantilar.acildi(url) }
         baglariBoya()
     }
 
@@ -456,19 +457,27 @@ private final class SayfaBulucusu {
 
     func degisti() {
         guard !kapandi else { return }
-        if editor?.acikURL == nil { gizle(odagiGeriVer: false); diyaloguKapat() }
+        if editor?.editorEtkin != true { gizle(odagiGeriVer: false); diyaloguKapat() }
         boyamayiPlanla()
         tamamlamayiGuncelle()
     }
 
-    func notAcildi(_ url: URL) {
+    func durumDegisti() {
         gizle(odagiGeriVer: false)
         diyaloguKapat()
         kapatilanBagKonumu = nil
         boyamayiSifirla()
         indeksiYenile()
-        baglantilar.acildi(url)
         baglariBoya()
+    }
+
+    func veriDegisti() {
+        guard !kapandi else { return }
+        indeksNesli += 1
+        let yollarDegisti = Set(sayfaOnbellegi.keys) != Set(baglantilar.sayfalar.map(\.url))
+        sayfaOnbellegi = Dictionary(baglantilar.sayfalar.map { ($0.url, $0) }, uniquingKeysWith: { ilk, _ in ilk })
+        if yollarDegisti { baglariBoya() } else { boyamayiPlanla() }
+        if acik { filtrele(bekleyenSorgu ?? sonSorgu ?? "") }
     }
 
     private func gizle(odagiGeriVer: Bool = true) {
@@ -625,8 +634,8 @@ private final class SayfaBulucusu {
 
     private func sayfaOlustur(_ parcalar: [String], kaydiAtla: Bool = false) {
         guard let editor else { return }
-        guard kaydiAtla || editor.simdiKaydet() else {
-            editor.kaydetmedenDevam { [weak self] in self?.sayfaOlustur(parcalar, kaydiAtla: true) }
+        if !kaydiAtla {
+            editor.islemOncesi { [weak self] in self?.sayfaOlustur(parcalar, kaydiAtla: true) }
             return
         }
         let kok = notlarKlasoru().resolvingSymlinksInPath().standardizedFileURL

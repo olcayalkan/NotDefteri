@@ -240,15 +240,9 @@ final class MacBelgeAdaptoru {
         guard !uygulaniyor, aralik.length > 0 else { return }
         uygulaniyor = true
         defer { uygulaniyor = false }
-        let ns = depo.mutableString
         var islemler: [(NSRange, [NSAttributedString.Key: Any], [NSAttributedString.Key])] = []
         depo.enumerateAttributes(in: aralik) { o, alt, _ in
-            var uyariBasiGizli = false
-            if let blok = MetinBlogu(oznitelik: o[kMetinBloguAnahtari]), blok.tur == .uyari, !blok.devam {
-                let bas = ns.paragraphRange(for: NSRange(location: alt.location, length: 0)).location
-                uyariBasiGizli = ns.character(at: bas) == 0x200B
-            }
-            let istenen = gorunum(o, uyariBasiGizli: uyariBasiGizli)
+            let istenen = gorunum(o)
             var ekle: [NSAttributedString.Key: Any] = [:]
             var sil: [NSAttributedString.Key] = []
             for anahtar in Self.gorunumAnahtarlari {
@@ -268,7 +262,7 @@ final class MacBelgeAdaptoru {
         gorselleriEsle(depo, aralik: aralik)
     }
 
-    private func gorunum(_ o: [NSAttributedString.Key: Any], uyariBasiGizli: Bool = false) -> [NSAttributedString.Key: Any] {
+    private func gorunum(_ o: [NSAttributedString.Key: Any]) -> [NSAttributedString.Key: Any] {
         let blok = MetinBlogu(oznitelik: o[kMetinBloguAnahtari])
         // Tamamlanan görevde işaret (☑) soluklaşmaz; yalnızca metin.
         let soluk = blok?.tur == .yapilacak && blok?.tamamlandi == true && o[kBlokIsaretiAnahtari] as? Bool != true
@@ -278,18 +272,22 @@ final class MacBelgeAdaptoru {
         if soluk || o[kUstuCiziliAnahtari] as? Bool == true { g[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
         if o[kVurguAnahtari] as? Bool == true {
             g[.backgroundColor] = Self.vurguArkaplani
-        } else if o[kSatirIciKodAnahtari] as? Bool == true || o[kKodBloguAnahtari] != nil {
+        } else if o[kSatirIciKodAnahtari] as? Bool == true {
             g[.backgroundColor] = Self.kodArkaplani
         }
         if let bag = o[kBaglantiAnahtari] { g[.link] = bag }
-        if let stil = paragrafStili(o[kParagrafGeometrisiAnahtari] as? [String: Any], uyariBasiGizli: uyariBasiGizli) {
+        // Kodun görsel girintisi yalnızca Mac stilidir; gövdeye ve kayda sekme eklenmez.
+        let geometri: [String: Any]? = o[kKodBloguAnahtari] != nil
+            ? ["ilkSatirGirintisi": 24.0, "govdeGirintisi": 24.0, "sekmeAraligi": 24.0]
+            : o[kParagrafGeometrisiAnahtari] as? [String: Any]
+        if let stil = paragrafStili(geometri) {
             g[.paragraphStyle] = stil
         }
         return g
     }
 
     /// Paragraf geometrisi taban punto uzayındadır; görünüm ölçeğinden etkilenmez.
-    private func paragrafStili(_ g: [String: Any]?, uyariBasiGizli: Bool) -> NSParagraphStyle? {
+    private func paragrafStili(_ g: [String: Any]?) -> NSParagraphStyle? {
         guard let g else { return nil }
         func deger(_ ad: String) -> CGFloat { CGFloat((g[ad] as? Double) ?? 0) }
         var govde = deger("govdeGirintisi")
@@ -299,8 +297,7 @@ final class MacBelgeAdaptoru {
             govde += isaret - deger("isaretEnAzGenisligi")
         }
         let stil = NSMutableParagraphStyle()
-        // Başı gizli işaretle kalan uyarı kutusunda emoji çizilir; metin gövde hizasında başlar.
-        stil.firstLineHeadIndent = uyariBasiGizli ? govde : deger("ilkSatirGirintisi")
+        stil.firstLineHeadIndent = deger("ilkSatirGirintisi")
         stil.headIndent = govde
         stil.tabStops = [NSTextTab(textAlignment: .left, location: govde)]
         stil.defaultTabInterval = deger("sekmeAraligi")

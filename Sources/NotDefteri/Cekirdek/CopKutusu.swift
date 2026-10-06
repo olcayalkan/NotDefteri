@@ -35,20 +35,10 @@ package final class CopKutusu {
 
     /// Mevcut her bileşen denetlenir; kopuk sembolik bağ da boş hedef sayılmaz.
     private func yoluDogrula(_ url: URL) throws {
-        let yol = url.standardizedFileURL
-        guard yol.path.hasPrefix(kok.path + "/") else { throw hata("Notlar klasörü dışındaki yol kullanılamaz.") }
-        var parca = yol
-        while parca.path != kok.path {
-            if let tur = try? fm.attributesOfItem(atPath: parca.path)[.type] as? FileAttributeType,
-               tur == .typeSymbolicLink { throw hata("Sembolik bağ içeren yol kullanılamaz: \(parca.path)") }
-            parca.deleteLastPathComponent()
-        }
-        guard yol.resolvingSymlinksInPath().path.hasPrefix(kok.path + "/") else {
-            throw hata("Yol notlar klasörünün dışına çıkıyor.")
-        }
+        try notlarYolunuDogrula(url, kok: kok)
     }
 
-    private func varMi(_ url: URL) -> Bool { (try? fm.attributesOfItem(atPath: url.path)) != nil }
+    private func varMi(_ url: URL) -> Bool { dosyaYoluVarMi(url) }
 
     private func ogeyiDogrula(_ klasor: URL) throws {
         try yoluDogrula(klasor)
@@ -164,15 +154,11 @@ package final class CopKutusu {
         var hedef = kok.appendingPathComponent(oge.bilgi.ozgunYol)
         let ust = hedef.deletingLastPathComponent()
         let ustVar = (try? ust.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
-        func hedefDoluMu(_ url: URL) -> Bool {
-            // Büyük/küçük harfe duyarlı disklerde ağacın tanıdığı tüm eski uzantılar çakışır.
-            varMi(url) || ["md", "MD", "Md", "mD"].contains { varMi(url.appendingPathExtension($0)) }
-        }
-        if !ustVar || hedefDoluMu(hedef) {
+        if !ustVar || sayfaHedefiDoluMu(hedef) {
             let ad = sayfaAdiGecerliMi(oge.ad) ? oge.ad : "Yeni Sayfa"
             hedef = kok.appendingPathComponent(ad)
             var sayac = 2
-            while hedefDoluMu(hedef) {
+            while sayfaHedefiDoluMu(hedef) {
                 hedef = kok.appendingPathComponent("\(ad) (\(sayac))")
                 sayac += 1
             }

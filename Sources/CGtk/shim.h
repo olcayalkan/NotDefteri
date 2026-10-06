@@ -27,6 +27,14 @@ static inline gulong nd_signal_connect_uint(gpointer instance, const gchar *sign
                                  destroy_data, (GConnectFlags)0);
 }
 
+/* GtkDialog/GtkNativeDialog response, negatif GTK_RESPONSE_* değerleri taşır. */
+static inline gulong nd_signal_connect_int(gpointer instance, const gchar *signal,
+                                          void (*callback)(gpointer, gint, gpointer),
+                                          gpointer data, GClosureNotify destroy_data) {
+    return g_signal_connect_data(instance, signal, G_CALLBACK(callback), data,
+                                 destroy_data, (GConnectFlags)0);
+}
+
 /* Swift'ten variadic g_object_get/set çağrılmaz. */
 static inline gboolean nd_settings_dark(GtkSettings *settings) {
     gboolean dark = FALSE;

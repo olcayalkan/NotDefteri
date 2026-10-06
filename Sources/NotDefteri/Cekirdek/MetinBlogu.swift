@@ -33,8 +33,7 @@ package struct MetinBlogu: Hashable {
         case .madde: return "•\t"
         case .numarali: return "\(numara).\t"
         case .yapilacak: return tamamlandi ? "☑\t" : "☐\t"
-        case .alinti, .ayirici: return "\u{200B}"
-        case .uyari: return devam ? "\u{200B}" : emoji + "\t"
+        case .alinti, .ayirici, .uyari: return "\u{200B}"
         }
     }
     package var markdownOnEki: String {
@@ -72,8 +71,8 @@ package struct MetinBlogu: Hashable {
     /// Numara genişliği platform fontuyla ölçülür; diğer ölçüler taban punto uzayındadır.
     package var paragrafGeometrisi: [String: Any] {
         let girinti = Double(seviye) * 24
-        return ["ilkSatirGirintisi": girinti + (tur == .alinti ? 24 : tur == .uyari ? (devam ? 40 : 8) : 0),
-                "govdeGirintisi": girinti + (tur == .uyari ? 40 : listeMi || tur == .alinti ? 24 : 0),
+        return ["ilkSatirGirintisi": girinti + (tur == .alinti || tur == .uyari ? 24 : 0),
+                "govdeGirintisi": girinti + (listeMi || tur == .alinti || tur == .uyari ? 24 : 0),
                 "sekmeAraligi": 24.0, "enAzSatirYuksekligi": tur == .ayirici ? 20.0 : 0.0,
                 "paragrafBoslugu": tur == .uyari ? 4.0 : 0.0,
                 "numaraMetni": tur == .numarali ? "\(numara)." : "",

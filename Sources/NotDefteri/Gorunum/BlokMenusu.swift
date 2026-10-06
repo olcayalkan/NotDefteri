@@ -56,6 +56,8 @@ final class BlokMenusu: NSView {
             case .baslik2: return ["2", "b2"]
             case .baslik3: return ["3", "b3"]
             case .sayfa: return ["page", "sayfa"]
+            case .kod: return ["code", "kod"]
+            case .uyari: return ["att", "uyari"]
             default: return []
             }
         }
@@ -175,6 +177,30 @@ final class BlokMenusu: NSView {
 }
 
 extension NotMetinGorunumu {
+    func slashKisayolunuUygula() -> Bool {
+        guard isEditable, !hasMarkedText(), selectedRange().length == 0, !blokMenusu.dilSecimi,
+              let depo = textStorage else { return false }
+        let imlec = selectedRange().location
+        let ns = depo.mutableString
+        let paragraf = ns.paragraphRange(for: NSRange(location: imlec, length: 0))
+        let slash = ns.range(of: "/", options: .backwards,
+                             range: NSRange(location: paragraf.location, length: imlec - paragraf.location))
+        guard slash.location != NSNotFound,
+              slash.location == paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location) ||
+              (slash.location > paragraf.location && ns.rangeOfCharacter(from: .whitespaces, range: NSRange(location: slash.location - 1, length: 1)).location != NSNotFound),
+              depo.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
+              depo.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else { return false }
+        let sorgu = ns.substring(with: NSRange(location: slash.location + 1, length: imlec - slash.location - 1))
+        guard let komut = [BlokMenusu.Komut.kod, .uyari].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
+        let aralik = NSRange(location: slash.location, length: imlec - slash.location)
+        blokMenusu.gizle()
+        slashAraligi = nil
+        kapatilanSlashKonumu = slash.location
+        if komut == .kod { kodBlogunuEkle(dil: "", komutAraligi: aralik) }
+        else { (window as? NotPenceresi)?.blokMenusuKomutunuCalistir(komut, aralik: aralik) }
+        return true
+    }
+
     func yuzerGorunumleriGizle() {
         sayfaBulucusu.gizle()
         blokMenusu.gizle()
@@ -220,8 +246,7 @@ extension NotMetinGorunumu {
             self.blokMenusu.gizle()
             self.slashAraligi = nil
             self.kapatilanSlashKonumu = aralik.location
-            if komut == .kod { self.kodDilSeciminiBaslat(aralik) }
-            else { (self.window as? NotPenceresi)?.blokMenusuKomutunuCalistir(komut, aralik: aralik) }
+            (self.window as? NotPenceresi)?.blokMenusuKomutunuCalistir(komut, aralik: aralik)
         }
         blokMenusu.goster(imlecEkranKaresi(imlec), pencere: pencere)
     }

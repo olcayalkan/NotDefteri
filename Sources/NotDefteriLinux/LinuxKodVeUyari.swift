@@ -7,7 +7,7 @@ enum LinuxKodVeUyari {
         let araclar = KodVeUyariAraclari(pencere: pencere, editor: editor)
         // Kancalar bileşeni yaşatır; bileşen editörü zayıf tutar.
         editor.degisiklikSonrasi.append { araclar.degisti() }
-        editor.notAcildi.append { _ in araclar.notAcildi() }
+        LinuxEklentiler.yasamDongusunuIzle(editor) { araclar.notAcildi() }
     }
 }
 
@@ -51,10 +51,16 @@ private let uyariTiklamaC: @convention(c) (OpaquePointer?, Int32, Double, Double
     }
 }
 
-private let uyariEmojiC: @convention(c) (gpointer?, UnsafePointer<CChar>?, gpointer?) -> Void = {
-    _, emoji, veri in
-    guard let emoji, let veri else { return }
-    Unmanaged<KodUyariEylemi<(String) -> Void>>.fromOpaque(veri).takeUnretainedValue().calistir(String(cString: emoji))
+private let kodCerceveC: @convention(c) (UnsafeMutablePointer<GtkDrawingArea>?, OpaquePointer?, Int32, Int32, gpointer?) -> Void = {
+    _, cr, _, _, veri in
+    guard let cr, let veri else { return }
+    Unmanaged<KodUyariEylemi<(OpaquePointer) -> Void>>.fromOpaque(veri).takeUnretainedValue().calistir(cr)
+}
+
+private let kodEtiketC: @convention(c) (gpointer?, UnsafeMutablePointer<GtkTextTag>?, UnsafeMutablePointer<GtkTextIter>?, UnsafeMutablePointer<GtkTextIter>?, gpointer?) -> Void = {
+    _, _, _, _, veri in
+    guard let veri else { return }
+    Unmanaged<KodUyariEylemi<() -> Void>>.fromOpaque(veri).takeUnretainedValue().calistir()
 }
 
 private let kodKuyrugu = DispatchQueue(label: "NotDefteriLinux.kod-renklendirme", qos: .userInitiated)
@@ -83,12 +89,11 @@ private final class KodVeUyariAraclari {
     private let dilEtiketi = gtk_label_new("")!
     private let kopyala = gtk_button_new_with_label("Kopyala")!
     private var kopyalaDugmesi: UnsafeMutablePointer<GtkButton> { GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(kopyala)) }
-    private let emojiPaleti = gtk_emoji_chooser_new()!
+    private let cerceveAlani = gtk_drawing_area_new()!
     private let renkMenusu = gtk_popover_new()!
     private let ayarlar: OpaquePointer
     private var ayarSinyalleri: [gulong] = []
     private var kodEtiketleri: [KodTokenTuru: UnsafeMutablePointer<GtkTextTag>] = [:]
-    private var uyariEtiketleri: [String: UnsafeMutablePointer<GtkTextTag>] = [:]
     private var kirli: [Kirli] = []
     private var nesil = 0
     private var kapandi = false
@@ -99,13 +104,19 @@ private final class KodVeUyariAraclari {
     private var aracKaresi = GdkRectangle()
     private var aracBlogu: (aralik: NSRange, kimlik: String)?
     private var uyariHedefi: UyariHedefi?
-    private var emojiEtiketleri: [UnsafeMutablePointer<GtkWidget>] = []
+    private struct Cerceve {
+        let kare: GdkRectangle
+        let renk: GdkRGBA
+    }
+    private var cerceveler: [Cerceve] = []
+    private var sonAlan = GdkRectangle()
+    private var cerceveKirli = true
     private static let renkler = ["gri", "mavi", "sarı", "kırmızı", "yeşil"]
 
     init(pencere: LinuxPencere, editor: LinuxEditor) {
         self.editor = editor
         ayarlar = gtk_settings_get_for_display(gtk_widget_get_display(editor.metinGorunumu))!
-        for widget in [arac, emojiPaleti, renkMenusu] { g_object_ref_sink(UnsafeMutableRawPointer(widget)) }
+        for widget in [arac, cerceveAlani, renkMenusu] { g_object_ref_sink(UnsafeMutableRawPointer(widget)) }
         arayuzuKur()
         etiketleriKur()
         sinyalleriKur(pencere)
@@ -116,10 +127,16 @@ private final class KodVeUyariAraclari {
         debounce?()
         bildirim?()
         for kimlik in ayarSinyalleri { g_signal_handler_disconnect(UnsafeMutableRawPointer(ayarlar), kimlik) }
-        for widget in [arac, emojiPaleti, renkMenusu] { g_object_unref(UnsafeMutableRawPointer(widget)) }
+        for widget in [arac, cerceveAlani, renkMenusu] { g_object_unref(UnsafeMutableRawPointer(widget)) }
     }
 
     private func arayuzuKur() {
+        gtk_widget_set_can_target(cerceveAlani, 0)
+        gtk_text_view_add_overlay(gorunum, cerceveAlani, 0, 0)
+        let veri = Unmanaged.passRetained(KodUyariEylemi { [weak self] (cr: OpaquePointer) -> Void in self?.cerceveleriCiz(cr) }).toOpaque()
+        gtk_drawing_area_set_draw_func(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(cerceveAlani)), kodCerceveC, veri, { veri in
+            if let veri { Unmanaged<AnyObject>.fromOpaque(veri).release() }
+        })
         gtk_widget_add_css_class(arac, "background")
         gtk_widget_add_css_class(dilEtiketi, "dim-label")
         gtk_widget_set_margin_start(dilEtiketi, 8)
@@ -129,25 +146,15 @@ private final class KodVeUyariAraclari {
         gtk_widget_set_visible(arac, 0)
         gtk_text_view_add_overlay(gorunum, arac, 0, 0)
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(kopyala), "clicked") { [weak self] in self?.kodKopyala() }
-        for widget in [emojiPaleti, renkMenusu] {
-            gtk_widget_set_parent(widget, editor!.metinGorunumu)
-            GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(widget), "closed") { [weak self] in
-                // GtkEmojiChooser popdown/emoji-picked sırası hedefi erken silmesin.
-                let hedef = self?.uyariHedefi
-                Platform.anaIsParcaciginda { [weak self] in
-                    if self?.uyariHedefi?.konum == hedef?.konum, self?.uyariHedefi?.nesil == hedef?.nesil {
-                        self?.uyariHedefi = nil
-                    }
-                }
-            }
-        }
-        kodUyariSinyali(UnsafeMutableRawPointer(emojiPaleti), "emoji-picked", unsafeBitCast(uyariEmojiC, to: GCallback.self),
-                       { [weak self] (emoji: String) in self?.uyariDegistir(emoji: emoji) })
+        gtk_widget_set_parent(renkMenusu, editor!.metinGorunumu)
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(renkMenusu), "closed") { [weak self] in self?.uyariHedefi = nil }
         let kutu = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2)!
         for renk in Self.renkler {
             let dugme = gtk_button_new_with_label(renk.capitalized(with: Locale(identifier: "tr_TR")))!
             gtk_widget_add_css_class(dugme, "flat")
-            GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(dugme), "clicked") { [weak self] in self?.uyariDegistir(renk: renk) }
+            GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(dugme), "clicked") { [weak self] in
+                Platform.anaIsParcaciginda { [weak self] in self?.uyariDegistir(renk) }
+            }
             gtk_box_append(nd_box(kutu), dugme)
         }
         gtk_popover_set_child(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(renkMenusu)), kutu)
@@ -160,6 +167,20 @@ private final class KodVeUyariAraclari {
             kodUyariSinyali(UnsafeMutableRawPointer(editor.tampon), ad, callback,
                            { [weak self] (bas: GtkTextIter, son: GtkTextIter) in self?.isaretle(bas, son) })
         }
+        for ad in ["apply-tag", "remove-tag"] {
+            kodUyariSinyali(UnsafeMutableRawPointer(editor.tampon), ad, unsafeBitCast(kodEtiketC, to: GCallback.self),
+                           { [weak self] () -> Void in self?.cerceveKirli = true; self?.yerlesimiPlanla() })
+        }
+        let veri = Unmanaged.passRetained(KodUyariEylemi { [weak self] in
+            guard let self, !self.kapandi else { return }
+            self.cerceveleriGuncelle()
+        }).toOpaque()
+        gtk_widget_add_tick_callback(editor.metinGorunumu, { _, _, veri in
+            if let veri { Unmanaged<KodUyariEylemi<() -> Void>>.fromOpaque(veri).takeUnretainedValue().calistir() }
+            return 1
+        }, veri, { veri in
+            if let veri { Unmanaged<AnyObject>.fromOpaque(veri).release() }
+        })
         let hareket = gtk_event_controller_motion_new()!
         gtk_event_controller_set_propagation_phase(hareket, GTK_PHASE_CAPTURE)
         kodUyariSinyali(UnsafeMutableRawPointer(hareket), "motion", unsafeBitCast(kodHareketC, to: GCallback.self),
@@ -169,12 +190,12 @@ private final class KodVeUyariAraclari {
             self?.araciGizle()
         }
         gtk_widget_add_controller(editor.metinGorunumu, hareket)
-        for dugme: UInt32 in [1, 3] {
+        do {
             let tik = gtk_gesture_click_new()!
-            gtk_gesture_single_set_button(tik, dugme)
+            gtk_gesture_single_set_button(tik, 3)
             gtk_event_controller_set_propagation_phase(tik, GTK_PHASE_CAPTURE)
             kodUyariSinyali(UnsafeMutableRawPointer(tik), "pressed", unsafeBitCast(uyariTiklamaC, to: GCallback.self),
-                           { [weak self] (x: Double, y: Double) in self?.uyariTiklandi(x, y, sag: dugme == 3) ?? false })
+                           { [weak self] (x: Double, y: Double) in self?.uyariTiklandi(x, y) ?? false })
             gtk_widget_add_controller(editor.metinGorunumu, tik)
         }
         for ayar in [gtk_scrollable_get_hadjustment(OpaquePointer(editor.metinGorunumu)),
@@ -208,7 +229,6 @@ private final class KodVeUyariAraclari {
                           (.yorum, "yorum"), (.tur, "tur"), (.fonksiyon, "fonksiyon"), (.operator, "operator")] {
             kodEtiketleri[tur] = etiket("kod-" + ad)
         }
-        for renk in Self.renkler { uyariEtiketleri[renk] = etiket("uyari-" + renk) }
         renkleriGuncelle()
     }
 
@@ -221,10 +241,8 @@ private final class KodVeUyariAraclari {
             .yorum: koyu ? "#c2c2c2" : "#565656", .tur: koyu ? "#8ad8df" : "#32868c",
             .fonksiyon: koyu ? "#81b4f1" : "#2869ad", .operator: koyu ? "#eeeeec" : "#292929"]
         for (tur, tag) in kodEtiketleri { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(renkler[tur]!)) }
-        let rgb = ["gri": "142,142,147", "mavi": "0,122,255", "sarı": "255,204,0", "kırmızı": "255,59,48", "yeşil": "52,199,89"]
-        for (renk, tag) in uyariEtiketleri {
-            gNesneOzelligi(UnsafeMutableRawPointer(tag), "paragraph-background", .metin("rgba(\(rgb[renk]!),0.14)"))
-        }
+        cerceveKirli = true
+        yerlesimiPlanla()
     }
 
     /// Sinyal sırasında belge okunmaz. Sol/sağ yerçekimi eklenen metni kapsar;
@@ -252,7 +270,9 @@ private final class KodVeUyariAraclari {
 
     func degisti() {
         guard !kapandi, let editor else { return }
-        guard editor.acikURL != nil else { sifirla(); return }
+        guard editor.editorEtkin else { sifirla(); return }
+        cerceveKirli = true
+        yerlesimiPlanla()
         debounce?()
         guard !kirli.isEmpty else { return }
         let surum = nesil
@@ -296,7 +316,6 @@ private final class KodVeUyariAraclari {
             let tumu = NSRange(location: 0, length: belge.length)
             for kirli in araliklar {
                 let kapsam = NSIntersectionRange(kirli, tumu)
-                uyarilariBoya(belge, kapsam)
                 var konum = kapsam.location
                 while konum < NSMaxRange(kapsam) {
                     var blok = NSRange()
@@ -326,26 +345,6 @@ private final class KodVeUyariAraclari {
     private func enUsteAl(_ tag: UnsafeMutablePointer<GtkTextTag>) {
         guard let editor else { return }
         gtk_text_tag_set_priority(tag, gtk_text_tag_table_get_size(gtk_text_buffer_get_tag_table(editor.tampon)) - 1)
-    }
-
-    private func uyarilariBoya(_ belge: NSAttributedString, _ aralik: NSRange) {
-        guard let editor, aralik.length > 0 else { return }
-        let ns = belge.string as NSString
-        var (bas, son) = GtkKoprusu.iterler(editor.tampon, aralik, metin: ns)
-        for tag in uyariEtiketleri.values { gtk_text_buffer_remove_tag(editor.tampon, tag, &bas, &son) }
-        var konum = aralik.location, iter = bas
-        while konum < NSMaxRange(aralik) {
-            let paragraf = NSIntersectionRange(ns.paragraphRange(for: NSRange(location: konum, length: 0)), aralik)
-            var bitis = iter
-            gtk_text_iter_forward_chars(&bitis, Int32(LinuxMetinDonusumu.karakterSayisi(ns, paragraf)))
-            if let blok = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil)), blok.tur == .uyari {
-                let tag = uyariEtiketleri[blok.renk] ?? uyariEtiketleri["gri"]!
-                enUsteAl(tag)
-                gtk_text_buffer_apply_tag(editor.tampon, tag, &iter, &bitis)
-            }
-            konum = NSMaxRange(paragraf)
-            iter = bitis
-        }
     }
 
     private func tokenlariUygula(_ bloklar: [KodBlogu], _ tokenlar: [[(aralik: NSRange, tur: KodTokenTuru)]], kirli: [NSRange]) {
@@ -474,39 +473,29 @@ private final class KodVeUyariAraclari {
         araciGuncelle()
     }
 
-    private func uyariTiklandi(_ x: Double, _ y: Double, sag: Bool) -> Bool {
+    private func uyariTiklandi(_ x: Double, _ y: Double) -> Bool {
         guard let editor, let url = editor.acikURL, let iter = noktadakiIter(x, y) else { return false }
         let konum = GtkKoprusu.utf16(iter)
-        let bilgi = editor.belgeyiOku { belge -> (NSRange, MetinBlogu, Bool)? in
+        let bilgi = editor.belgeyiOku { belge -> (NSRange, MetinBlogu)? in
             guard konum < belge.length else { return nil }
             let ns = belge.string as NSString
             let aralik = ns.paragraphRange(for: NSRange(location: konum, length: 0))
             guard let blok = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil)), blok.tur == .uyari else { return nil }
-            return (aralik, blok, ns.character(at: aralik.location) == 0x200B)
+            return (aralik, blok)
         }
-        guard let (aralik, blok, gizliIsaret) = bilgi else { return false }
-        var bas = GtkKoprusu.iter(editor.tampon, utf16: aralik.location), kare = GdkRectangle()
-        guard !gizliMi(bas) else { return false }
-        gtk_text_view_get_iter_location(gorunum, &bas, &kare)
-        if gizliIsaret { kare.x = gtk_text_view_get_left_margin(gorunum) + Int32(blok.seviye) * 24 + 8 }
-        var wx: Int32 = 0, wy: Int32 = 0
-        gtk_text_view_buffer_to_window_coords(gorunum, GTK_TEXT_WINDOW_WIDGET, kare.x, kare.y, &wx, &wy)
-        kare = GdkRectangle(x: wx - 4, y: wy - 3, width: max(28, kare.width + 8), height: kare.height + 6)
-        guard sag || (!blok.devam && icerir(kare, Int32(x), Int32(y))) else { return false }
+        guard let (aralik, blok) = bilgi else { return false }
         panelleriKapat()
         uyariHedefi = UyariHedefi(konum: aralik.location, kimlik: blok.uyariKimligi, nesil: nesil, url: url)
-        let widget = sag ? renkMenusu : emojiPaleti
-        let panel: UnsafeMutablePointer<GtkPopover> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(widget))
-        if sag { kare = GdkRectangle(x: Int32(x), y: Int32(y), width: 1, height: 1) }
+        let panel: UnsafeMutablePointer<GtkPopover> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(renkMenusu))
+        var kare = GdkRectangle(x: Int32(x), y: Int32(y), width: 1, height: 1)
         gtk_popover_set_pointing_to(panel, &kare) // Popover ise parent/widget koordinatı ister.
         gtk_popover_popup(panel)
         return true
     }
 
-    private func uyariDegistir(emoji: String? = nil, renk: String? = nil) {
+    private func uyariDegistir(_ renk: String) {
         guard !kapandi, let editor, let hedef = uyariHedefi, hedef.nesil == nesil,
-              editor.acikURL == hedef.url, gtk_text_view_get_editable(gorunum) != 0,
-              emoji.map(emojiGecerliMi) ?? true else { return }
+              editor.acikURL == hedef.url, gtk_text_view_get_editable(gorunum) != 0 else { return }
         var secim = LinuxMetinDonusumu.secim(editor.tampon)
         var secimSonu = NSMaxRange(secim), imlec = gtkImleci(), secimBitisi = GtkTextIter()
         gtk_text_buffer_get_selection_bounds(editor.tampon, nil, &secimBitisi)
@@ -522,8 +511,7 @@ private final class KodVeUyariAraclari {
             while konum < yeni.length {
                 var paragraf = yeni.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
                 guard var blok = MetinBlogu(oznitelik: yeni.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil)), blok.tur == .uyari else { return nil }
-                if let emoji { blok.emoji = emoji }
-                if let renk { blok.renk = renk }
+                blok.renk = renk
                 blok.kaynakOnEk = nil
                 let uzunluk = blokIsaretiUzunlugu(yeni, konum: konum)
                 let isaret = blokIsaretiniUret(blok)
@@ -567,42 +555,83 @@ private final class KodVeUyariAraclari {
             guard let self, !self.kapandi else { return }
             self.yerlesimBekliyor = false
             self.araciGuncelle()
-            self.gizliEmojileriGoster()
+            self.cerceveleriGuncelle()
         }
     }
 
-    /// Yerel silme kutunun başını görünmez işaretle bırakabilir. Yalnızca görünür
-    /// paragraflar için emoji overlay'i gerekir; görünür emoji metnini tekrar çizmeyiz.
-    private func gizliEmojileriGoster() {
+    /// Yalnızca görünür bloklar ölçülür; tam blok sınırları kullanılarak çok
+    /// paragraflı kutu tek çerçeve kalır. Cairo görünüm dışını kendisi kırpar.
+    private func cerceveleriGuncelle() {
         guard let editor else { return }
-        for widget in emojiEtiketleri { gtk_text_view_remove(gorunum, widget) }
-        emojiEtiketleri.removeAll()
-        guard gtk_widget_get_visible(editor.metinGorunumu) != 0 else { return }
-        var gorunen = GdkRectangle(), bas = GtkTextIter(), son = GtkTextIter()
-        gtk_text_view_get_visible_rect(gorunum, &gorunen)
-        gtk_text_view_get_line_at_y(gorunum, &bas, gorunen.y, nil)
-        gtk_text_view_get_line_at_y(gorunum, &son, gorunen.y + gorunen.height, nil)
-        gtk_text_iter_forward_to_line_end(&son)
-        gtk_text_iter_forward_char(&son)
-        let aralik = LinuxMetinDonusumu.aralik(bas, son)
-        editor.belgeyiOku { belge in
-            let ns = belge.string as NSString
-            var konum = aralik.location, iter = bas
-            while konum < min(NSMaxRange(aralik), belge.length) {
-                let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
-                if let blok = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil)),
-                   blok.tur == .uyari, ns.character(at: konum) == 0x200B, !gizliMi(iter),
-                   konum == 0 || belge.attribute(kUyariKutusuAnahtari, at: konum - 1, effectiveRange: nil) as? String != blok.uyariKimligi {
-                    var kare = GdkRectangle()
-                    gtk_text_view_get_iter_location(gorunum, &iter, &kare)
-                    let etiket = gtk_label_new(blok.emoji)!
-                    gtk_widget_set_can_target(etiket, 0)
-                    gtk_text_view_add_overlay(gorunum, etiket, gtk_text_view_get_left_margin(gorunum) + Int32(blok.seviye) * 24 + 8, kare.y)
-                    emojiEtiketleri.append(etiket)
-                }
-                gtk_text_iter_forward_chars(&iter, Int32(LinuxMetinDonusumu.karakterSayisi(ns, paragraf)))
-                konum = NSMaxRange(paragraf)
+        var alan = GdkRectangle(), bas = GtkTextIter(), son = GtkTextIter()
+        gtk_text_view_get_visible_rect(gorunum, &alan)
+        guard cerceveKirli || alan.x != sonAlan.x || alan.y != sonAlan.y ||
+                alan.width != sonAlan.width || alan.height != sonAlan.height else { return }
+        cerceveKirli = false; sonAlan = alan
+        cerceveler.removeAll()
+        if gtk_widget_get_visible(editor.metinGorunumu) != 0, editor.acikURL != nil {
+            gtk_text_view_get_line_at_y(gorunum, &bas, alan.y, nil)
+            gtk_text_view_get_line_at_y(gorunum, &son, alan.y + alan.height, nil)
+            gtk_text_iter_forward_to_line_end(&son)
+            gtk_text_iter_forward_char(&son)
+            let aralik = LinuxMetinDonusumu.aralik(bas, son)
+            editor.belgeyiOku { belge in
+                gorunenCerceveleriOlc(belge, aralik: aralik, alan: alan)
             }
+        }
+        gtk_widget_set_size_request(cerceveAlani, max(1, alan.width), max(1, alan.height))
+        gtk_text_view_move_overlay(gorunum, cerceveAlani, alan.x, alan.y)
+        gtk_widget_queue_draw(cerceveAlani)
+    }
+
+    private func gorunenCerceveleriOlc(_ belge: NSAttributedString, aralik: NSRange, alan: GdkRectangle) {
+        guard let editor else { return }
+        let tumu = NSRange(location: 0, length: belge.length)
+        let kapsam = NSIntersectionRange(aralik, tumu)
+        for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari] {
+            belge.enumerateAttribute(anahtar, in: kapsam) { deger, alt, _ in
+                guard deger != nil, !gizliMi(GtkKoprusu.iter(editor.tampon, utf16: alt.location)) else { return }
+                var blok = NSRange()
+                _ = belge.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok, in: tumu)
+                let kod = anahtar == kKodBloguAnahtari
+                let uyari = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: alt.location, effectiveRange: nil))
+                var renk = GdkRGBA()
+                let renkler = ["gri": "#8e8e93", "mavi": "#007aff", "sarı": "#ffcc00", "kırmızı": "#ff3b30", "yeşil": "#34c759"]
+                let renkAdi = kod ? (nd_settings_dark(ayarlar) != 0 ? "#eeeeec" : "#292929") : renkler[uyari?.renk ?? "gri"] ?? "#8e8e93"
+                gdk_rgba_parse(&renk, renkAdi)
+                let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
+                let x = gtk_text_view_get_left_margin(gorunum) + seviye
+                let en = alan.width - gtk_text_view_get_left_margin(gorunum) - gtk_text_view_get_right_margin(gorunum) - seviye
+                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: en, alan: alan), renk: renk))
+            }
+        }
+    }
+
+    private func cerceveKaresi(_ blok: NSRange, x: Int32, en: Int32, alan: GdkRectangle) -> GdkRectangle {
+        var bas = GtkKoprusu.iter(editor!.tampon, utf16: blok.location)
+        var son = GtkKoprusu.iter(editor!.tampon, utf16: NSMaxRange(blok))
+        gtk_text_iter_backward_char(&son)
+        var ust: Int32 = 0, alt: Int32 = 0, boy: Int32 = 0
+        gtk_text_view_get_line_yrange(gorunum, &bas, &ust, nil)
+        gtk_text_view_get_line_yrange(gorunum, &son, &alt, &boy)
+        return GdkRectangle(x: x - alan.x, y: ust - alan.y - 3, width: max(1, en), height: max(1, alt + boy - ust + 6))
+    }
+
+    private func cerceveleriCiz(_ cr: OpaquePointer) {
+        for cerceve in cerceveler {
+            let k = cerceve.kare, renk = cerceve.renk
+            let x = Double(k.x) + 0.5, y = Double(k.y) + 0.5
+            let en = Double(k.width) - 1, boy = Double(k.height) - 1
+            let r = min(6, min(en, boy) / 2)
+            cairo_new_sub_path(cr)
+            cairo_arc(cr, x + en - r, y + r, r, -.pi / 2, 0)
+            cairo_arc(cr, x + en - r, y + boy - r, r, 0, .pi / 2)
+            cairo_arc(cr, x + r, y + boy - r, r, .pi / 2, .pi)
+            cairo_arc(cr, x + r, y + r, r, .pi, .pi * 1.5)
+            cairo_close_path(cr)
+            cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), 0.7)
+            cairo_set_line_width(cr, 1)
+            cairo_stroke(cr)
         }
     }
 
@@ -615,7 +644,7 @@ private final class KodVeUyariAraclari {
 
     private func panelleriKapat() {
         uyariHedefi = nil
-        for widget in [emojiPaleti, renkMenusu] { gtk_popover_popdown(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(widget))) }
+        gtk_popover_popdown(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(renkMenusu)))
     }
 
     private func isaretleriSil() {
@@ -635,15 +664,17 @@ private final class KodVeUyariAraclari {
         araciGizle()
         panelleriKapat()
         fare = nil
+        cerceveler.removeAll()
+        cerceveKirli = true
+        gtk_widget_queue_draw(cerceveAlani)
     }
 
     private func kapat() {
         guard !kapandi else { return }
         sifirla()
-        for widget in emojiEtiketleri { gtk_text_view_remove(gorunum, widget) }
-        emojiEtiketleri.removeAll()
+        gtk_text_view_remove(gorunum, cerceveAlani)
         gtk_text_view_remove(gorunum, arac)
-        for widget in [emojiPaleti, renkMenusu] { gtk_widget_unparent(widget) }
+        gtk_widget_unparent(renkMenusu)
         kapandi = true
     }
 }

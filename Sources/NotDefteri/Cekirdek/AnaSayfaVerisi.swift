@@ -81,3 +81,63 @@ private func yapilacakSatirlariniBul(_ hamMarkdown: String) -> [YapilacakSatiri]
     }
     return sonuc
 }
+
+/// Önbellek, disk, varsa açık belge ve UTF-16 satır/kutu konumları aynı kaynağı göstermeli.
+package func yapilacakGecerliMi(_ gorev: BekleyenYapilacak, metin: String,
+                              onbellekMetni: String?, acikSayfaMi: Bool, acikSayfaMetni: String?) -> Bool {
+    guard onbellekMetni == metin, !acikSayfaMi || acikSayfaMetni == metin else { return false }
+    return yapilacakSatiriGecerliMi(gorev, metin: metin)
+}
+
+private func yapilacakSatiriGecerliMi(_ gorev: BekleyenYapilacak, metin: String) -> Bool {
+    let govde = sayfaUstbilgisiniAyir(metin).govde as NSString
+    guard gorev.govdeKonumu >= 0, gorev.govdeKonumu < govde.length else { return false }
+    let aralik = govde.lineRange(for: NSRange(location: gorev.govdeKonumu, length: 0))
+    guard aralik.location == gorev.govdeKonumu, govde.substring(with: aralik) == gorev.satir,
+          let cozum = metinBlogunuCozumle(gorev.satir.trimmingCharacters(in: .newlines)),
+          cozum.blok.tur == .yapilacak, !cozum.blok.tamamlandi,
+          cozum.blok.kaynakOnEk?.hasSuffix("- [ ] ") == true else { return false }
+    return gorev.kutuKonumu == gorev.govdeKonumu + cozum.uzunluk - 3
+}
+
+package func yapilacagiTamamlayanMetin(_ gorev: BekleyenYapilacak, metin: String) throws -> (markdown: String, satir: String) {
+    guard yapilacakSatiriGecerliMi(gorev, metin: metin) else { throw CocoaError(.fileReadUnknown) }
+    let sayfa = sayfaUstbilgisiniAyir(metin)
+    let yeni = NSMutableString(string: metin)
+    yeni.replaceCharacters(in: NSRange(location: (sayfa.bilgi.kaynak as NSString).length + gorev.kutuKonumu, length: 1), with: "x")
+    let satir = NSMutableString(string: gorev.satir)
+    satir.replaceCharacters(in: NSRange(location: gorev.kutuKonumu - gorev.govdeKonumu, length: 1), with: "x")
+    return (yeni as String, satir as String)
+}
+
+/// Mevcut günlük yeni veya eski düzende varsa açılır; yoksa oluşturulacak içerik yolu döner.
+package func gunlukNotURL(_ tarih: Date = Date(), kok: URL = notlarKlasoru()) throws -> URL {
+    let klasor = kok.appendingPathComponent("Günlük", isDirectory: true)
+    let ad = gunlukSayfaAdi(tarih)
+    let url = klasor.appendingPathComponent(ad).appendingPathComponent(kIcerikDosyaAdi)
+    try notlarYolunuDogrula(url, kok: kok)
+    if dosyaYoluVarMi(url) { return url }
+    for uzanti in ["md", "MD", "Md", "mD"] {
+        let eski = klasor.appendingPathComponent(ad).appendingPathExtension(uzanti)
+        if dosyaYoluVarMi(eski) {
+            try notlarYolunuDogrula(eski, kok: kok)
+            return eski
+        }
+    }
+    return url
+}
+
+/// Tamamlanan dosyayı aynı klasörde taşıyarak yayımlar; mevcut notun üzerine yazmaz.
+package func icerikleSayfaOlustur(url: URL, metin: String, kok: URL = notlarKlasoru()) throws {
+    try notlarYolunuDogrula(url, kok: kok)
+    let fm = FileManager.default
+    try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+    let gecici = url.deletingLastPathComponent().appendingPathComponent(".\(UUID().uuidString).tmp")
+    try notlarYolunuDogrula(gecici, kok: kok)
+    defer {
+        if (try? notlarYolunuDogrula(gecici, kok: kok)) != nil { try? fm.removeItem(at: gecici) }
+    }
+    try Data(metin.utf8).write(to: gecici, options: .withoutOverwriting)
+    try notlarYolunuDogrula(url, kok: kok)
+    try fm.moveItem(at: gecici, to: url)
+}

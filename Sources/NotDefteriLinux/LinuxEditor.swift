@@ -50,19 +50,44 @@ private let kapanisIstendiC: @convention(c) (gpointer?, gpointer?) -> gboolean =
 }
 
 private let panoYapistirC: @convention(c) (gpointer?, gpointer?) -> Void = { nesne, veri in
-    guard let hedef = editor(veri), let pano = gtk_widget_get_clipboard(hedef.metinGorunumu) else { return }
+    guard let hedef = editor(veri), hedef.editorEtkin, let pano = gtk_widget_get_clipboard(hedef.metinGorunumu) else { return }
     if hedef.yapistirmaOncesi.contains(where: { $0(pano) }), let nesne {
         g_signal_stop_emission_by_name(nesne, "paste-clipboard")
     }
+}
+
+private let panoKesC: @convention(c) (gpointer?, gpointer?) -> Void = { nesne, veri in
+    if let nesne, editor(veri)?.cerceveliSecimiSil(kes: true) == true {
+        g_signal_stop_emission_by_name(nesne, "cut-clipboard")
+    }
+}
+
+private let imlectenSilC: @convention(c) (gpointer?, GtkDeleteType, Int32, gpointer?) -> Void = { nesne, _, _, veri in
+    if let nesne, editor(veri)?.cerceveliSecimiSil() == true {
+        g_signal_stop_emission_by_name(nesne, "delete-from-cursor")
+    }
+}
+
+private final class YapiEnterEylemi {
+    let uygula: () -> Void
+    init(_ uygula: @escaping () -> Void) { self.uygula = uygula }
 }
 
 private let kFontAnahtarlari = [kKalinAnahtari, kItalikAnahtari, kPuntoOlcegiAnahtari]
 
 // MARK: - Editör
 
+/// Kayıt denemesinin sonucu: neden bilgisi çağıran tarafa (geçmiş geri yükleme vb.) kalır.
+enum KayitSonucu: Equatable {
+    case yazildi
+    /// Kaydedilecek değişiklik yok (içerik diskle aynı).
+    case degisiklikYok
+    case hata(String)
+}
+
 /// macOS NotMetinGorunumu + NotPenceresi kayıt akışının B1 dilimi: açma, yazma, satır başı
 /// biçimleri, liste devamı, girinti, yapılacak kutusu, Ctrl+S/B/I/Z ve otomatik kayıt.
-final class LinuxEditor: LinuxEditorProtokolu {
+final class LinuxEditor {
     private weak var pencere: LinuxPencere?
     private let kaydirma = gtk_scrolled_window_new()!
     let metinGorunumu = gtk_text_view_new()!
@@ -76,22 +101,10 @@ final class LinuxEditor: LinuxEditorProtokolu {
     /// Ctrl+B gibi seçimsiz biçim komutlarının sonraki yazıma etkisi (NSTextView typingAttributes).
     private var yazimOnceligi: Oznitelikler?
     private var imlecIzlenmiyor = false
-    private var geriAliniyor = false
-    /// GTK metni tutar; burada yalnızca değişen aralıkların anlamsal hâlleri saklanır.
-    private enum GecmisTuru { case ekleme, geriSilme, ileriSilme, diger }
-    private struct Duzenleme {
-        var tur: GecmisTuru = .diger
-        let konum: Int
-        let eski: NSAttributedString
-        let yeni: NSAttributedString
-        var uzunluk: Int { eski.length + yeni.length }
-    }
-    private var anlikGoruntuler: [[Duzenleme]] = []
-    private var bekleyenGecmis: [Duzenleme]?
-    private var gecmisBirlesebilir = true
-    private var ileriGoruntuler: [[Duzenleme]] = []
-    private var geriAlmaUzunlugu = 0
     private var kaydiAtla = false
+    private typealias BekleyenIslem = (devam: () -> Void, iptal: () -> Void, ust: LinuxDiyalog.Ust?)
+    /// Diyalog açıkken gelen işlemler düşmez; diyalog kapanınca sırayla yeniden denenir.
+    private var bekleyenIslemler: [BekleyenIslem] = []
     private var sonKayitHatasi: String?
     private var bekleyenKayitHatasi: (url: URL, neden: String)?
     var notSecimiBildir: ((URL?) -> Void)?
@@ -99,13 +112,23 @@ final class LinuxEditor: LinuxEditorProtokolu {
     /// GdkClipboard, C köprüsünde opaque türdür. true = pano eklenti tarafından işlendi.
     var yapistirmaOncesi: [(OpaquePointer) -> Bool] = []
     var degisiklikSonrasi: [() -> Void] = []
-    var notAcildi: [(URL) -> Void] = []
+    /// İkinci değer editörün diskte olduğuna inandığı metindir; kancalar diski yeniden okumasın (TOCTOU).
+    var notAcildi: [(URL, String?) -> Void] = []
     var acikURL: URL? { mevcutURL }
     /// Kopya dışarıdan NSMutableAttributedString'e çevrilse de esas belge değişmez.
     var belge: NSAttributedString { NSAttributedString(attributedString: adaptor.belge) }
     /// Ana döngüde kopyasız okuma; belgeyi saklamayın veya mutable türe çevirmeyin.
     func belgeyiOku<T>(_ oku: (NSAttributedString) -> T) -> T { oku(adaptor.belge) }
-    var notKaydedildi: ((URL, String) -> Void)?
+    var sayfaUstbilgisi: SayfaUstbilgisi { ustbilgi }
+    /// Kayıt başarısız olup kullanıcı "Kaydetmeden Devam" dediyse true kalır; disk sürümü eskidir.
+    var kaydedilmemisDegisiklikVar: Bool { kaydedici.duzenlendiMi }
+    private(set) var editorEtkin = false
+    private(set) var nesil: UInt = 0
+    var durumDegisti: [() -> Void] = []
+    /// Tek geri alma geçmişi LinuxGorseller'dadır (metin, görsel ve üstbilgi adımları); tuş, menü ve düğmeler buradan geçer.
+    var geriAlYolu: ((_ ileri: Bool) -> Void)?
+    var kayitSonrasi: [(URL, String) -> Void] = []
+    private var anaSayfaAcik = false
     private var kayitHatasiBildirildi = false
     private var diyalogAcik = false
 
@@ -117,6 +140,8 @@ final class LinuxEditor: LinuxEditorProtokolu {
         self.pencere = pencere
         gorunum = UnsafeMutableRawPointer(metinGorunumu).assumingMemoryBound(to: GtkTextView.self)
         tampon = gtk_text_view_get_buffer(gorunum)!
+        // Önbellek changed sinyalini aynalama/görünüm kancalarından önce işlemeli.
+        GtkKoprusu.konumOnbelleginiKur(tampon)
         adaptor = LinuxBelgeAdaptoru(tampon: tampon)
         gorunumuKur(pencere)
         sinyalleriBagla(pencere)
@@ -137,8 +162,8 @@ final class LinuxEditor: LinuxEditorProtokolu {
         // Not açılana kadar yazılacak dosya yok.
         gtk_text_view_set_editable(gorunum, 0)
         gtk_text_view_set_cursor_visible(gorunum, 0)
-        gtk_text_buffer_set_enable_undo(tampon, 1)
-        gtk_text_buffer_set_max_undo_levels(tampon, 100)
+        // Geçmiş LinuxGorseller'de; GTK'nin ikinci undo günlüğü tutulmaz.
+        gtk_text_buffer_set_enable_undo(tampon, 0)
         gtk_widget_action_set_enabled(metinGorunumu, "text.undo", 0)
         gtk_widget_action_set_enabled(metinGorunumu, "text.redo", 0)
         // Mac'teki 14 pt taban punto, mantıksal piksel olarak.
@@ -157,6 +182,10 @@ final class LinuxEditor: LinuxEditorProtokolu {
         // GTK'nin Ctrl+V ve bağlam menüsü aynı action sinyalini kullanır.
         cBagla(UnsafeMutableRawPointer(metinGorunumu), "paste-clipboard",
                unsafeBitCast(panoYapistirC, to: GCallback.self), self)
+        cBagla(UnsafeMutableRawPointer(metinGorunumu), "cut-clipboard",
+               unsafeBitCast(panoKesC, to: GCallback.self), self)
+        cBagla(UnsafeMutableRawPointer(metinGorunumu), "delete-from-cursor",
+               unsafeBitCast(imlectenSilC, to: GCallback.self), self)
         let tamponNesnesi = UnsafeMutableRawPointer(tampon)
         GtkKoprusu.aynalamaHatasiniIzle(tampon) { [weak self] neden in
             guard let self, let url = self.mevcutURL else { return }
@@ -170,24 +199,6 @@ final class LinuxEditor: LinuxEditorProtokolu {
         cBagla(tamponNesnesi, "insert-text", unsafeBitCast(metinEklenecekC, to: GCallback.self), self)
         cBagla(tamponNesnesi, "delete-range", unsafeBitCast(metinSilinecekC, to: GCallback.self), self)
         GtkKoprusu.sinyalBagla(tamponNesnesi, "changed") { [weak self] in self?.degisti() }
-        GtkKoprusu.sinyalBagla(tamponNesnesi, "begin-user-action") { [weak self] in
-            guard let self, !self.adaptor.programatik, !self.geriAliniyor else { return }
-            self.bekleyenGecmis = []
-        }
-        GtkKoprusu.sinyalBagla(tamponNesnesi, "end-user-action") { [weak self] in
-            guard let self, let adim = self.bekleyenGecmis else { return }
-            self.bekleyenGecmis = nil
-            self.gecmisGrubunuKaydet(adim)
-        }
-        // GtkTextView geçmiş değişince yerleşik eylemleri yeniden etkinleştirir.
-        // Öznitelik günlüğümüzü atlayan menü yolu her bildirimde kapalı kalmalı.
-        for ad in ["notify::can-undo", "notify::can-redo"] {
-            GtkKoprusu.sinyalBagla(tamponNesnesi, ad) { [weak self] (_: gpointer?) in
-                guard let self else { return }
-                gtk_widget_action_set_enabled(self.metinGorunumu, "text.undo", 0)
-                gtk_widget_action_set_enabled(self.metinGorunumu, "text.redo", 0)
-            }
-        }
         GtkKoprusu.sinyalBagla(tamponNesnesi, "notify::cursor-position") { [weak self] (_: gpointer?) in
             guard let self, !self.imlecIzlenmiyor else { return }
             self.yazimOnceligi = nil
@@ -211,26 +222,135 @@ final class LinuxEditor: LinuxEditorProtokolu {
 
         cBagla(UnsafeMutableRawPointer(pencere.pencere), "close-request",
                unsafeBitCast(kapanisIstendiC, to: GCallback.self), self)
-        pencere.kisayolEkle("<Control>s") { [weak self] in self?.kaydetKomutu() }
+        menuleriKaydet(pencere)
+    }
+
+    /// macOS Menu.swift Dosya/Düzen/Biçim öğeleri. Ctrl+Z/Y/B/I tuş kancalarında işlenir (Ctrl+Z/Y: LinuxGorseller);
+    /// bu yüzden yalnızca Ctrl+S gerçek kısayol olarak kaydedilir, diğerleri menüde görünür.
+    private func menuleriKaydet(_ pencere: LinuxPencere) {
+        pencere.menuEkle(["Dosya", "Kaydet"], kisayol: "<Control>s") { [weak self] in self?.kaydetKomutu() }
+        pencere.menuEkle(["Düzen", "Geri Al"], kisayol: "<Control>z", kisayoluKaydet: false) { [weak self] in
+            self?.geriAlIstendi(ileri: false)
+        }
+        pencere.menuEkle(["Düzen", "Yinele"], kisayol: "<Control>y", kisayoluKaydet: false) { [weak self] in
+            self?.geriAlIstendi(ileri: true)
+        }
+        for (ad, tetik, anahtar) in [("Kalın", "<Control>b", kKalinAnahtari), ("İtalik", "<Control>i", kItalikAnahtari)] {
+            pencere.menuEkle(["Biçim", ad], kisayol: tetik, kisayoluKaydet: false) { [weak self] in
+                guard let self, self.editorEtkin, GtkKoprusu.aynalamaHatasi(self.tampon) == nil else { return }
+                gtk_widget_grab_focus(self.metinGorunumu)
+                self.satirIciBicimiDegistir(anahtar)
+            }
+        }
+    }
+
+    /// Başlık çubuğu düğmeleri ve menü: editör etkin değilse (ana sayfa) işlem yapılmaz.
+    func geriAlIstendi(ileri: Bool) {
+        guard editorEtkin else { return }
+        gtk_widget_grab_focus(metinGorunumu)
+        geriAlYolu?(ileri)
+    }
+
+    /// Mac baslikSeviyesiUygula: imlecin paragrafı başlığa çevrilir; 0 normal metne döndürür.
+    func baslikSeviyesiUygula(_ seviye: Int) {
+        guard editorEtkin, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return }
+        baslikUygula(seviye)
+        gtk_widget_grab_focus(metinGorunumu)
+    }
+
+    /// Mac yaziBoyutunuDegistir: seçimde her parçanın puntosu `fark` kadar değişir; seçim yoksa yalnızca
+    /// sonraki yazım etkilenir. Başlık puntosu başlık düzeyinden gelir (Linux'ta geçici başlık puntosu yok).
+    func puntoDegistir(fark: CGFloat) {
+        guard editorEtkin, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return }
+        func yaz(_ o: inout Oznitelikler) -> Bool {
+            guard o[kBaslikSeviyesiAnahtari] == nil || o[kKodBloguAnahtari] != nil else { return false }
+            let eski = kTabanPunto * CGFloat((o[kPuntoOlcegiAnahtari] as? Double) ?? 1)
+            let yeni = boyutSinirla(eski + fark)
+            guard yeni != eski else { return false }
+            o[kPuntoOlcegiAnahtari] = yeni == kTabanPunto ? nil : Double(yeni / kTabanPunto)
+            return true
+        }
+        gtk_widget_grab_focus(metinGorunumu)
+        let s = secim
+        if s.length == 0 {
+            var o = yazim(s.location)
+            if yaz(&o) { yazimOnceligi = o }
+            return
+        }
+        let yeni = NSMutableAttributedString(attributedString: anlamsalBelge.attributedSubstring(from: s))
+        var degisti = false
+        yeni.enumerateAttributes(in: NSRange(location: 0, length: yeni.length)) { o, alt, _ in
+            guard o[kBlokIsaretiAnahtari] as? Bool != true, o[kGorselAnahtari] == nil else { return }
+            var yeniO = o
+            if yaz(&yeniO) { yeni.setAttributes(yeniO, range: alt); degisti = true }
+        }
+        if degisti { blokDuzenle(s, yeni: yeni, secim: s, yazim: yazimOnceligi) }
+    }
+
+    /// Mac mevcutPunto: seçimin başındaki ya da (seçim yoksa) sonraki yazının puntosu.
+    var imlecPuntosu: CGFloat {
+        let s = secim
+        let o: Oznitelikler = s.length > 0 && s.location < anlamsalBelge.length
+            ? anlamsalBelge.attributes(at: s.location, effectiveRange: nil) : yazim(s.location)
+        if let seviye = o[kBaslikSeviyesiAnahtari] as? Int, o[kKodBloguAnahtari] == nil {
+            return (kTabanPunto * (seviye == 1 ? 1.75 : seviye == 2 ? 1.40 : 1.15)).rounded()
+        }
+        return kTabanPunto * CGFloat((o[kPuntoOlcegiAnahtari] as? Double) ?? 1)
     }
 
     // MARK: Not açma
 
-    func notuAc(_ url: URL) {
-        defer { notSecimiBildir?(mevcutURL) }
-        guard url != mevcutURL, !diyalogAcik else { return }
-        if kaydiAtla || simdiKaydet() {
-            ac(url)
-        } else {
-            kaydetmedenDevam { [weak self] in self?.ac(url) }
+    func notuAc(_ url: URL, yenidenYukle: Bool = false) { notuAc(url, yenidenYukle: yenidenYukle) { _ in } }
+
+    /// `yenidenYukle`: aynı not açıkken de diskten okunur (Mac notuAc(yenidenYukle: true)); örneğin
+    /// ana sayfadan yapılacak tamamlanınca dosya değiştiğinde. Önce tampon kaydedilir.
+    func notuAc(_ url: URL, yenidenYukle: Bool = false, tamam: @escaping (Bool) -> Void) {
+        guard !diyalogAcik else { notSecimiBildir?(mevcutURL); tamam(false); return }
+        if url == mevcutURL, editorEtkin, !yenidenYukle { notSecimiBildir?(url); tamam(true); return }
+        islemOncesi({ [weak self] in
+            guard let self else { tamam(false); return }
+            if url == self.mevcutURL, !yenidenYukle {
+                self.pencere?.icerigiGoster(anaSayfa: false)
+                self.notSecimiBildir?(url)
+                tamam(true)
+                return
+            }
+            tamam(self.ac(url))
+        }, iptal: { [weak self] in
+            self?.notSecimiBildir?(self?.mevcutURL)
+            tamam(false)
+        })
+    }
+
+    /// İşlem ve tampon değişiklikleri her zaman sinyal dönüşünden sonra başlar.
+    /// `ust`: kayıt uyarısının bağlanacağı pencere (işlemi başlatan modal pencere); yoksa ana pencere.
+    func islemOncesi(ust: LinuxDiyalog.Ust? = nil, _ devam: @escaping () -> Void) { islemOncesi(devam, iptal: {}, ust: ust) }
+
+    private func islemOncesi(_ devam: @escaping () -> Void, iptal: @escaping () -> Void, ust: LinuxDiyalog.Ust? = nil) {
+        let beklenen = nesil, kaydiAtla = kaydiAtla
+        Platform.anaIsParcaciginda { [weak self] in
+            guard let self, self.nesil == beklenen else { iptal(); return }
+            guard !self.diyalogAcik else { self.bekleyenIslemler.append((devam, iptal, ust)); return }
+            if kaydiAtla || self.simdiKaydet() { devam() }
+            else { self.kaydetmedenDevam(devam, iptal: iptal, ust: ust) }
         }
+    }
+
+    private func bekleyenIslemleriSurdur() {
+        guard !diyalogAcik, !bekleyenIslemler.isEmpty else { return }
+        let islemler = bekleyenIslemler
+        bekleyenIslemler = []
+        for islem in islemler { islemOncesi(islem.devam, iptal: islem.iptal, ust: islem.ust) }
     }
 
     @discardableResult
     private func ac(_ url: URL) -> Bool {
         defer { notSecimiBildir?(mevcutURL) }
         let icerik: String
-        do { icerik = try String(contentsOf: url, encoding: .utf8) }
+        do {
+            try notlarYolunuDogrula(url)
+            icerik = try String(contentsOf: url, encoding: .utf8)
+        }
         catch {
             diyalog("Not açılamadı", error.localizedDescription, dugmeler: ["Tamam"]) { _ in }
             return false
@@ -244,65 +364,183 @@ final class LinuxEditor: LinuxEditorProtokolu {
         gtk_text_buffer_place_cursor(tampon, &bas)
         imlecIzlenmiyor = false
         yazimOnceligi = nil
-        anlikGoruntuler.removeAll()
-        bekleyenGecmis = nil
-        gecmisBirlesebilir = true
-        ileriGoruntuler.removeAll()
         mevcutURL = url
         kaydedici.sifirla(sonYazilan: icerik)
         kayitHatasiBildirildi = false
         bekleyenKayitHatasi = nil
         sonKayitHatasi = nil
-        gtk_text_view_set_editable(gorunum, 1)
-        gtk_text_view_set_cursor_visible(gorunum, 1)
+        nesil &+= 1
+        editorEtkin = !anaSayfaAcik
+        pencere?.icerigiGoster(anaSayfa: false)
+        gtk_text_view_set_editable(gorunum, editorEtkin ? 1 : 0)
+        gtk_text_view_set_cursor_visible(gorunum, editorEtkin ? 1 : 0)
         gtk_adjustment_set_value(gtk_scrolled_window_get_vadjustment(OpaquePointer(kaydirma)), 0)
-        pencere?.basligiAyarla(sayfaYolu(url).map(sayfaAdi))
+        pencere?.basligiAyarla(sayfaYolu(url))
         kenarlariAyarla()
-        for kanca in notAcildi { kanca(url) }
+        for kanca in notAcildi { kanca(url, icerik) }
+        durumuBildir()
         return true
     }
 
     func simdiKaydet() -> Bool {
+        if case .hata = simdiKaydetSonucu() { return false }
+        return true
+    }
+
+    /// Bekleyen değişikliği hemen yazar ve nedenini bildirir; diyalog göstermez (çağıran karar verir).
+    func simdiKaydetSonucu(bildir: Bool = false) -> KayitSonucu {
         kaydedici.bekleyeniIptalEt()
-        guard kaydedici.duzenlendiMi, let url = mevcutURL else { return true }
-        sonKayitHatasi = kaydet(url, bildir: false)
-        return sonKayitHatasi == nil
+        guard kaydedici.duzenlendiMi, let url = mevcutURL else { return .degisiklikYok }
+        let sonuc = kaydetSonucu(url, bildir: bildir)
+        if case .hata(let neden) = sonuc { sonKayitHatasi = neden } else { sonKayitHatasi = nil }
+        return sonuc
     }
 
     /// GTK diyaloğu asenkrondur; yalnızca onaylanan işlem kayıt denetimini bir kez atlar.
-    func kaydetmedenDevam(_ islem: @escaping () -> Void) {
-        diyalog("Kaydetmeden devam edilsin mi?",
+    func kaydetmedenDevam(_ islem: @escaping () -> Void) { kaydetmedenDevam(islem, iptal: {}) }
+
+    private func kaydetmedenDevam(_ islem: @escaping () -> Void, iptal: @escaping () -> Void, ust: LinuxDiyalog.Ust? = nil) {
+        let beklenen = nesil
+        let gosterildi = diyalog("Kaydetmeden devam edilsin mi?",
                 "Son değişiklikler kaydedilemedi. Devam ederseniz kaybolabilir.\n\nNeden: \(sonKayitHatasi ?? "Kayıt başarısız")",
-                dugmeler: ["Vazgeç", "Kaydetmeden Devam"]) { [weak self] secilen in
-            guard let self else { return }
-            if secilen == 2 {
-                self.kaydiAtla = true
-                islem()
-                self.kaydiAtla = false
-            }
+                dugmeler: ["İptal", "Kaydetmeden Devam"], ust: ust) { [weak self] secilen in
+            guard let self, self.nesil == beklenen, secilen == 2 else { iptal(); return }
+            self.kaydiAtla = true
+            islem()
+            self.kaydiAtla = false
             self.notSecimiBildir?(self.mevcutURL)
         }
+        if !gosterildi { iptal() }
+    }
+
+    func etkinligiAyarla(anaSayfa: Bool) {
+        guard anaSayfaAcik != anaSayfa else { return }
+        anaSayfaAcik = anaSayfa
+        editorEtkin = mevcutURL != nil && !anaSayfa
+        nesil &+= 1
+        yazimOnceligi = nil
+        if anaSayfa { kaydedici.bekleyeniIptalEt() }
+        gtk_text_view_set_editable(gorunum, editorEtkin ? 1 : 0)
+        gtk_text_view_set_cursor_visible(gorunum, editorEtkin ? 1 : 0)
+        durumuBildir()
+        if editorEtkin, kaydedici.duzenlendiMi { kaydedici.zamanlayiciKur { [weak self] in self?.otomatikKaydet() } }
+    }
+
+    private func durumuBildir() { for kanca in durumDegisti { kanca() } }
+
+    /// macOS gibi geri alınabilir tek adım ("Sayfa seçenekleri"); adım LinuxGorseller geçmişine girer.
+    func ustbilgiyiDegistir(_ yeni: SayfaUstbilgisi) {
+        guard editorEtkin, yeni != ustbilgi else { return }
+        LinuxGorseller.ustbilgiDegisti(tampon, eski: ustbilgi, yeni: yeni)
+        ustbilgiyiUygula(yeni)
+    }
+
+    /// Geçmiş kaydı yapmaz; geri alma/yineleme de buradan uygular.
+    func ustbilgiyiUygula(_ bilgi: SayfaUstbilgisi) {
+        ustbilgi = bilgi
+        kenarlariAyarla()
+        icerikDegisti()
+        durumuBildir()
+    }
+
+    /// Gizli tampon da güncellenir; kullanıcının seçim/undo ve kaydedilmemiş gövdesi korunur.
+    func baglariYenidenYaz(_ hedefler: [String: String]) {
+        guard mevcutURL != nil, !hedefler.isEmpty else { return }
+        Platform.anaIsParcaciginda { [weak self] in
+            guard let self, self.mevcutURL != nil else { return }
+            // Bekleyen aralık yoktur; dönüşüm o andaki açık/gizli belgeden yeniden hesaplanır.
+            self.bagYaziminiUygula(hedefler)
+        }
+    }
+
+    /// Ana sayfa açıkken (editör gizli) açık sayfanın belgesini değiştirir: tampon ve disk birlikte
+    /// güncellenir, böylece eski tampon sonradan diske geri yazılmaz. `metin` tüm yeni belgedir
+    /// (genelde `belge` kopyasının değiştirilmişi). Tampon değişimi sinyal dönüşünden sonra yapılır;
+    /// `tamam` ana iş parçacığında kayıt sonucuyla çağrılır. Başka sayfa açıksa `.hata` döner.
+    func acikBelgeyiGuncelle(_ url: URL, metin: NSAttributedString, kayitBildir: Bool = true,
+                             tamam: ((KayitSonucu) -> Void)? = nil) {
+        acikBelgeyiGuncelle(url, kayitBildir: kayitBildir, uret: { _ in metin }, tamam: tamam)
+    }
+
+    /// `uret`, uygulama anındaki güncel belgeyle çağrılır (sıçramadan önce alınan kopya arada değişen
+    /// tamponu ezmesin); nil dönerse belge değişmez ve `tamam` `.degisiklikYok` ile çağrılır.
+    /// `kayitBildir` false ise kayıt hatasını editör diyaloğa çevirmez; çağıran tek diyaloğu kendisi gösterir.
+    func acikBelgeyiGuncelle(_ url: URL, kayitBildir: Bool = true, uret: @escaping (NSAttributedString) -> NSAttributedString?,
+                             tamam: ((KayitSonucu) -> Void)? = nil) {
+        Platform.anaIsParcaciginda { [weak self] in
+            guard let self, self.mevcutURL == url else { tamam?(.hata("Sayfa artık açık değil.")); return }
+            guard GtkKoprusu.aynalamaHatasi(self.tampon) == nil else {
+                tamam?(.hata("Editör tamponu belgeyle uyumsuz.")); return
+            }
+            guard let metin = uret(NSAttributedString(attributedString: self.anlamsalBelge)) else {
+                tamam?(.degisiklikYok); return
+            }
+            let secilen = NSRange(location: min(self.secim.location, metin.length), length: 0)
+            self.blokDuzenle(NSRange(location: 0, length: self.anlamsalBelge.length), yeni: metin,
+                             secim: secilen, yazim: nil, ayriAdim: true, gizliyken: true)
+            let sonuc = self.simdiKaydetSonucu(bildir: kayitBildir)
+            self.durumuBildir()
+            tamam?(sonuc)
+        }
+    }
+
+    private func bagYaziminiUygula(_ hedefler: [String: String]) {
+        var degisimler: [(NSRange, String)] = []
+        for bag in sayfaBaglariniBul(anlamsalBelge.string) {
+            guard let hedef = hedefler[bag.hedef.trimmingCharacters(in: .whitespaces)] else { continue }
+            var engelli = false
+            anlamsalBelge.enumerateAttributes(in: bag.aralik) { oznitelikler, _, dur in
+                if [kKodBloguAnahtari, kSatirIciKodAnahtari, kBaglantiAnahtari, kKacisliKoseParantezAnahtari]
+                    .contains(where: { oznitelikler[$0] != nil }) { engelli = true; dur.pointee = true }
+            }
+            if !engelli { degisimler.append((bag.aralik, hedef)) }
+        }
+        guard !degisimler.isEmpty else { return }
+        let yeni = NSMutableAttributedString(attributedString: anlamsalBelge)
+        var secilen = secim
+        for (aralik, hedef) in degisimler.reversed() {
+            let metin = "[[\(hedef)]]", uzunluk = (metin as NSString).length
+            if secilen.location >= NSMaxRange(aralik) { secilen.location += uzunluk - aralik.length }
+            else if NSMaxRange(secilen) > aralik.location { secilen = NSRange(location: aralik.location + uzunluk, length: 0) }
+            var oznitelikler = yeni.attributes(at: aralik.location, effectiveRange: nil)
+            oznitelikler[kSayfaBagiAnahtari] = hedef
+            oznitelikler.removeValue(forKey: kMarkdownKaynakAnahtari)
+            yeni.replaceCharacters(in: aralik, with: NSAttributedString(string: metin, attributes: oznitelikler))
+        }
+        blokDuzenle(NSRange(location: 0, length: anlamsalBelge.length), yeni: yeni,
+                    secim: secilen, yazim: nil, ayriAdim: true, gizliyken: true)
+        if let url = mevcutURL { sonKayitHatasi = kaydet(url, bildir: true) }
+        durumuBildir()
     }
 
     func yolDegisti(eski: URL, yeni: URL) {
         guard mevcutURL == eski else { return }
         kaydedici.bekleyeniIptalEt()
         mevcutURL = yeni
-        pencere?.basligiAyarla(sayfaYolu(yeni).map(sayfaAdi))
+        nesil &+= 1
+        pencere?.basligiAyarla(sayfaYolu(yeni))
         notSecimiBildir?(yeni)
-        for kanca in notAcildi { kanca(yeni) }
+        for kanca in notAcildi { kanca(yeni, kaydedici.sonYazilanIcerik) }
+        durumuBildir()
         if kaydedici.duzenlendiMi { icerikDegisti() }
     }
 
-    func bosalt() {
+    /// Not silindi: kaydedilecek dosya yok, bu yüzden kayıt denemesi ve "Kaydetmeden devam?" sorusu yoktur.
+    /// Tampon değişimi sinyal dönüşünden sonra yapılır; arada başka not açıldıysa dokunulmaz.
+    func bosalt(silinen: URL) {
+        Platform.anaIsParcaciginda { [weak self] in
+            guard let self, self.mevcutURL == silinen else { return }
+            self.tamponuBosalt()
+        }
+    }
+
+    private func tamponuBosalt() {
         kaydedici.sifirla(sonYazilan: nil)
         mevcutURL = nil
+        editorEtkin = false
+        nesil &+= 1
         ustbilgi = SayfaUstbilgisi()
         yazimOnceligi = nil
-        anlikGoruntuler.removeAll()
-        bekleyenGecmis = nil
-        gecmisBirlesebilir = true
-        ileriGoruntuler.removeAll()
         kayitHatasiBildirildi = false
         sonKayitHatasi = nil
         bekleyenKayitHatasi = nil
@@ -311,6 +549,7 @@ final class LinuxEditor: LinuxEditorProtokolu {
         gtk_text_view_set_cursor_visible(gorunum, 0)
         pencere?.basligiAyarla([])
         notSecimiBildir?(nil)
+        durumuBildir()
         degisiklikKancalariniBildir()
     }
 
@@ -334,30 +573,39 @@ final class LinuxEditor: LinuxEditorProtokolu {
         kaydet(url, bildir: true)
     }
 
-    /// Başarıda nil, başarısızlıkta neden döner. Sürüm geçmişi kayıttan sonra yazılır.
+    /// Başarıda nil, başarısızlıkta neden döner.
     @discardableResult
     private func kaydet(_ url: URL, bildir: Bool) -> String? {
-        if let neden = adaptor.aynalamaHatasi() { return kayitHatasi(neden, url: url, bildir: bildir) }
+        if case .hata(let neden) = kaydetSonucu(url, bildir: bildir) { return neden }
+        return nil
+    }
+
+    /// Sürüm geçmişi kayıttan sonra yazılır.
+    private func kaydetSonucu(_ url: URL, bildir: Bool) -> KayitSonucu {
+        if let neden = adaptor.aynalamaHatasi() { return .hata(kayitHatasi(neden, url: url, bildir: bildir)) }
+        do { try notlarYolunuDogrula(url) }
+        catch { return .hata(kayitHatasi(error.localizedDescription, url: url, bildir: bildir)) }
         var klasorMu: ObjCBool = false
         guard FileManager.default.fileExists(atPath: url.path),
               FileManager.default.fileExists(atPath: url.deletingLastPathComponent().path, isDirectory: &klasorMu),
               klasorMu.boolValue else {
-            return kayitHatasi("Notun dosyası veya klasörü artık mevcut değil.", url: url, bildir: bildir)
+            return .hata(kayitHatasi("Notun dosyası veya klasörü artık mevcut değil.", url: url, bildir: bildir))
         }
         let metin = sayfaMarkdownunuUret(anlamsalBelge, ustbilgi: ustbilgi)
         switch kaydedici.yaz(metin: metin, url: url, mevcutURL: mevcutURL) {
         case .gerekmedi:
             bekleyenKayitHatasi = nil
             kayitHatasiBildirildi = false
-            return nil
+            return .degisiklikYok
         case .yazildi:
             kayitHatasiBildirildi = false
             bekleyenKayitHatasi = nil
             SayfaGecmisi.kaydet(metin: metin, icerikURL: url)
-            notKaydedildi?(url, metin)
-            return nil
+            for kanca in kayitSonrasi { kanca(url, metin) }
+            durumuBildir()
+            return .yazildi
         case .basarisiz(let neden):
-            return kayitHatasi(neden, url: url, bildir: bildir)
+            return .hata(kayitHatasi(neden, url: url, bildir: bildir))
         }
     }
 
@@ -375,19 +623,21 @@ final class LinuxEditor: LinuxEditorProtokolu {
     }
 
     private func icerikDegisti() {
+        nesil &+= 1
         kaydedici.degisiklikIsaretle()
         if let neden = GtkKoprusu.aynalamaHatasi(tampon), let url = mevcutURL {
             sonKayitHatasi = neden
             _ = kayitHatasi(neden, url: url, bildir: true)
         }
         degisiklikKancalariniBildir()
-        kaydedici.zamanlayiciKur { [weak self] in self?.otomatikKaydet() }
+        if editorEtkin { kaydedici.zamanlayiciKur { [weak self] in self?.otomatikKaydet() } }
     }
 
     /// Mac didChangeText gibi: GTK işlem ve imleç güncellemesini bitirdikten sonra.
     private func degisiklikKancalariniBildir() {
+        let beklenen = nesil
         Platform.anaIsParcaciginda { [weak self] in
-            guard let self else { return }
+            guard let self, self.nesil == beklenen else { return }
             for kanca in self.degisiklikSonrasi { kanca() }
         }
     }
@@ -412,34 +662,22 @@ final class LinuxEditor: LinuxEditorProtokolu {
         return true
     }
 
-    /// GtkMessageDialog (4.6'da AlertDialog yok). Yanıt, düğmenin 1'den başlayan sırasıdır.
+    /// Tek diyalog kuralı: biri açıkken ikincisi gösterilmez (false). Yanıt, düğmenin 1'den başlayan sırasıdır.
     @discardableResult
-    private func diyalog(_ baslik: String, _ aciklama: String, dugmeler: [String], _ yanit: @escaping (Int) -> Void) -> Bool {
+    private func diyalog(_ baslik: String, _ aciklama: String, dugmeler: [String], ust: LinuxDiyalog.Ust? = nil,
+                         _ yanit: @escaping (Int) -> Void) -> Bool {
         guard !diyalogAcik, let pencere else { return false }
         diyalogAcik = true
-        // gtk_message_dialog_new variadic olduğu için özellikler ayrı yazılır.
-        let nesne = UnsafeMutableRawPointer(g_object_new_with_properties(gtk_message_dialog_get_type(), 0, nil, nil)!)
-        gNesneOzelligi(nesne, "message-type", .sayim(gtk_message_type_get_type(), Int32(GTK_MESSAGE_WARNING.rawValue)))
-        gNesneOzelligi(nesne, "text", .metin(baslik))
-        gNesneOzelligi(nesne, "secondary-text", .metin(aciklama))
-        let widget = nesne.assumingMemoryBound(to: GtkWidget.self)
-        let pano = nesne.assumingMemoryBound(to: GtkDialog.self)
-        gtk_window_set_transient_for(nd_window(widget), nd_window(pencere.pencere))
-        gtk_window_set_modal(nd_window(widget), 1)
-        for (sira, ad) in dugmeler.enumerated() { gtk_dialog_add_button(pano, ad, Int32(sira + 1)) }
-        gtk_dialog_set_default_response(pano, 1)
-        GtkKoprusu.sinyalBagla(nesne, "response") { [weak self] (secilen: guint) in
-            self?.diyalogAcik = false
-            // Sinyal closure'ı yanıt işlenirken serbest kalmasın diye yok etme sonraya bırakılır.
-            Platform.anaIsParcaciginda { [weak self] in
-                gtk_window_destroy(nd_window(widget))
-                guard let self, let hata = self.bekleyenKayitHatasi else { return }
+        LinuxDiyalog.mesaj(ust: ust ?? pencere.pencere, baslik: baslik, aciklama: aciklama, dugmeler: dugmeler,
+                           kapandi: { [weak self] in self?.diyalogAcik = false }) { [weak self] secilen in
+            yanit(secilen)
+            guard let self else { return }
+            if let hata = self.bekleyenKayitHatasi {
                 self.bekleyenKayitHatasi = nil
                 if self.mevcutURL == hata.url { _ = self.kayitHatasi(hata.neden, url: hata.url, bildir: true) }
             }
-            yanit(Int(Int32(bitPattern: secilen)))
+            self.bekleyenIslemleriSurdur()
         }
-        gtk_window_present(nd_window(widget))
         return true
     }
 
@@ -447,155 +685,42 @@ final class LinuxEditor: LinuxEditorProtokolu {
 
     fileprivate func metinEklenecek(_ iter: GtkTextIter, _ metin: String) {
         guard !adaptor.programatik else { return }
-        if geriAliniyor { geriAlmaUzunlugu += (metin as NSString).length; return }
         let konum = LinuxMetinDonusumu.konum(iter)
         guard konum >= 0, konum <= anlamsalBelge.length, GtkKoprusu.aynalamaHatasi(tampon) == nil else {
             GtkKoprusu.aynalamaKaymasi(tampon, "Aynalama ekleme konumu geçersiz: \(konum)")
             return
         }
         let o = yazim(konum)
-        anlikKaydet(NSRange(location: konum, length: 0), yeni: NSAttributedString(string: metin, attributes: o), tur: .ekleme)
         adaptor.eklendi(konum: konum, metin: metin, yazim: o)
     }
 
     fileprivate func metinSilinecek(_ bas: GtkTextIter, _ son: GtkTextIter) {
         guard !adaptor.programatik else { return }
-        let aralik = LinuxMetinDonusumu.aralik(bas, son)
-        if geriAliniyor { geriAlmaUzunlugu += aralik.length; return }
-        let s = secim
-        let tur: GecmisTuru = s.length > 0 ? .diger : s.location == NSMaxRange(aralik) ? .geriSilme :
-            s.location == aralik.location ? .ileriSilme : .diger
-        anlikKaydet(aralik, yeni: NSAttributedString(string: ""), tur: tur)
-        adaptor.silindi(aralik)
+        adaptor.silindi(LinuxMetinDonusumu.aralik(bas, son))
     }
 
     private func degisti() {
-        guard !adaptor.programatik, !geriAliniyor else { return }
+        guard !adaptor.programatik else { return }
         adaptor.bekleyeniUygula()
         icerikDegisti()
     }
 
-    private func anlikKaydet(_ aralik: NSRange, yeni: NSAttributedString, tur: GecmisTuru = .diger) {
-        guard aralik.location >= 0, aralik.length >= 0, aralik.location <= anlamsalBelge.length,
-              aralik.length <= anlamsalBelge.length - aralik.location else {
-            GtkKoprusu.aynalamaKaymasi(tampon, "Geçmiş aralığı belge dışında: \(aralik)")
-            return
-        }
-        guard aralik.length + yeni.length > 0 else { return }
-        let degisim = Duzenleme(tur: tur, konum: aralik.location,
-                               eski: anlamsalBelge.attributedSubstring(from: aralik), yeni: NSAttributedString(attributedString: yeni))
-        if var adim = bekleyenGecmis {
-            if let son = adim.last, let birlesik = gecmisiBirlestir(son, degisim, grupIcinde: true) {
-                adim[adim.count - 1] = birlesik
-            } else { adim.append(degisim) }
-            bekleyenGecmis = adim
-        } else { gecmisGrubunuKaydet([degisim]) }
-        ileriGoruntuler.removeAll()
-    }
-
-    /// GTK sınırı tuş/sinyal sayısı değil, birleşik kullanıcı adımı sayısıdır.
-    private func gecmisGrubunuKaydet(_ adim: [Duzenleme]) {
-        guard !adim.isEmpty else { return }
-        if gecmisBirlesebilir, adim.count == 1, let onceki = anlikGoruntuler.last, onceki.count == 1,
-           let birlesik = gecmisiBirlestir(onceki[0], adim[0], grupIcinde: false) {
-            anlikGoruntuler[anlikGoruntuler.count - 1] = [birlesik]
-        } else { anlikGoruntuler.append(adim) }
-        gecmisBirlesebilir = true
-        if anlikGoruntuler.count > 100 { anlikGoruntuler.removeFirst(anlikGoruntuler.count - 100) }
-    }
-
-    /// GTK 4.6 GtkTextHistory: bitişik yazım, Backspace ve Delete birleştirme sınırları.
-    private func gecmisiBirlestir(_ eski: Duzenleme, _ yeni: Duzenleme, grupIcinde: Bool) -> Duzenleme? {
-        guard eski.tur == yeni.tur, eski.tur != .diger else { return nil }
-        let metin = NSMutableAttributedString(attributedString: eski.tur == .ekleme ? eski.yeni : eski.eski)
-        let ek = eski.tur == .ekleme ? yeni.yeni : yeni.eski
-        switch eski.tur {
-        case .ekleme:
-            guard eski.konum + eski.yeni.length == yeni.konum else { return nil }
-            if !grupIcinde {
-                let yazi = ek.string.unicodeScalars
-                guard yazi.count <= 1000, !metin.string.contains("\n"), !ek.string.contains("\n") else { return nil }
-                let bosluk = yazi.allSatisfy { $0.properties.isWhitespace } &&
-                    (metin.string.unicodeScalars.last?.properties.isWhitespace ?? true)
-                guard bosluk || (yazi.first?.properties.isWhitespace != true &&
-                    !(yazi.count > 1 && yazi.contains { $0.properties.isWhitespace })) else { return nil }
-            }
-            metin.append(ek)
-            return Duzenleme(tur: .ekleme, konum: eski.konum, eski: eski.eski, yeni: metin)
-        case .geriSilme:
-            guard yeni.konum + yeni.eski.length == eski.konum else { return nil }
-            metin.insert(ek, at: 0)
-        case .ileriSilme:
-            guard eski.konum == yeni.konum,
-                  !ek.string.unicodeScalars.contains(where: { $0.properties.isWhitespace }) ||
-                  metin.string.unicodeScalars.allSatisfy({ $0.properties.isWhitespace }) else { return nil }
-            metin.append(ek)
-        case .diger: return nil
-        }
-        return Duzenleme(tur: eski.tur, konum: min(eski.konum, yeni.konum), eski: metin, yeni: eski.yeni)
-    }
-
-    private func geriAl(ileri: Bool) {
-        guard (ileri ? gtk_text_buffer_get_can_redo(tampon) : gtk_text_buffer_get_can_undo(tampon)) != 0 else { return }
-        guard GtkKoprusu.aynalamaHatasi(tampon) == nil else { return }
-        gecmisBirlesebilir = false
-        geriAliniyor = true
-        defer { geriAliniyor = false }
-        geriAlmaUzunlugu = 0
-        if ileri { gtk_text_buffer_redo(tampon) } else { gtk_text_buffer_undo(tampon) }
-        let adim = ileri ? ileriGoruntuler.last ?? [] : geriAlmaAdimi()
-        guard !adim.isEmpty, adim.reduce(0, { $0 + $1.uzunluk }) == geriAlmaUzunlugu else {
-            // Beklenmeyen GTK geçmişinde belgeyi bozma; tamponu eski hâline geri al.
-            if ileri { gtk_text_buffer_undo(tampon) } else { gtk_text_buffer_redo(tampon) }
-            FileHandle.standardError.write(Data("[NotDefteri] GTK/anlamsal geri alma adımı eşleşmedi.\n".utf8))
-            diyalog("Geri alma uygulanamadı", "GTK geçmişi ile belge geçmişi eşleşmedi. İçerik korundu.", dugmeler: ["Tamam"]) { _ in }
-            return
-        }
-        gecmisAdiminiUygula(adim, ileri: ileri)
-        adaptor.gorunumuUygula(NSRange(location: 0, length: anlamsalBelge.length))
-        yazimOnceligi = nil
-        icerikDegisti()
-    }
-
-    /// GTK yazımı birleştirebilir. Sinyallerin gerçekten geri aldığı kadar aralık çıkarılır;
-    /// metin eşitliğiyle anlık görüntü aranmaz, aynı metindeki biçim değişikliği de korunur.
-    private func geriAlmaAdimi() -> [Duzenleme] {
-        var toplam = 0, sayi = 0
-        for adim in anlikGoruntuler.reversed() {
-            toplam += adim.reduce(0) { $0 + $1.uzunluk }
-            sayi += 1
-            if toplam >= geriAlmaUzunlugu { break }
-        }
-        return toplam == geriAlmaUzunlugu ? anlikGoruntuler.suffix(sayi).flatMap { $0 } : []
-    }
-
-    private func gecmisAdiminiUygula(_ adim: [Duzenleme], ileri: Bool) {
-        for degisim in ileri ? adim : adim.reversed() {
-            let aralik = NSRange(location: degisim.konum, length: ileri ? degisim.eski.length : degisim.yeni.length)
-            anlamsalBelge.replaceCharacters(in: aralik, with: ileri ? degisim.yeni : degisim.eski)
-        }
-        if ileri {
-            ileriGoruntuler.removeLast()
-            anlikGoruntuler.append(adim)
-        } else {
-            var kalan = adim.reduce(0) { $0 + $1.uzunluk }
-            while kalan > 0, let son = anlikGoruntuler.popLast() {
-                kalan -= son.reduce(0) { $0 + $1.uzunluk }
-            }
-            ileriGoruntuler.append(adim)
-            // Sınırı GTK belirler: 100 birleşik adım, 100 tuş değil.
-            if gtk_text_buffer_get_can_undo(tampon) == 0 { anlikGoruntuler.removeAll() }
-        }
-    }
-
     // MARK: Yazım öznitelikleri
+
+    /// Yer tutucu ve blok işareti öznitelikleri gerçek yazıya taşınamaz.
+    static func yapisalYazimIsaretleriniTemizle(_ oznitelikler: Oznitelikler) -> Oznitelikler {
+        var sonuc = oznitelikler
+        for anahtar in [kBlokIsaretiAnahtari, kBosKodSatiriAnahtari] { sonuc.removeValue(forKey: anahtar) }
+        return sonuc
+    }
 
     /// NSTextView gibi önceki karakterin öznitelikleri; ardından Mac'teki blokYaziminiGuncelle kuralları.
     private func yazim(_ konum: Int) -> Oznitelikler {
         var o = yazimOnceligi ?? (anlamsalBelge.length > 0
             ? anlamsalBelge.attributes(at: min(max(0, konum - 1), anlamsalBelge.length - 1), effectiveRange: nil) : [:])
+        o = Self.yapisalYazimIsaretleriniTemizle(o)
         let oncekiBlok = MetinBlogu(oznitelik: o[kMetinBloguAnahtari])
-        for anahtar in [kBlokIsaretiAnahtari, kBosKodSatiriAnahtari, kGorselAnahtari, kSayfaBagiAnahtari,
+        for anahtar in [kGorselAnahtari, kSayfaBagiAnahtari,
                         kKacisliKoseParantezAnahtari, kBaglantiAnahtari, kCiplakBagAnahtari] {
             o.removeValue(forKey: anahtar)
         }
@@ -635,7 +760,7 @@ final class LinuxEditor: LinuxEditorProtokolu {
     // MARK: Klavye ve fare
 
     fileprivate func tusBasildi(_ tus: guint, _ durum: GdkModifierType) -> Bool {
-        guard mevcutURL != nil else { return false }
+        guard editorEtkin else { return false }
         // Mac keyDown: önce bulucu/menü, ardından kısayollar ve otomatik blok biçimi.
         for kanca in tusOncesi where kanca(tus, durum.rawValue) { return true }
         guard GtkKoprusu.aynalamaHatasi(tampon) == nil else { return false }
@@ -645,8 +770,6 @@ final class LinuxEditor: LinuxEditorProtokolu {
             switch tus {
             case 0x62, 0x42: satirIciBicimiDegistir(kKalinAnahtari) // b
             case 0x69, 0x49: satirIciBicimiDegistir(kItalikAnahtari) // i
-            case 0x7a, 0x5a: geriAl(ileri: shift) // z / CapsLock
-            case 0x79, 0x59: geriAl(ileri: true) // y
             default: return false
             }
             return true
@@ -659,7 +782,8 @@ final class LinuxEditor: LinuxEditorProtokolu {
             return blokKisayolunuUygula("\n") || bloktaYeniSatir()
         case 0xff09: return !shift && blokGirintisiniDegistir(1) // Tab
         case 0xfe20: return blokGirintisiniDegistir(-1) // ISO_Left_Tab (Shift+Tab)
-        case 0xff08: return satirBasindaBicimiKaldir() // BackSpace
+        case 0xff08: return cerceveliSecimiSil() || blokDevamindaGeriSil() || cerceveliBloktaGeriSil() || satirBasindaBicimiKaldir() // BackSpace
+        case 0xffff: return !shift && cerceveliSecimiSil() // Delete; Shift+Delete GTK'nin Kes eylemidir.
         case 0x20:
             imleciIsaretSonrasinaAl()
             return blokKisayolunuUygula(" ")
@@ -682,7 +806,7 @@ final class LinuxEditor: LinuxEditorProtokolu {
     }
 
     fileprivate func tiklandi(_ x: Double, _ y: Double) -> Bool {
-        guard mevcutURL != nil, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return false }
+        guard editorEtkin, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return false }
         var bx: Int32 = 0, by: Int32 = 0
         gtk_text_view_window_to_buffer_coords(gorunum, GTK_TEXT_WINDOW_WIDGET, Int32(x), Int32(y), &bx, &by)
         var iter = GtkTextIter()
@@ -705,15 +829,17 @@ final class LinuxEditor: LinuxEditorProtokolu {
     // MARK: Biçim komutları (Mac: NotPenceresi+Bicimlendirme, NotMetinGorunumu+Bloklar)
 
     /// Aralık, anlamsal belge ve GTK metni mevcut düzenleme yolunda tek undo grubudur.
-    func aralikDegistir(_ utf16: NSRange, ile yeni: NSAttributedString) {
-        guard utf16.location >= 0, utf16.location <= anlamsalBelge.length else { return }
+    func aralikDegistir(_ utf16: NSRange, ile yeni: NSAttributedString,
+                       secim hedef: NSRange? = nil, yazim: Oznitelikler? = nil) {
+        guard editorEtkin, utf16.location >= 0, utf16.location <= anlamsalBelge.length else { return }
         blokDuzenle(utf16, yeni: yeni,
-                    secim: NSRange(location: utf16.location + yeni.length, length: 0), yazim: yazimOnceligi, ayriAdim: true)
+                    secim: hedef ?? NSRange(location: utf16.location + yeni.length, length: 0),
+                    yazim: yazim ?? yazimOnceligi, ayriAdim: true)
     }
 
     /// Değer nil ise biçim kaldırılır; boş seçimde yalnızca sonraki yazım etkilenir.
     func satirIciBicimUygula(_ anahtar: NSAttributedString.Key, deger: Any?) {
-        guard mevcutURL != nil, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return }
+        guard editorEtkin, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return }
         let s = secim
         if s.length == 0 {
             var o = yazim(s.location)
@@ -732,7 +858,7 @@ final class LinuxEditor: LinuxEditorProtokolu {
 
     /// Mac menuBlogunuUygula: paragraf kapsamı, eski işaretlerin temizliği, tek undo.
     func blokUygula(_ tur: MetinBlogu.Tur) {
-        guard mevcutURL != nil, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return }
+        guard editorEtkin, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return }
         let paragraf = ns.paragraphRange(for: secim)
         let yeni = NSMutableAttributedString(attributedString: anlamsalBelge.attributedSubstring(from: paragraf))
         var isaretler: [NSRange] = []
@@ -820,8 +946,8 @@ final class LinuxEditor: LinuxEditorProtokolu {
 
     /// Metin, öznitelik ve seçim tek geri alma adımıdır; numaralar komşu listeyle yeniden sayılır.
     private func blokDuzenle(_ aralik: NSRange, yeni: NSAttributedString, secim hedef: NSRange,
-                             yazim: Oznitelikler?, numarala: Bool = false, ayriAdim: Bool = false) {
-        guard mevcutURL != nil, GtkKoprusu.aynalamaHatasi(tampon) == nil,
+                             yazim: Oznitelikler?, numarala: Bool = false, ayriAdim: Bool = false, gizliyken: Bool = false) {
+        guard (editorEtkin || gizliyken && mevcutURL != nil), GtkKoprusu.aynalamaHatasi(tampon) == nil,
               aralik.location >= 0, aralik.length >= 0, aralik.location <= anlamsalBelge.length,
               aralik.length <= anlamsalBelge.length - aralik.location else { return }
         // GTK tek eklemeyi önceki yazıma birleştirir. Eklenti eklemesi dolu paragrafın
@@ -836,7 +962,7 @@ final class LinuxEditor: LinuxEditorProtokolu {
         yeniSecim.location += kapsam.location
         imlecIzlenmiyor = true
         gtk_text_buffer_begin_user_action(tampon)
-        anlikKaydet(kapsam, yeni: eklenecek, tur: kapsam.length == 0 ? .ekleme : .diger)
+        LinuxGorseller.birlesmeyiKes(tampon)
         adaptor.degistir(kapsam, ile: eklenecek)
         gtk_text_buffer_end_user_action(tampon)
         LinuxMetinDonusumu.secimiAyarla(tampon, yeniSecim)
@@ -848,6 +974,7 @@ final class LinuxEditor: LinuxEditorProtokolu {
     /// Tamamlayıcı (boşluk/satır sonu) normal yazım olarak ayrı geri alma adımında kalır.
     private func tamamlayiciyiYaz(_ metin: String) {
         gtk_text_buffer_begin_user_action(tampon)
+        LinuxGorseller.birlesmeyiKes(tampon)
         gtk_text_buffer_insert_interactive_at_cursor(tampon, metin, -1, 1)
         gtk_text_buffer_end_user_action(tampon)
     }
@@ -932,60 +1059,37 @@ final class LinuxEditor: LinuxEditorProtokolu {
     }
 
     private func bloktaYeniSatir() -> Bool {
-        let paragraf = ns.paragraphRange(for: secim)
-        let s = secim
-        let eski = anlamsalBelge.attributedSubstring(from: paragraf)
-        let mevcutYazim = yazim(s.location)
-        if mevcutYazim[kKodBloguAnahtari] != nil,
-           eski.string.replacingOccurrences(of: "\u{200B}", with: "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            blokDuzenle(paragraf, yeni: NSAttributedString(string: "\n"),
-                        secim: NSRange(location: paragraf.location + 1, length: 0), yazim: [:])
-            return true
-        }
-        let baslik = eski.length > 0 ? eski.attribute(kBaslikSeviyesiAnahtari, at: 0, effectiveRange: nil) as? Int : nil
-        if baslik != nil || blok(paragraf)?.tur == .ayirici {
-            let yeni = NSMutableAttributedString(attributedString: eski)
-            let yerel = NSRange(location: s.location - paragraf.location, length: s.length)
-            yeni.replaceCharacters(in: yerel, with: NSAttributedString(string: "\n", attributes: mevcutYazim))
-            let alt = NSRange(location: yerel.location + 1, length: yeni.length - yerel.location - 1)
-            for anahtar in [kBaslikSeviyesiAnahtari, kBlokIsaretiAnahtari, kMetinBloguAnahtari,
-                            kUyariKutusuAnahtari, kParagrafGeometrisiAnahtari] + kFontAnahtarlari {
-                yeni.removeAttribute(anahtar, range: alt)
-            }
-            blokDuzenle(paragraf, yeni: yeni, secim: NSRange(location: s.location + 1, length: 0), yazim: [:])
-            return true
-        }
-        guard var blok = blok(paragraf) else { return false }
-        let isaret = blokIsaretiUzunlugu(eski)
-        let govde = (eski.string as NSString).substring(from: isaret).trimmingCharacters(in: .whitespacesAndNewlines)
-        if govde.isEmpty {
-            // Boş öğede Enter listeden çıkar.
-            let yeni = NSMutableAttributedString(attributedString: eski)
-            yeni.deleteCharacters(in: NSRange(location: 0, length: isaret))
-            blokBiciminiKaldir(yeni)
-            if blok.tur == .uyari, !yeni.string.hasSuffix("\n") { yeni.append(NSAttributedString(string: "\n")) }
-            blokDuzenle(paragraf, yeni: yeni, secim: NSRange(location: paragraf.location, length: 0),
-                        yazim: [:], numarala: blok.listeMi)
-            return true
-        }
-        let yeni = NSMutableAttributedString(attributedString: eski)
-        let bas = max(isaret, s.location - paragraf.location)
-        let yerel = NSRange(location: bas, length: max(bas, NSMaxRange(s) - paragraf.location) - bas)
-        yeni.replaceCharacters(in: yerel, with: NSAttributedString(string: "\n", attributes: mevcutYazim))
-        blok.tamamlandi = false
-        blok.kaynakOnEk = nil
-        if blok.tur == .uyari { blok.devam = true }
-        if blok.tur == .numarali { blok.numara = blok.numara == Int.max ? 1 : blok.numara + 1 }
-        let yeniIsaret = blokIsaretiniUret(blok)
-        let altBaslangic = yerel.location + 1
-        yeni.insert(yeniIsaret, at: altBaslangic)
-        blokBiciminiUygula(blok, metne: yeni, aralik: NSRange(location: altBaslangic, length: yeni.length - altBaslangic))
-        var sonrakiYazim = mevcutYazim
-        sonrakiYazim.merge(blok.oznitelikler) { _, yeni in yeni }
-        blokDuzenle(paragraf, yeni: yeni,
-                    secim: NSRange(location: paragraf.location + altBaslangic + yeniIsaret.length, length: 0),
-                    yazim: sonrakiYazim, numarala: blok.listeMi)
+        guard let degisim = yapiEnterKurali(anlamsalBelge, imlec: secim) else { return false }
+        yapiDegisiminiPlanla(degisim)
         return true
+    }
+
+    private func blokDevamindaGeriSil() -> Bool {
+        guard let degisim = yapiDevamindaGeriSil(anlamsalBelge, imlec: secim) else { return false }
+        yapiDegisiminiPlanla(degisim)
+        return true
+    }
+
+    private func yapiDegisiminiPlanla(_ degisim: YapiEnterDegisimi) {
+        let url = mevcutURL, secilen = secim, beklenen = nesil
+        let eski = anlamsalBelge.attributedSubstring(from: degisim.aralik)
+        // Sinyal bitince, bir sonraki tuştan önce uygula. Varsayılan idle önceliği
+        // hızlı Enter/Backspace + yazımda kararı daha sonraki belgeye taşıyabilir.
+        let veri = Unmanaged.passRetained(YapiEnterEylemi { [weak self] in
+            guard let self, self.nesil == beklenen, self.editorEtkin, self.mevcutURL == url, self.secim == secilen,
+                  NSMaxRange(degisim.aralik) <= self.anlamsalBelge.length,
+                  self.anlamsalBelge.attributedSubstring(from: degisim.aralik).isEqual(to: eski),
+                  gtk_text_view_get_editable(self.gorunum) != 0,
+                  GtkKoprusu.aynalamaHatasi(self.tampon) == nil else { return }
+            self.aralikDegistir(degisim.aralik, ile: degisim.metin,
+                                secim: NSRange(location: degisim.imlec, length: 0), yazim: degisim.yazim)
+        }).toOpaque()
+        g_idle_add_full(G_PRIORITY_HIGH, { veri in
+            if let veri { Unmanaged<YapiEnterEylemi>.fromOpaque(veri).takeUnretainedValue().uygula() }
+            return 0
+        }, veri, { veri in
+            if let veri { Unmanaged<YapiEnterEylemi>.fromOpaque(veri).release() }
+        })
     }
 
     private func blokGirintisiniDegistir(_ fark: Int) -> Bool {
@@ -1009,6 +1113,144 @@ final class LinuxEditor: LinuxEditorProtokolu {
         guard degisti else { return false }
         blokDuzenle(paragraf, yeni: yeni, secim: secim, yazim: sonrakiYazim, numarala: numarala)
         return true
+    }
+
+    /// Tam kutuda kalan işaretler temizlenir; başlangıcı silinen kısmi uyarıda
+    /// kalan ilk paragraf aynı silme ve geri alma kapsamına alınır.
+    fileprivate func cerceveliSecimiSil(kes: Bool = false) -> Bool {
+        let s = secim
+        guard mevcutURL != nil, gtk_text_view_get_editable(gorunum) != 0,
+              GtkKoprusu.aynalamaHatasi(tampon) == nil,
+              s.length > 0, NSMaxRange(s) <= anlamsalBelge.length else { return false }
+        var kapsam = s, imlec = s.location, duzeltmeVar = false
+        var islemler: [(NSRange, NSAttributedString)] = [(s, NSAttributedString(string: ""))]
+        anlamsalBelge.enumerateAttribute(kBlokKimligiAnahtari, in: s) { deger, alt, _ in
+            guard deger != nil,
+                  anlamsalBelge.attribute(kUyariKutusuAnahtari, at: alt.location, effectiveRange: nil) != nil ||
+                    anlamsalBelge.attribute(kKodBloguAnahtari, at: alt.location, effectiveRange: nil) != nil else { return }
+            var blok = NSRange()
+            _ = anlamsalBelge.attribute(kBlokKimligiAnahtari, at: alt.location, longestEffectiveRange: &blok,
+                                       in: NSRange(location: 0, length: anlamsalBelge.length))
+            let secilen = NSIntersectionRange(s, blok)
+            let kalanlar = [NSRange(location: blok.location, length: secilen.location - blok.location),
+                            NSRange(location: NSMaxRange(secilen), length: NSMaxRange(blok) - NSMaxRange(secilen))]
+                .map { ($0, kodBloguGovdesi(anlamsalBelge.attributedSubstring(from: $0))) }
+            guard kalanlar.map(\.1).joined().trimmingCharacters(in: .newlines).isEmpty else {
+                if kalanlar[0].1.isEmpty, NSMaxRange(secilen) < NSMaxRange(blok),
+                   let kimlik = deger as? String,
+                   let onarim = uyariBaslangiciniOnar(NSMaxRange(secilen), kimlik: kimlik) {
+                    duzeltmeVar = true
+                    kapsam = NSUnionRange(kapsam, onarim.aralik)
+                    islemler.append((onarim.aralik, onarim.metin))
+                }
+                return
+            }
+            duzeltmeVar = true; kapsam = NSUnionRange(kapsam, blok)
+            for (aralik, metin) in kalanlar where aralik.length > 0 {
+                islemler.append((aralik, NSAttributedString(string: metin)))
+                if NSMaxRange(aralik) <= s.location { imlec -= aralik.length - (metin as NSString).length }
+            }
+        }
+        guard duzeltmeVar else { return false }
+        let yeni = NSMutableAttributedString(attributedString: anlamsalBelge.attributedSubstring(from: kapsam))
+        for (aralik, metin) in islemler.sorted(by: { $0.0.location > $1.0.location }) {
+            yeni.replaceCharacters(in: NSRange(location: aralik.location - kapsam.location, length: aralik.length), with: metin)
+        }
+        if kes {
+            guard let pano = gtk_widget_get_clipboard(metinGorunumu) else { return false }
+            gtk_text_buffer_copy_clipboard(tampon, pano)
+        }
+        geriSilmeDegisiminiPlanla(kapsam, yeni: yeni, imlec: imlec)
+        return true
+    }
+
+    private func cerceveliBloktaGeriSil() -> Bool {
+        let s = secim
+        guard s.length == 0, anlamsalBelge.length > 0 else { return false }
+        let paragraf = ns.paragraphRange(for: s)
+        guard paragraf.length > 0 else { return false }
+        let eski = anlamsalBelge.attributedSubstring(from: paragraf)
+        let isaret = blokIsaretiUzunlugu(eski)
+        let uyari = blok(paragraf)
+        let kod = eski.attribute(kKodBloguAnahtari, at: 0, effectiveRange: nil) != nil
+        guard uyari?.tur == .uyari || kod, s.location <= paragraf.location + isaret else { return false }
+        var kodAraligi = NSRange()
+        if kod {
+            _ = anlamsalBelge.attribute(kKodBloguAnahtari, at: paragraf.location, longestEffectiveRange: &kodAraligi,
+                                       in: NSRange(location: 0, length: anlamsalBelge.length))
+            let kodGovdesi = kodBloguGovdesi(anlamsalBelge.attributedSubstring(from: kodAraligi))
+            if kodGovdesi.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                geriSilmeDegisiminiPlanla(kodAraligi, yeni: NSAttributedString(string: kodGovdesi), imlec: kodAraligi.location)
+                return true
+            }
+        }
+        let govde = kodBloguGovdesi(eski)
+        if let uyari, uyari.tur == .uyari, govde.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            bosUyariParagrafiniKaldir(paragraf, blok: uyari, govde: govde)
+            return true
+        }
+        if let uyari, uyari.tur == .uyari {
+            uyariDevaminiGeriBirlestir(paragraf, blok: uyari, isaret: isaret)
+            return true
+        }
+        // Kodun ilk görünmez işareti korunur; devam satırında doğal birleştirme sürer.
+        return s.location <= kodAraligi.location + blokIsaretiUzunlugu(anlamsalBelge, konum: kodAraligi.location)
+    }
+
+    /// Boş paragraf kutuyu böldüğünde kalan kısmın Markdown başlığı da yenilenir;
+    /// normalleştirme ve komşu onarımı aynı geri alma adımında tutulur.
+    private func bosUyariParagrafiniKaldir(_ paragraf: NSRange, blok: MetinBlogu, govde: String) {
+        var kapsam = paragraf
+        let yeni = NSMutableAttributedString(string: govde)
+        if let onarim = uyariBaslangiciniOnar(NSMaxRange(paragraf), kimlik: blok.uyariKimligi) {
+            kapsam = NSUnionRange(paragraf, onarim.aralik)
+            yeni.append(onarim.metin)
+        }
+        geriSilmeDegisiminiPlanla(kapsam, yeni: yeni, imlec: paragraf.location)
+    }
+
+    private func uyariBaslangiciniOnar(_ konum: Int, kimlik: String) -> (aralik: NSRange, metin: NSAttributedString)? {
+        guard konum < anlamsalBelge.length,
+              var blok = self.blok(NSRange(location: konum, length: 0)),
+              blok.tur == .uyari, blok.uyariKimligi == kimlik else { return nil }
+        let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+        // Seçim paragrafın ortasında bitebilir; yalnızca kalan parça onarılır.
+        let aralik = NSRange(location: konum, length: NSMaxRange(paragraf) - konum)
+        let yeni = NSMutableAttributedString(attributedString: anlamsalBelge.attributedSubstring(from: aralik))
+        blok.devam = false
+        blok.kaynakOnEk = nil
+        blokBiciminiUygula(blok, metne: yeni, aralik: NSRange(location: 0, length: yeni.length))
+        return (aralik, yeni)
+    }
+
+    private func uyariDevaminiGeriBirlestir(_ paragraf: NSRange, blok mevcut: MetinBlogu, isaret: Int) {
+        guard paragraf.location > 0,
+              anlamsalBelge.attribute(kUyariKutusuAnahtari, at: paragraf.location - 1, effectiveRange: nil) as? String == mevcut.uyariKimligi else { return }
+        let onceki = ns.paragraphRange(for: NSRange(location: paragraf.location - 1, length: 0))
+        guard let oncekiBlok = blok(onceki) else { return }
+        let kapsam = NSUnionRange(onceki, paragraf)
+        let yeni = NSMutableAttributedString(attributedString: anlamsalBelge.attributedSubstring(from: kapsam))
+        let oncekiSon = (ns.substring(with: onceki).trimmingCharacters(in: .newlines) as NSString).length
+        yeni.deleteCharacters(in: NSRange(location: oncekiSon, length: onceki.length - oncekiSon + isaret))
+        blokBiciminiUygula(oncekiBlok, metne: yeni, aralik: NSRange(location: 0, length: yeni.length))
+        geriSilmeDegisiminiPlanla(kapsam, yeni: yeni, imlec: onceki.location + oncekiSon)
+    }
+
+    /// key-pressed sinyalinden çıkmadan tampon değişmez. Bekleyen işlem not,
+    /// seçim veya içerik değişmişse iptal edilir; aralikDegistir tek undo açar.
+    private func geriSilmeDegisiminiPlanla(_ aralik: NSRange, yeni: NSAttributedString, imlec: Int) {
+        let url = mevcutURL, secilen = secim, beklenen = nesil
+        let eski = anlamsalBelge.attributedSubstring(from: aralik)
+        Platform.anaIsParcaciginda { [weak self] in
+            guard let self, self.nesil == beklenen, self.editorEtkin, self.mevcutURL == url, self.secim == secilen,
+                  gtk_text_view_get_editable(self.gorunum) != 0, NSMaxRange(aralik) <= self.anlamsalBelge.length,
+                  self.anlamsalBelge.attributedSubstring(from: aralik).isEqual(to: eski) else { return }
+            self.aralikDegistir(aralik, ile: yeni)
+            self.imlecIzlenmiyor = true
+            LinuxMetinDonusumu.secimiAyarla(self.tampon, NSRange(location: imlec, length: 0))
+            self.imlecIzlenmiyor = false
+            self.yazimOnceligi = nil
+        }
     }
 
     private func satirBasindaBicimiKaldir() -> Bool {

@@ -10,6 +10,8 @@ final class LinuxTema {
         ("rgb(80%,80%,80%)", "rgb(73%,73%,73%)", "rgb(76%,76%,76%)"),
         ("rgb(86%,83%,76%)", "rgb(80%,76%,67%)", "rgb(82%,79%,71%)")
     ]
+    /// `renkler` ile aynı sıra; Görünüm > Tema menüsü bunu listeler.
+    static let adlar = ["Sepya", "Yeşilimsi Kağıt", "Gri Kağıt", "Krem"]
     private let display: OpaquePointer
     private let saglayici = gtk_css_provider_new()!
     private let ayarlar: OpaquePointer

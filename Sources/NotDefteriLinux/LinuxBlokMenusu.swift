@@ -50,6 +50,8 @@ private final class LinuxDuzenlemeAraclari {
             case .baslik1: return ["1", "b1"]
             case .baslik2: return ["2", "b2"]
             case .baslik3: return ["3", "b3"]
+            case .kod: return ["code", "kod"]
+            case .uyari: return ["att", "uyari"]
             case .sayfa: return ["page", "sayfa"]
             default: return []
             }
@@ -189,7 +191,7 @@ private final class LinuxDuzenlemeAraclari {
     private func kancalariKur(_ editor: LinuxEditor, _ pencere: LinuxPencere) {
         editor.tusOncesi.append { [weak self] in self?.tus($0, $1) ?? false }
         editor.degisiklikSonrasi.append { [weak self] in self?.guncellemeyiPlanla() }
-        editor.notAcildi.append { [weak self] _ in self?.sifirla() }
+        LinuxEklentiler.yasamDongusunuIzle(editor) { [weak self] in self?.sifirla() }
         let veri = Unmanaged.passRetained(MenuEylemi { [weak self] in self?.secimDegisti() }).toOpaque()
         g_signal_connect_data(UnsafeMutableRawPointer(editor.tampon), "mark-set", unsafeBitCast(secimDegistiC, to: GCallback.self),
                               veri, menuVerisiniBirak, GConnectFlags(rawValue: 0))
@@ -208,10 +210,39 @@ private final class LinuxDuzenlemeAraclari {
                 self.bulAc(degistir: degistir)
             }
         }
+        menuleriKaydet(pencere)
+    }
+
+    /// macOS Düzen > Bul ve Biçim menüleri. Kısayollar yukarıdaki kayıt ile editör tuş kancasında işlenir;
+    /// menüde yalnızca görünür (çift tetiklenmez).
+    private func menuleriKaydet(_ pencere: LinuxPencere) {
+        let bul: [(String, String, () -> Void)] = [
+            ("Bul…", "<Control>f", { [weak self] in self?.bulAc(degistir: false) }),
+            ("Bul ve Değiştir…", "<Control><Alt>f", { [weak self] in self?.bulAc(degistir: true) }),
+            ("Sonrakini Bul", "<Control>g", { [weak self] in self?.bulMenudenGezin(1) }),
+            ("Öncekini Bul", "<Control><Shift>g", { [weak self] in self?.bulMenudenGezin(-1) })]
+        for (ad, tetik, eylem) in bul { pencere.menuEkle(["Düzen", "Bul", ad], kisayol: tetik, kisayoluKaydet: false, eylem: eylem) }
+        let bicim: [(String, String, () -> Void)] = [
+            ("Üstü Çizili", "<Control><Shift>x", { [weak self] in self?.bicimDegistir(kUstuCiziliAnahtari) }),
+            ("Satır İçi Kod", "<Control>e", { [weak self] in self?.bicimDegistir(kSatirIciKodAnahtari) }),
+            ("Vurgu", "<Control><Alt>h", { [weak self] in self?.bicimDegistir(kVurguAnahtari) }),
+            ("Bağlantı", "<Control>k", { [weak self] in self?.baglantiAc() })]
+        for (ad, tetik, eylem) in bicim {
+            pencere.menuEkle(["Biçim", ad], kisayol: tetik, kisayoluKaydet: false) { [weak self] in
+                guard let editor = self?.editor, editor.editorEtkin else { return }
+                gtk_widget_grab_focus(editor.metinGorunumu)
+                eylem()
+            }
+        }
+    }
+
+    private func bulMenudenGezin(_ yon: Int) {
+        guard editor?.editorEtkin == true else { return }
+        bulGezin(yon)
     }
 
     private var duzenlemeOdagiVar: Bool {
-        guard let pencere, let editor, editor.acikURL != nil, let odak = gtk_window_get_focus(nd_window(pencere.pencere)) else { return false }
+        guard let pencere, let editor, editor.editorEtkin, let odak = gtk_window_get_focus(nd_window(pencere.pencere)) else { return false }
         return odak == editor.metinGorunumu || odak == bulCubugu || gtk_widget_is_ancestor(odak, bulCubugu) != 0
     }
 
@@ -247,7 +278,7 @@ private final class LinuxDuzenlemeAraclari {
     }
 
     private func guncelle() {
-        guard let editor, editor.acikURL != nil else { sifirla(); return }
+        guard let editor, editor.editorEtkin else { sifirla(); return }
         if acik(bulCubugu), gtk_search_bar_get_search_mode(OpaquePointer(bulCubugu)) != 0 { eslesmeleriGuncelle() }
         guard gtk_widget_has_focus(editor.metinGorunumu) != 0, baglantiSecimi == nil else {
             menuKapat(); gtk_popover_popdown(isaretci(bicimCubugu)); return
@@ -263,12 +294,14 @@ private final class LinuxDuzenlemeAraclari {
             guard let slashAraligi, secim.location == NSMaxRange(slashAraligi) else { menuKapat(); return }
             goster(menu); return
         }
-        slashGuncelle(secim.location)
+        slashGuncelle(secim)
     }
 
-    private func slashGuncelle(_ imlec: Int) {
-        guard let editor else { return }
-        editor.belgeyiOku { belge in
+    @discardableResult
+    private func slashGuncelle(_ secim: NSRange, kisayol: Bool = false) -> Bool {
+        guard let editor, secim.length == 0 else { menuKapat(); return false }
+        let imlec = secim.location
+        return editor.belgeyiOku { belge in
             let ns = belge.string as NSString
             let paragraf = ns.paragraphRange(for: NSRange(location: imlec, length: 0))
             let slash = ns.range(of: "/", options: .backwards, range: NSRange(location: paragraf.location, length: imlec - paragraf.location))
@@ -277,21 +310,30 @@ private final class LinuxDuzenlemeAraclari {
                     (slash.location > paragraf.location && ns.rangeOfCharacter(from: .whitespaces, range: NSRange(location: slash.location - 1, length: 1)).location != NSNotFound),
                   belge.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
                   belge.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else {
-                menuKapat(); kapatilanSlash = nil; return
+                menuKapat(); kapatilanSlash = nil; return false
             }
             let aralik = NSRange(location: slash.location, length: imlec - slash.location)
             let metin = ns.substring(with: aralik)
-            guard slash.location != kapatilanSlash else { menuKapat(); return }
             let sorgu = String(metin.dropFirst())
-            guard sorgu.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else { menuKapat(); return }
+            // Escape yalnızca menüyü kapatır; tam kısayol metni yine uygulanır.
+            if kisayol, let komut = [Komut.kod, .uyari].first(where: { $0.kisayollar.contains(sorgu.lowercased()) }) {
+                kapatilanSlash = nil
+                slashAraligi = aralik
+                komutlar = [komut]; secili = 0
+                menuSeciminiPlanla(kisayol: true)
+                return true
+            }
+            guard slash.location != kapatilanSlash else { menuKapat(); return false }
+            guard sorgu.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else { menuKapat(); return false }
             let sade = aramaIcinSadelestir(sorgu)
             let yeni = Komut.allCases.filter { sade.isEmpty || aramaIcinSadelestir($0.ad).contains(sade) || $0.kisayollar.contains { $0.hasPrefix(sade) } }
-            guard !yeni.isEmpty else { menuKapat(); return }
+            guard !yeni.isEmpty else { menuKapat(); return false }
             slashAraligi = aralik
             if komutlar != yeni || menuDugmeleri.isEmpty {
                 komutlar = yeni; secili = 0; menuSatirlariniKur(yeni.map(\.ad))
             }
             goster(menu)
+            return false
         }
     }
 
@@ -304,7 +346,7 @@ private final class LinuxDuzenlemeAraclari {
             gtk_box_append(nd_box(menuKutusu), dilBasligi)
         }
         for (sira, ad) in adlar.enumerated() {
-            menuDugmeleri.append(dugme(ad, kutu: menuKutusu) { [weak self] in self?.secili = sira; self?.menuSec() })
+            menuDugmeleri.append(dugme(ad, kutu: menuKutusu) { [weak self] in self?.secili = sira; self?.menuSeciminiPlanla() })
         }
         menuVurgula()
     }
@@ -343,13 +385,18 @@ private final class LinuxDuzenlemeAraclari {
             menuKapat(); gtk_popover_popdown(isaretci(bicimCubugu)); bulKapat()
             return true
         }
+        guard let editor, LinuxMetinDonusumu.secim(editor.tampon).length == 0 else { menuKapat(); return false }
+        if !shift, dilSorgusu == nil, [0xff0d, 0xff8d, 0x20].contains(tus),
+           slashGuncelle(LinuxMetinDonusumu.secim(editor.tampon), kisayol: true) {
+            return true
+        }
         guard acik(menu), !shift || dilSorgusu != nil else { return false }
         switch tus {
         case 0xff52, 0xff54:
             guard !menuDugmeleri.isEmpty else { return true }
             secili = (secili + (tus == 0xff52 ? -1 : 1) + menuDugmeleri.count) % menuDugmeleri.count
             menuVurgula()
-        case 0xff0d, 0xff8d: menuSec()
+        case 0xff0d, 0xff8d: menuSeciminiPlanla(kisayol: true)
         default:
             guard var sorgu = dilSorgusu else { return false }
             if tus == 0xff08 { if !sorgu.isEmpty { sorgu.removeLast() } }
@@ -367,7 +414,26 @@ private final class LinuxDuzenlemeAraclari {
         goster(menu)
     }
 
-    private func menuSec() {
+    private func kisayolMu(_ komut: Komut) -> Bool {
+        guard let editor, let aralik = slashAraligi else { return false }
+        return editor.belgeyiOku { belge in
+            guard NSMaxRange(aralik) <= belge.length else { return false }
+            let sorgu = String((belge.string as NSString).substring(with: aralik).dropFirst()).lowercased()
+            return komut.kisayollar.contains(sorgu)
+        }
+    }
+
+    private func menuSeciminiPlanla(kisayol: Bool = false) {
+        guard let editor else { return }
+        let url = editor.acikURL, aralik = slashAraligi, secim = LinuxMetinDonusumu.secim(editor.tampon), surum = nesil
+        Platform.anaIsParcaciginda { [weak self] in
+            guard let self, self.nesil == surum, editor.acikURL == url, self.slashAraligi == aralik,
+                  LinuxMetinDonusumu.secim(editor.tampon) == secim else { return }
+            self.menuSec(kisayol: kisayol)
+        }
+    }
+
+    private func menuSec(kisayol: Bool = false) {
         guard let editor, let aralik = slashAraligi, NSMaxRange(aralik) <= editor.belge.length else { menuKapat(); return }
         guard LinuxMetinDonusumu.secim(editor.tampon) == NSRange(location: NSMaxRange(aralik), length: 0),
               (editor.belge.string as NSString).substring(with: aralik).hasPrefix("/") else { menuKapat(); return }
@@ -378,7 +444,10 @@ private final class LinuxDuzenlemeAraclari {
         }
         guard komutlar.indices.contains(secili) else { return }
         let komut = komutlar[secili]
-        if komut == .kod { dilSorgusu = ""; dilleriFiltrele(); return }
+        if komut == .kod {
+            if kisayol, kisayolMu(.kod) { menuKapat(); paragrafDonustur(aralik, dil: ""); return }
+            dilSorgusu = ""; dilleriFiltrele(); return
+        }
         menuKapat()
         if komut.rawValue <= Komut.baslik3.rawValue { paragrafDonustur(aralik, baslik: komut.rawValue + 1); return }
         uygulaniyor = true
@@ -455,10 +524,7 @@ private final class LinuxDuzenlemeAraclari {
 
     private func altSayfaOlustur() {
         guard let editor, let ust = editor.acikURL else { return }
-        guard editor.simdiKaydet() else {
-            editor.kaydetmedenDevam { [weak self] in self?.altSayfayiYaz(ust) }; return
-        }
-        altSayfayiYaz(ust)
+        editor.islemOncesi { [weak self] in self?.altSayfayiYaz(ust) }
     }
 
     private func altSayfayiYaz(_ ust: URL) {
@@ -609,7 +675,7 @@ private final class LinuxDuzenlemeAraclari {
     }
 
     private func bulAc(degistir: Bool) {
-        guard let editor, editor.acikURL != nil else { return }
+        guard let editor, editor.editorEtkin else { return }
         menuKapat(); gtk_popover_popdown(isaretci(bicimCubugu)); baglantiSecimi = nil
         gtk_popover_popdown(isaretci(baglanti))
         let secim = LinuxMetinDonusumu.secim(editor.tampon)

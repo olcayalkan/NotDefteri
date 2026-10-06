@@ -2,10 +2,6 @@ import CGtk
 import Foundation
 import NotDefteriCekirdek
 
-protocol LinuxEditorProtokolu: AnyObject {
-    func notuAc(_ url: URL)
-}
-
 package enum LinuxUygulamasi {
     package static func calistir() -> Int32 {
         GtkKoprusu.platformuKur()
@@ -26,13 +22,14 @@ package enum LinuxUygulamasi {
             let panel = LinuxKenarPaneli(pencere: yeni)
             yeni.editor = editor
             yeni.kenarPaneli = panel
-            panel.tasinmadanOnce = { [weak editor] in editor?.simdiKaydet() ?? false }
-            panel.kaydetmedenDevam = { [weak editor] devam in editor?.kaydetmedenDevam(devam) }
-            panel.notSilindi = { [weak editor] _ in editor?.bosalt() }
+            panel.islemOncesi = { [weak editor] devam in editor?.islemOncesi(devam) }
+            panel.notSilindi = { [weak editor] silinen in editor?.bosalt(silinen: silinen) }
             panel.notYenidenAdlandirildi = { [weak editor] eski, yeni in editor?.yolDegisti(eski: eski, yeni: yeni) }
             editor.notSecimiBildir = { [weak panel] in panel?.acikNotuBildir($0) }
-            editor.notKaydedildi = { [weak panel] url, metin in panel?.notIceriginiGuncelle(url, metin: metin) }
-            LinuxEklentiler.kur(pencere: yeni, editor: editor)
+            panel.baglarYenidenYazildi = { [weak editor] in editor?.baglariYenidenYaz($0) }
+            panel.anaSayfaIstendi = { [weak yeni] in yeni?.icerigiGoster(anaSayfa: true) }
+            editor.kayitSonrasi.append { [weak panel] url, metin in panel?.notIceriginiGuncelle(url, metin: metin) }
+            LinuxEklentiler.kur(pencere: yeni, editor: editor, panel: panel)
             GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(yeni.pencere), "destroy") { pencere = nil }
             gtk_window_present(nd_window(yeni.pencere))
         }

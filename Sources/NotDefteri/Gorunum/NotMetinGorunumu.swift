@@ -48,7 +48,6 @@ final class NotMetinGorunumu: NSTextView {
     let kelimeMetni = NSMutableString(string: "")
     var kelimeSayisi = 0
     var altBilgiDegisti: (() -> Void)?
-    weak var uyariEmojiAlani: NSTextField?
     var kodBekleyenAraliklar: [NSRange] = []
     var kodZamanlayicisi: Timer?
     var kodSurumu = 0
@@ -141,7 +140,9 @@ final class NotMetinGorunumu: NSTextView {
             switch event.keyCode {
             case 126: blokMenusu.gezin(-1); return
             case 125: blokMenusu.gezin(1); return
-            case 36, 76: blokMenusu.sec(); return
+            case 36, 76:
+                if !blokMenusu.dilSecimi, slashKisayolunuUygula() { return }
+                blokMenusu.sec(); return
             case 53:
                 kapatilanSlashKonumu = slashAraligi?.location
                 slashAraligi = nil
@@ -180,11 +181,18 @@ final class NotMetinGorunumu: NSTextView {
         super.scrollRangeToVisible(range)
     }
 
+    override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+        let izin = super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+        if izin { blokCerceveleriniKirlet(affectedCharRange) }
+        return izin
+    }
+
     override func didChangeText() {
         blokMenusu.gizle()
         secimCubugu.gizle()
         yazimOlceginiGuncelle()
         super.didChangeText()
+        blokCerceveleriniKirlet(selectedRange())
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.kodVeResimAraclariniGuncelle()
@@ -220,7 +228,7 @@ final class NotMetinGorunumu: NSTextView {
         if let metin = insertString as? String, metin.contains("/") { kapatilanSlashKonumu = nil }
         if !hasMarkedText(), let metin = insertString as? String, metin == " ",
            (replacementRange.location == NSNotFound || replacementRange == selectedRange()),
-           blokKisayolunuUygula(metin) { return }
+           slashKisayolunuUygula() || blokKisayolunuUygula(metin) { return }
         blokYaziminiGuncelle()
         super.insertText(insertString, replacementRange: replacementRange)
     }
@@ -228,7 +236,7 @@ final class NotMetinGorunumu: NSTextView {
     override func insertNewline(_ sender: Any?) {
         katlamaYeniSatirOncesi()
         blokYaziminiGuncelle()
-        if !hasMarkedText(), blokKisayolunuUygula("\n") || bloktaYeniSatir() { return }
+        if !hasMarkedText(), slashKisayolunuUygula() || blokKisayolunuUygula("\n") || bloktaYeniSatir() { return }
         super.insertNewline(sender)
     }
 
@@ -241,7 +249,61 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func deleteBackward(_ sender: Any?) {
-        if hasMarkedText() || !satirBasindaBicimiKaldir() { super.deleteBackward(sender) }
+        if hasMarkedText() { super.deleteBackward(sender); return }
+        if cerceveliSecimiSil() || blokDevamindaGeriSil() || uyariBasindaSil() || kodBloguBasindaSil() || satirBasindaBicimiKaldir() { return }
+        super.deleteBackward(sender)
+    }
+
+    override func deleteForward(_ sender: Any?) {
+        if !hasMarkedText(), cerceveliSecimiSil() { return }
+        super.deleteForward(sender)
+    }
+
+    override func delete(_ sender: Any?) {
+        if !hasMarkedText(), cerceveliSecimiSil() { return }
+        super.delete(sender)
+    }
+
+    /// Seçimin dışında yalnızca görünmez işaret/satır sonu kaldıysa kutu da silinir.
+    /// İşlem normal tuş/kesme yolunda yapılır; depo geri çağrısında düzenleme yapılmaz.
+    func cerceveliSecimiSil() -> Bool {
+        let secim = selectedRange()
+        guard isEditable, let depo = textStorage, secim.length > 0, NSMaxRange(secim) <= depo.length else { return false }
+        var kapsam = secim
+        var islemler: [(NSRange, NSAttributedString)] = [(secim, NSAttributedString())]
+        var imlec = secim.location
+        var kutuSilindi = false
+        depo.enumerateAttribute(kBlokKimligiAnahtari, in: secim) { deger, alt, _ in
+            guard deger != nil,
+                  depo.attribute(kUyariKutusuAnahtari, at: alt.location, effectiveRange: nil) != nil ||
+                  depo.attribute(kKodBloguAnahtari, at: alt.location, effectiveRange: nil) != nil else { return }
+            var blok = NSRange()
+            _ = depo.attribute(kBlokKimligiAnahtari, at: alt.location, longestEffectiveRange: &blok,
+                               in: NSRange(location: 0, length: depo.length))
+            guard let kalanlar = silinenKutununKalanlari(secim, blok: blok, depo: depo) else { return }
+            kutuSilindi = true
+            kapsam = NSUnionRange(kapsam, blok)
+            for (aralik, metin) in kalanlar where aralik.length > 0 {
+                islemler.append((aralik, NSAttributedString(string: metin)))
+                if NSMaxRange(aralik) <= secim.location { imlec -= aralik.length - (metin as NSString).length }
+            }
+        }
+        guard kutuSilindi else { return false }
+        let yeni = NSMutableAttributedString(attributedString: depo.attributedSubstring(from: kapsam))
+        for (aralik, metin) in islemler.sorted(by: { $0.0.location > $1.0.location }) {
+            yeni.replaceCharacters(in: NSRange(location: aralik.location - kapsam.location, length: aralik.length), with: metin)
+        }
+        blokDuzenle(kapsam, yeni: yeni, secim: NSRange(location: imlec, length: 0), yazim: [:])
+        return true
+    }
+
+    private func silinenKutununKalanlari(_ secim: NSRange, blok: NSRange, depo: NSTextStorage) -> [(NSRange, String)]? {
+        let secilen = NSIntersectionRange(secim, blok)
+        let araliklar = [NSRange(location: blok.location, length: secilen.location - blok.location),
+                        NSRange(location: NSMaxRange(secilen), length: NSMaxRange(blok) - NSMaxRange(secilen))]
+        let kalanlar = araliklar.map { ($0, kodBloguGovdesi(depo.attributedSubstring(from: $0))) }
+        guard kalanlar.map(\.1).joined().trimmingCharacters(in: .newlines).isEmpty else { return nil }
+        return kalanlar
     }
 
     private var resimIzlemeAlani: NSTrackingArea?
@@ -311,12 +373,12 @@ final class NotMetinGorunumu: NSTextView {
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
         uyariKutulariniCiz(rect)
+        kodBloklariniCiz(rect)
     }
 
     override func mouseDown(with event: NSEvent) {
         let nokta = convert(event.locationInWindow, from: nil)
         if katlamaIsaretiniTikla(nokta) { return }
-        if uyariEmojisiniTikla(noktada: nokta) { return }
         if yapilacakKutusunuDegistir(noktada: nokta) { return }
         if let resim = resimHucresi(noktada: nokta),
            resim.hucre.tutamacYonu(noktada: nokta, cerceve: resim.cerceve) != nil,
@@ -537,7 +599,8 @@ final class NotMetinGorunumu: NSTextView {
     override func cut(_ sender: Any?) {
         // Seçim silinmeden önce okunmalı.
         let markdown = secimiMarkdownaCevir()
-        super.cut(sender)
+        super.copy(sender)
+        if !cerceveliSecimiSil() { super.cut(sender) }
         panoyaYaz(markdown)
     }
 

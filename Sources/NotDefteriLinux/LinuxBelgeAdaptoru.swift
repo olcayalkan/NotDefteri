@@ -36,10 +36,6 @@ final class LinuxBelgeAdaptoru {
     private var etiketler: [String: UnsafeMutablePointer<GtkTextTag>] = [:]
     private var bekleyen: NSRange?
 
-    // Mac'teki system renkleri, 0.14 saydamlıkla (uyarı kutusu).
-    private static let uyariRenkleri = ["mavi": "0,122,255", "sarı": "255,204,0", "kırmızı": "255,59,48",
-                                       "yeşil": "52,199,89", "gri": "142,142,147"]
-
     init(tampon: UnsafeMutablePointer<GtkTextBuffer>) {
         self.tampon = tampon
         tablo = gtk_text_buffer_get_tag_table(tampon)
@@ -51,7 +47,7 @@ final class LinuxBelgeAdaptoru {
         etiket("soluk", [("foreground", .metin("rgba(128,128,128,0.9)"))])
         etiket("mono", [("family", .metin("monospace"))])
         etiket("kodArka", [("background", .metin("rgba(0,0,0,0.08)"))])
-        etiket("kodBlogu", [("paragraph-background", .metin("rgba(0,0,0,0.08)"))])
+        etiket("kod-girinti", [("left-margin", .tam(24)), ("indent", .tam(0))])
         etiket("vurgu", [("background", .metin("rgba(255,204,0,0.3)"))])
         etiket("baglanti", [("foreground", .metin("#2a6fdb")),
                             ("underline", .sayim(pango_underline_get_type(), Int32(PANGO_UNDERLINE_SINGLE.rawValue)))])
@@ -158,20 +154,20 @@ final class LinuxBelgeAdaptoru {
         let kapsam = ns.paragraphRange(for: NSRange(location: konum, length: min(aralik.length, ns.length - konum)))
         guard kapsam.length > 0 else { return }
         var (bas, son) = GtkKoprusu.iterler(tampon, kapsam, metin: ns)
-        // Yalnızca adaptörün etiketlerini temizle; kod-/uyari-/katla- sahipleri korunur.
+        // Yalnızca adaptörün etiketlerini temizle; eklentilerin kod-/uyari-/katla- etiketleri korunur.
         for etiket in etiketler.values { gtk_text_buffer_remove_tag(tampon, etiket, &bas, &son) }
         var iter = bas
         belge.enumerateAttributes(in: kapsam) { o, alt, _ in
             var sonraki = iter
             gtk_text_iter_forward_chars(&sonraki, Int32(LinuxMetinDonusumu.karakterSayisi(ns, alt)))
-            for ad in etiketAdlari(o, paragrafBasi: ns.paragraphRange(for: NSRange(location: alt.location, length: 0)).location) {
+            for ad in etiketAdlari(o) {
                 gtk_text_buffer_apply_tag(tampon, ad, &iter, &sonraki)
             }
             iter = sonraki
         }
     }
 
-    private func etiketAdlari(_ o: Oznitelikler, paragrafBasi: Int) -> [UnsafeMutablePointer<GtkTextTag>] {
+    private func etiketAdlari(_ o: Oznitelikler) -> [UnsafeMutablePointer<GtkTextTag>] {
         var adlar: [String] = []
         let blok = MetinBlogu(oznitelik: o[kMetinBloguAnahtari])
         let kod = o[kKodBloguAnahtari] != nil
@@ -189,24 +185,22 @@ final class LinuxBelgeAdaptoru {
         let satirIciKod = o[kSatirIciKodAnahtari] as? Bool == true
         if satirIciKod || kod { adlar.append("mono") }
         if satirIciKod { adlar.append("kodArka") }
-        if kod { adlar.append("kodBlogu") }
+        if kod { adlar.append("kod-girinti") }
         if o[kVurguAnahtari] as? Bool == true { adlar.append("vurgu") }
         if o[kBaglantiAnahtari] != nil || o[kSayfaBagiAnahtari] != nil { adlar.append("baglanti") }
         if blok?.tur == .ayirici { adlar.append("ayirici") }
         if let blok, blok.tur == .uyari {
-            let rgb = Self.uyariRenkleri[blok.renk] ?? Self.uyariRenkleri["gri"]!
-            adlar.append(dinamik("uyari:\(rgb)", [("paragraph-background", .metin("rgba(\(rgb),0.14)"))]))
-        }
-        if let geometri = o[kParagrafGeometrisiAnahtari] as? [String: Any] {
-            let gizliBas = blok?.tur == .uyari && blok?.devam == false && belge.mutableString.character(at: paragrafBasi) == 0x200B
-            adlar.append(paragrafEtiketi(geometri, uyariBasiGizli: gizliBas))
+            adlar.append(dinamik("uyari-girinti-\(blok.seviye)", [("left-margin", .tam(Int32(blok.seviye * 24 + 24))),
+                ("indent", .tam(0)), ("pixels-above-lines", .tam(4)), ("pixels-below-lines", .tam(4))]))
+        } else if !kod, let geometri = o[kParagrafGeometrisiAnahtari] as? [String: Any] {
+            adlar.append(paragrafEtiketi(geometri))
         }
         return adlar.compactMap { etiketler[$0] }
     }
 
     /// Mac'teki NSParagraphStyle eşdeğeri. GTK'da negatif indent asılı girintidir:
     /// ilk satır sol kenarda, diğerleri |indent| kadar içeride; sekme durağı ilk satır başından ölçülür.
-    private func paragrafEtiketi(_ g: [String: Any], uyariBasiGizli: Bool) -> String {
+    private func paragrafEtiketi(_ g: [String: Any]) -> String {
         func deger(_ ad: String) -> Double { (g[ad] as? Double) ?? 0 }
         var govde = deger("govdeGirintisi")
         if let numara = g["numaraMetni"] as? String, !numara.isEmpty {
@@ -214,7 +208,7 @@ final class LinuxBelgeAdaptoru {
             let isaret = max(deger("isaretEnAzGenisligi"), Double(numara.count) * Double(kTabanPunto) * 0.6 + deger("isaretSonuBoslugu"))
             govde += isaret - deger("isaretEnAzGenisligi")
         }
-        let ilk = uyariBasiGizli ? govde : deger("ilkSatirGirintisi")
+        let ilk = deger("ilkSatirGirintisi")
         let sol = Int32(min(ilk, govde)), girinti = Int32(ilk - govde)
         let sekme = Int32(govde > ilk ? govde - ilk : max(1, deger("sekmeAraligi")))
         let bosluk = Int32(deger("paragrafBoslugu"))

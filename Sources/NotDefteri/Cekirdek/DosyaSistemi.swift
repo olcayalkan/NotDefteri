@@ -1,5 +1,65 @@
 import Foundation
 
+package enum DosyaYoluHatasi: LocalizedError {
+    case gecersizYol
+    case kokDisinda(URL)
+    case sembolikBag(URL)
+
+    package var errorDescription: String? {
+        switch self {
+        case .gecersizYol: return "Geçersiz dosya yolu."
+        case .kokDisinda(let url): return "Yol notlar klasörünün dışında: \(url.path)"
+        case .sembolikBag(let url): return "Sembolik bağ içeren yol kullanılamaz: \(url.path)"
+        }
+    }
+}
+
+/// Eksik hedefe izin verir; mevcut bileşenlerde kopuk bağ dahil hiçbir bağı takip etmez.
+/// Kökün kendisi çözülür; alt yollar hem çözülmeden hem çözülerek kökle sınırlandırılır.
+@discardableResult
+package func notlarYolunuDogrula(_ url: URL, kok: URL = notlarKlasoru(), kokDahil: Bool = false) throws -> URL {
+    guard url.isFileURL, kok.isFileURL else { throw DosyaYoluHatasi.gecersizYol }
+    let taban = kok.standardizedFileURL
+    let cozulmusKok = taban.resolvingSymlinksInPath().standardizedFileURL
+    let yol = url.standardizedFileURL
+    let ust = [taban, cozulmusKok].first { yol.path == $0.path || yol.path.hasPrefix($0.path + "/") }
+    guard let ust, kokDahil || yol.path != ust.path else { throw DosyaYoluHatasi.kokDisinda(url) }
+    // .. öncesinde kalan bileşenler de denetlenir; symlink/../ ile kontrol atlanamaz.
+    let hamUst = [taban, cozulmusKok].first { url.path == $0.path || url.path.hasPrefix($0.path + "/") }
+    guard let hamUst else { throw DosyaYoluHatasi.kokDisinda(url) }
+    var parca = hamUst
+    let parcalar = String(url.path.dropFirst(hamUst.path.count)).split(separator: "/")
+    for ad in parcalar {
+        if ad == "." { continue }
+        if ad == ".." {
+            guard parca != hamUst else { throw DosyaYoluHatasi.kokDisinda(url) }
+            parca.deleteLastPathComponent()
+            continue
+        }
+        parca.appendPathComponent(String(ad))
+        do {
+            let bilgi = try FileManager.default.attributesOfItem(atPath: parca.path)
+            if bilgi[.type] as? FileAttributeType == .typeSymbolicLink { throw DosyaYoluHatasi.sembolikBag(parca) }
+        } catch let hata as NSError where hata.domain == NSCocoaErrorDomain && [NSFileNoSuchFileError, NSFileReadNoSuchFileError].contains(hata.code) {
+            // Henüz oluşturulmamış hedef; sonraki bileşenler yine denetlenir.
+        }
+    }
+    let cozulmus = yol.resolvingSymlinksInPath().standardizedFileURL
+    guard cozulmus.path.hasPrefix(cozulmusKok.path + "/") || kokDahil && cozulmus == cozulmusKok else {
+        throw DosyaYoluHatasi.kokDisinda(url)
+    }
+    return cozulmus
+}
+
+/// fileExists kopuk bağlarda false verir; ad seçerken bağ da dolu hedef sayılır.
+package func dosyaYoluVarMi(_ url: URL) -> Bool {
+    (try? FileManager.default.attributesOfItem(atPath: url.path)) != nil
+}
+
+package func sayfaHedefiDoluMu(_ url: URL) -> Bool {
+    dosyaYoluVarMi(url) || ["md", "MD", "Md", "mD"].contains { dosyaYoluVarMi(url.appendingPathExtension($0)) }
+}
+
 // MARK: - Kaydetme konumu (Belgeler/NotDefteri)
 
 package func notlarKlasoru() -> URL {
