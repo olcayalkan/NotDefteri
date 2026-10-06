@@ -114,7 +114,10 @@ extension NotPenceresi {
                 // Sayfa taşınırken alt sayfalarını tutan klasör de birlikte taşınır.
                 guard kaydetURLe(mevcutURL, hazirMetin: metin, panelYenile: false) else { return }
                 kenarPaneli.baglantiOnbelleginiHazirla()
-                if let yeniURL = sayfayiYenidenAdlandir(mevcutURL, yeniAd: istenenAd), yeniURL != mevcutURL {
+                // Otomatik kayıtta modal uyarı çıkmaz (her kayıtta tekrarlanırdı); başarısızlıkta otomatik adlandırma kapanır.
+                let yeniURL = try? sayfayiYenidenAdlandirmaSonucu(mevcutURL, yeniAd: istenenAd)
+                if yeniURL == nil { otomatikAdlandirildiMi = false }
+                if let yeniURL, yeniURL != mevcutURL {
                     // Taşıma gerçekleşti; yazma başarısız olsa da yol artık budur.
                     mevcutDosyaURL = yeniURL
                     baslikEtiketiniGuncelle()

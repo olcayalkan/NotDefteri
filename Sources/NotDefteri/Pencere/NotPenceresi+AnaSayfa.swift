@@ -80,12 +80,11 @@ extension NotPenceresi {
     private func guncelYapilacakMetni(_ gorev: BekleyenYapilacak) -> String? {
         guard mevcutNotuKaybolmayacakSekildeKaydet() else { return nil }
         do {
+            try notlarYolunuDogrula(gorev.url)
             let metin = try String(contentsOf: gorev.url, encoding: .utf8)
-            let govde = sayfaUstbilgisiniAyir(metin).govde as NSString
-            guard kenarPaneli.icerikOnbellek[gorev.url]?.hamMarkdown == metin,
-                  mevcutDosyaURL != gorev.url || kaydedici.sonYazilanIcerik == metin,
-                  gorev.govdeKonumu < govde.length,
-                  govde.substring(with: govde.lineRange(for: NSRange(location: gorev.govdeKonumu, length: 0))) == gorev.satir else {
+            guard yapilacakGecerliMi(gorev, metin: metin,
+                onbellekMetni: kenarPaneli.icerikOnbellek[gorev.url]?.hamMarkdown,
+                acikSayfaMi: mevcutDosyaURL == gorev.url, acikSayfaMetni: kaydedici.sonYazilanIcerik) else {
                 kenarPaneli.notIceriginiGuncelle(gorev.url, metin: metin)
                 if mevcutDosyaURL == gorev.url, kaydedici.sonYazilanIcerik != metin {
                     notuAc(gorev.url, yenidenYukle: true)
@@ -121,16 +120,18 @@ extension NotPenceresi {
             anaSayfa.temayiUygula()
             return
         }
-        let sayfa = sayfaUstbilgisiniAyir(metin)
-        let yeni = NSMutableString(string: metin)
-        yeni.replaceCharacters(in: NSRange(location: (sayfa.bilgi.kaynak as NSString).length + gorev.kutuKonumu, length: 1), with: "x")
+        let sonuc: (markdown: String, satir: String)
+        do { sonuc = try yapilacagiTamamlayanMetin(gorev, metin: metin) }
+        catch {
+            NSAlert(error: error).runModal()
+            anaSayfa.temayiUygula()
+            return
+        }
         if mevcutDosyaURL == gorev.url {
             let konum = yapilacakEditorKonumu(gorev, metin: metin)
             guard let depo = metinGorunumu.textStorage, konum < depo.length else { return }
             let paragraf = depo.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
-            let satir = NSMutableString(string: gorev.satir)
-            satir.replaceCharacters(in: NSRange(location: gorev.kutuKonumu - gorev.govdeKonumu, length: 1), with: "x")
-            let yeniParagraf = MacBelgeAdaptoru.markdownuAc(satir as String, taban: sayfaKlasoru(gorev.url))
+            let yeniParagraf = MacBelgeAdaptoru.markdownuAc(sonuc.satir, taban: sayfaKlasoru(gorev.url))
             // Ortak blok düzenleme yolu yalnızca hedef paragrafı değiştirir ve undo'yu korur.
             metinGorunumu.isEditable = true
             metinGorunumu.blokDuzenle(paragraf, yeni: yeniParagraf, secim: metinGorunumu.selectedRange(),
@@ -140,14 +141,15 @@ extension NotPenceresi {
                 anaSayfa.temayiUygula()
                 return
             }
-            guard kaydetURLe(gorev.url, hazirMetin: yeni as String, panelYenile: false) else {
+            guard kaydetURLe(gorev.url, hazirMetin: sonuc.markdown, panelYenile: false) else {
                 anaSayfa.temayiUygula()
                 return
             }
         } else {
             do {
-                try (yeni as String).write(to: gorev.url, atomically: true, encoding: .utf8)
-                kenarPaneli.notIceriginiGuncelle(gorev.url, metin: yeni as String)
+                try notlarYolunuDogrula(gorev.url)
+                try sonuc.markdown.write(to: gorev.url, atomically: true, encoding: .utf8)
+                kenarPaneli.notIceriginiGuncelle(gorev.url, metin: sonuc.markdown)
             } catch {
                 NSAlert(error: error).runModal()
                 anaSayfa.temayiUygula()
@@ -160,13 +162,11 @@ extension NotPenceresi {
 
     func gunlukNotuAc() {
         let tarih = Date()
-        let klasor = notlarKlasoru().appendingPathComponent("Günlük", isDirectory: true)
-        let ad = gunlukSayfaAdi(tarih)
-        let url = klasor.appendingPathComponent(ad).appendingPathComponent(kIcerikDosyaAdi)
-        let eski = klasor.appendingPathComponent(ad + ".md")
-        if FileManager.default.fileExists(atPath: url.path) { notuAc(url) }
-        else if FileManager.default.fileExists(atPath: eski.path) { notuAc(eski) }
-        else { icerikleSayfaOlustur(url: { url }, metin: SayfaSablonu.gunluk.markdown(tarih: tarih)) }
+        do {
+            let url = try gunlukNotURL(tarih)
+            if dosyaYoluVarMi(url) { notuAc(url) }
+            else { icerikleSayfaOlustur(url: { url }, metin: SayfaSablonu.gunluk.markdown(tarih: tarih)) }
+        } catch { NSAlert(error: error).runModal() }
     }
 
     func sablondanSayfaOlustur() {
@@ -188,12 +188,7 @@ extension NotPenceresi {
         guard mevcutNotuKaybolmayacakSekildeKaydet() else { return }
         let url = olusturURL()
         do {
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            let geciciURL = url.deletingLastPathComponent().appendingPathComponent(".\(UUID().uuidString).tmp")
-            defer { try? FileManager.default.removeItem(at: geciciURL) }
-            try Data(metin.utf8).write(to: geciciURL, options: .withoutOverwriting)
-            // Aynı klasörde taşıma tamamlanmış dosyayı yayımlar; mevcut hedefi ezmez.
-            try FileManager.default.moveItem(at: geciciURL, to: url)
+            try NotDefteriCekirdek.icerikleSayfaOlustur(url: url, metin: metin)
             notuAc(url)
             makeFirstResponder(metinGorunumu)
         } catch {

@@ -90,6 +90,14 @@ package struct SayfaSecenegi: Equatable {
     package var ustYol: String { yol.split(separator: "/").dropLast().joined(separator: "/") }
 }
 
+package struct DalBaglantisiSonucu {
+    package let notlar: [URL]
+    package let onbellek: [URL: OnbellekGirdisi]
+    package let hedefler: [String: String]
+    package let guncellenenMetinler: [URL: String]
+    package let hatalar: [String]
+}
+
 /// Sayfa adları bir kez indekslenir; tuşlarda dosya okuma veya gövde tarama yoktur.
 package final class SayfaBaglantilari {
     package init() {}
@@ -158,6 +166,64 @@ package final class SayfaBaglantilari {
         sonAcilmaTarihleri = yeniTarihler
         sonAcilanlar = sonAcilanlar.map(donustur)
         sonAcilanlariKaydet()
+    }
+
+    /// Taşıma tamamlandıktan sonra çağrılır. Favoriler/sonlar ve tüm not bağları aynı dönüşümü kullanır.
+    package func daliGuncelle(eskiKlasor: URL, yeniKlasor: URL, eskiIcerik: URL?, yeniIcerik: URL?,
+                             notlar: [URL], onbellek: [URL: OnbellekGirdisi], favoriler: Favoriler,
+                             kok: URL = notlarKlasoru()) -> DalBaglantisiSonucu {
+        func donustur(_ url: URL) -> URL {
+            Self.tasinanURL(url, eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,
+                            eskiIcerik: eskiIcerik, yeniIcerik: yeniIcerik)
+        }
+        let yeniIndeks = SayfaBaglantilari()
+        yeniIndeks.guncelle(sayfalar.map { SayfaSecenegi(url: donustur($0.url)) })
+        let hedefler = yenidenYazimlar(yeni: yeniIndeks, donustur: donustur)
+        let yeniNotlar = notlar.map(donustur)
+        var yeniOnbellek = Dictionary(onbellek.map { (donustur($0.key), $0.value) }, uniquingKeysWith: { ilk, _ in ilk })
+        favoriler.yolGuncelle(donustur)
+        yollariTasi(donustur)
+        guncelle(yeniNotlar.map { SayfaSecenegi(url: $0) })
+        let yazim = bagDosyalariniYenidenYaz(notlar: yeniNotlar, onbellek: yeniOnbellek, hedefler: hedefler, kok: kok)
+        for (url, metin) in yazim.metinler {
+            yeniOnbellek[url] = onbellekGirdisiUret(metin, tarih: degistirilmeTarihi(url))
+        }
+        return DalBaglantisiSonucu(notlar: yeniNotlar, onbellek: yeniOnbellek, hedefler: hedefler,
+                                  guncellenenMetinler: yazim.metinler, hatalar: yazim.hatalar)
+    }
+
+    /// Açık torunun URL'si de diskteki ve kayıtlardaki yollarla aynı şekilde dönüştürülür.
+    package static func tasinanURL(_ url: URL, eskiKlasor: URL, yeniKlasor: URL,
+                                  eskiIcerik: URL?, yeniIcerik: URL?) -> URL {
+        if url == eskiIcerik, let yeniIcerik { return yeniIcerik }
+        let eski = eskiKlasor.standardizedFileURL.path
+        let yol = url.standardizedFileURL.path
+        if yol == eski || yol.hasPrefix(eski + "/") {
+            return URL(fileURLWithPath: yeniKlasor.standardizedFileURL.path + yol.dropFirst(eski.count))
+        }
+        return url
+    }
+
+    private func bagDosyalariniYenidenYaz(notlar: [URL], onbellek: [URL: OnbellekGirdisi],
+                                        hedefler: [String: String], kok: URL) -> (metinler: [URL: String], hatalar: [String]) {
+        var metinler: [URL: String] = [:]
+        var hatalar: [String] = []
+        for url in notlar {
+            if let girdi = onbellek[url], girdi.tarih == degistirilmeTarihi(url),
+               !girdi.bagHedefleri.contains(where: { hedefler[$0.trimmingCharacters(in: .whitespaces)] != nil }) { continue }
+            do {
+                try notlarYolunuDogrula(url, kok: kok)
+                let metin = try String(contentsOf: url, encoding: .utf8)
+                let sayfa = sayfaUstbilgisiniAyir(metin)
+                let yeni = sayfa.bilgi.kaynak + sayfaBaglariniDegistir(sayfa.govde, hedefler: hedefler)
+                if yeni != metin {
+                    try notlarYolunuDogrula(url, kok: kok)
+                    try yeni.write(to: url, atomically: true, encoding: .utf8)
+                }
+                metinler[url] = yeni
+            } catch { hatalar.append("\(sayfaBagYolu(url)): \(error.localizedDescription)") }
+        }
+        return (metinler, hatalar)
     }
 
     package func ara(_ sorgu: String) -> [SayfaSecenegi] {

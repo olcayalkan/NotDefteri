@@ -30,6 +30,11 @@ private func konumEyleminiCalistir(_ nesne: gpointer?, _ konum: guint, _ veri: g
     Unmanaged<GtkEylemi<(guint) -> Void>>.fromOpaque(veri).takeUnretainedValue().calistir(konum)
 }
 
+private func yanitEyleminiCalistir(_ nesne: gpointer?, _ yanit: gint, _ veri: gpointer?) {
+    guard let veri else { return }
+    Unmanaged<GtkEylemi<(gint) -> Void>>.fromOpaque(veri).takeUnretainedValue().calistir(yanit)
+}
+
 private func sinyalEyleminiBirak(_ veri: gpointer?, _ closure: UnsafeMutablePointer<GClosure>?) {
     eylemiBirak(veri)
 }
@@ -49,7 +54,113 @@ private func kisayolEyleminiCalistir(_ widget: UnsafeMutablePointer<GtkWidget>?,
     return 1
 }
 
+/// GTK satır sınırları esas alınır: CRLF, gizli metin ve anchor da hesaba katılır.
+/// Son eleman belge sonudur; sıradan yazım yalnızca komşu satırları yeniden okur.
+private final class GtkKonumOnbellegi {
+    private let tampon: UnsafeMutablePointer<GtkTextBuffer>
+    private(set) var baslangiclar = [0]
+    private var degisen: ClosedRange<Int>?
+
+    init(_ tampon: UnsafeMutablePointer<GtkTextBuffer>) {
+        self.tampon = tampon
+        var bas = GtkTextIter()
+        gtk_text_buffer_get_start_iter(tampon, &bas)
+        for _ in 0..<gtk_text_buffer_get_line_count(tampon) {
+            var son = bas
+            gtk_text_iter_forward_line(&son)
+            baslangiclar.append(baslangiclar.last! + (GtkKoprusu.dilim(tampon, bas: bas, son: son) as NSString).length)
+            bas = son
+        }
+    }
+
+    func degisecek(_ bas: GtkTextIter, _ son: GtkTextIter) {
+        var b = bas, s = son
+        // Satır sınırında CR ile LF birleşebilir/ayrılabilir; iki komşuyu da yenile.
+        let ilk = max(0, Int(gtk_text_iter_get_line(&b)) - 1)
+        let son = min(baslangiclar.count - 1, Int(gtk_text_iter_get_line(&s)) + 2)
+        degisen = ilk...son
+    }
+
+    func guncelle() {
+        guard let degisen else { return }
+        self.degisen = nil
+        let satirSayisi = Int(gtk_text_buffer_get_line_count(tampon))
+        let sonSatir = degisen.upperBound + satirSayisi - (baslangiclar.count - 1)
+        var bas = satir(degisen.lowerBound)
+        var yeni = [baslangiclar[degisen.lowerBound]]
+        for sira in degisen.lowerBound..<sonSatir {
+            let son = satir(sira + 1)
+            yeni.append(yeni.last! + (GtkKoprusu.dilim(tampon, bas: bas, son: son) as NSString).length)
+            bas = son
+        }
+        let fark = yeni.last! - baslangiclar[degisen.upperBound]
+        baslangiclar.replaceSubrange(degisen, with: yeni)
+        if fark != 0 {
+            for sira in (sonSatir + 1)..<baslangiclar.count { baslangiclar[sira] += fark }
+        }
+    }
+
+    func satir(_ sira: Int) -> GtkTextIter {
+        var sonuc = GtkTextIter()
+        if sira < Int(gtk_text_buffer_get_line_count(tampon)) {
+            gtk_text_buffer_get_iter_at_line(tampon, &sonuc, Int32(sira))
+        } else { gtk_text_buffer_get_end_iter(tampon, &sonuc) }
+        return sonuc
+    }
+
+    func satirNumarasi(_ utf16: Int) -> Int {
+        var sol = 0, sag = baslangiclar.count - 1
+        while sol + 1 < sag {
+            let orta = (sol + sag) / 2
+            if baslangiclar[orta] <= utf16 { sol = orta } else { sag = orta }
+        }
+        return sol
+    }
+}
+
+private func konumOnbellegi(_ veri: gpointer?) -> GtkKonumOnbellegi? {
+    veri.map { Unmanaged<GtkKonumOnbellegi>.fromOpaque($0).takeUnretainedValue() }
+}
+
+private let konumEkleC: @convention(c) (gpointer?, UnsafeMutablePointer<GtkTextIter>?, UnsafePointer<CChar>?, Int32, gpointer?) -> Void = {
+    _, iter, _, _, veri in
+    if let iter { konumOnbellegi(veri)?.degisecek(iter.pointee, iter.pointee) }
+}
+private let konumSilC: @convention(c) (gpointer?, UnsafeMutablePointer<GtkTextIter>?, UnsafeMutablePointer<GtkTextIter>?, gpointer?) -> Void = {
+    _, bas, son, veri in
+    if let bas, let son { konumOnbellegi(veri)?.degisecek(bas.pointee, son.pointee) }
+}
+private let konumAnchorC: @convention(c) (gpointer?, UnsafeMutablePointer<GtkTextIter>?, gpointer?, gpointer?) -> Void = {
+    _, iter, _, veri in
+    if let iter { konumOnbellegi(veri)?.degisecek(iter.pointee, iter.pointee) }
+}
+private let konumDegistiC: @convention(c) (gpointer?, gpointer?) -> Void = { _, veri in
+    konumOnbellegi(veri)?.guncelle()
+}
+
 enum GtkKoprusu {
+    static func konumOnbelleginiKur(_ tampon: UnsafeMutablePointer<GtkTextBuffer>) {
+        _ = onbellek(tampon)
+    }
+
+    private static func onbellek(_ tampon: UnsafeMutablePointer<GtkTextBuffer>) -> GtkKonumOnbellegi {
+        let nesne = UnsafeMutableRawPointer(tampon).assumingMemoryBound(to: GObject.self)
+        if let veri = g_object_get_data(nesne, "nd-konum-onbellegi") { return konumOnbellegi(veri)! }
+        let onbellek = GtkKonumOnbellegi(tampon)
+        let veri = Unmanaged.passRetained(onbellek).toOpaque()
+        g_object_set_data_full(nesne, "nd-konum-onbellegi", veri, eylemiBirak)
+        let sinyaller: [(String, GCallback)] = [
+            ("insert-text", unsafeBitCast(konumEkleC, to: GCallback.self)),
+            ("delete-range", unsafeBitCast(konumSilC, to: GCallback.self)),
+            ("insert-child-anchor", unsafeBitCast(konumAnchorC, to: GCallback.self)),
+            ("changed", unsafeBitCast(konumDegistiC, to: GCallback.self))
+        ]
+        for (ad, callback) in sinyaller {
+            g_signal_connect_data(nesne, ad, callback, veri, nil, GConnectFlags(rawValue: 0))
+        }
+        return onbellek
+    }
+
     /// GObject türetmeleri C'de aynı bellek düzenindedir; Swift'te tür işaretçisine tek yerden dönüştürülür.
     static func gtkIsaretci<T>(_ p: UnsafeMutableRawPointer) -> UnsafeMutablePointer<T> {
         p.assumingMemoryBound(to: T.self)
@@ -77,6 +188,13 @@ enum GtkKoprusu {
         return nd_signal_connect_uint(nesne, ad, konumEyleminiCalistir, veri, sinyalEyleminiBirak)
     }
 
+    /// GtkDialog ve GtkNativeDialog response kimliği imzalıdır; iptal negatif olabilir.
+    @discardableResult
+    static func sinyalBagla(_ nesne: gpointer, _ ad: String, _ eylem: @escaping (gint) -> Void) -> gulong {
+        let veri = Unmanaged.passRetained(GtkEylemi(eylem)).toOpaque()
+        return nd_signal_connect_int(nesne, ad, yanitEyleminiCalistir, veri, sinyalEyleminiBirak)
+    }
+
     static func kisayolEylemi(_ eylem: @escaping () -> Void) -> OpaquePointer {
         let veri = Unmanaged.passRetained(GtkEylemi(eylem)).toOpaque()
         return gtk_callback_action_new(kisayolEyleminiCalistir, veri, eylemiBirak)!
@@ -85,29 +203,31 @@ enum GtkKoprusu {
     /// UTF-16 konumu scalar sınırında olmalıdır; geçersiz konum sessizce kırpılmaz.
     /// Dönen iter yalnızca tampon değişene kadar geçerlidir; kalıcı konum için GtkTextMark kullanılır.
     static func iter(_ buffer: UnsafeMutablePointer<GtkTextBuffer>, utf16: Int) -> GtkTextIter {
-        var bas = GtkTextIter(), sonuc = GtkTextIter()
-        gtk_text_buffer_get_bounds(buffer, &bas, &sonuc)
-        let metin = dilim(buffer, bas: bas, son: sonuc)
-        guard utf16 >= 0 && utf16 <= (metin as NSString).length else {
+        let onbellek = onbellek(buffer)
+        var bas = onbellek.satir(0)
+        guard utf16 >= 0 && utf16 <= onbellek.baslangiclar.last! else {
             aynalamaKaymasi(buffer, "GTK UTF-16 konumu tampon dışında: \(utf16)")
             return bas
         }
-        let sinir = metin.utf16.index(metin.utf16.startIndex, offsetBy: utf16)
+        let sira = onbellek.satirNumarasi(utf16)
+        bas = onbellek.satir(sira)
+        let metin = dilim(buffer, bas: bas, son: onbellek.satir(sira + 1))
+        let sinir = metin.utf16.index(metin.utf16.startIndex, offsetBy: utf16 - onbellek.baslangiclar[sira])
         guard let indis = String.Index(sinir, within: metin.unicodeScalars) else {
             aynalamaKaymasi(buffer, "GTK UTF-16 konumu surrogate çiftini bölüyor: \(utf16)")
             return bas
         }
-        gtk_text_buffer_get_iter_at_offset(buffer, &sonuc, Int32(metin.unicodeScalars.distance(from: metin.startIndex, to: indis)))
-        return sonuc
+        gtk_text_iter_forward_chars(&bas, Int32(metin.unicodeScalars.distance(from: metin.startIndex, to: indis)))
+        return bas
     }
 
     /// Gizli metin ve child anchor (U+FFFC) da konum hesabına katılır.
     static func utf16(_ iter: GtkTextIter) -> Int {
         var hedef = iter
         let buffer = gtk_text_iter_get_buffer(&hedef)!
-        var tarama = GtkTextIter()
-        gtk_text_buffer_get_start_iter(buffer, &tarama)
-        return (dilim(buffer, bas: tarama, son: hedef) as NSString).length
+        let onbellek = onbellek(buffer)
+        let sira = Int(gtk_text_iter_get_line(&hedef))
+        return onbellek.baslangiclar[sira] + (dilim(buffer, bas: onbellek.satir(sira), son: hedef) as NSString).length
     }
 
     /// Anlamsal metin eldeyse paragraf boyunca karakter başına C çağrısı gerekmez.
@@ -130,11 +250,10 @@ enum GtkKoprusu {
             }
         }
         var bas = GtkTextIter()
-        let onEk = metin.substring(to: aralik.location).unicodeScalars.count
         if let baslangic {
             bas = baslangic
-            gtk_text_iter_forward_chars(&bas, Int32(onEk))
-        } else { gtk_text_buffer_get_iter_at_offset(tampon, &bas, Int32(onEk)) }
+            gtk_text_iter_forward_chars(&bas, Int32(metin.substring(to: aralik.location).unicodeScalars.count))
+        } else { bas = iter(tampon, utf16: aralik.location) }
         var son = bas
         gtk_text_iter_forward_chars(&son, Int32(metin.substring(with: aralik).unicodeScalars.count))
         return (bas, son)

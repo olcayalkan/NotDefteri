@@ -3,40 +3,107 @@ import NotDefteriCekirdek
 
 extension NotMetinGorunumu {
     func uyariKutulariniCiz(_ kirliAlan: NSRect) {
+        cerceveliBloklariCiz(kirliAlan, anahtar: kUyariKutusuAnahtari)
+    }
+
+    /// Kirli aralık yalnızca adayları bulur; geometri her zaman tam bloktan gelir.
+    func cerceveliBlokAraliklari(_ aralik: NSRange, anahtar: NSAttributedString.Key) -> [NSRange] {
+        guard let depo = textStorage else { return [] }
+        let tumu = NSRange(location: 0, length: depo.length)
+        var sonuc: [NSRange] = [], gorulen = Set<Int>()
+        depo.enumerateAttribute(anahtar, in: NSIntersectionRange(aralik, tumu)) { deger, alt, _ in
+            guard deger != nil else { return }
+            var blok = NSRange()
+            _ = depo.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok, in: tumu)
+            if gorulen.insert(blok.location).inserted { sonuc.append(blok) }
+        }
+        return sonuc
+    }
+
+    func blokCerceveKaresi(_ aralik: NSRange, anahtar: NSAttributedString.Key) -> NSRect? {
+        guard let depo = textStorage, let kapsayici = textContainer,
+              let kare = guvenliKare(karakter: aralik) else { return nil }
+        let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
+        let girinti = anahtar == kKodBloguAnahtari ? 0 : CGFloat(blok?.seviye ?? 0) * 24
+        return NSRect(x: textContainerOrigin.x + kapsayici.lineFragmentPadding + girinti,
+                      y: textContainerOrigin.y + kare.minY - 3,
+                      width: max(0, kapsayici.size.width - kapsayici.lineFragmentPadding * 2 - girinti),
+                      height: kare.height + 6)
+    }
+
+    func cerceveliBloklariCiz(_ kirliAlan: NSRect, anahtar: NSAttributedString.Key) {
         guard let depo = textStorage, let yerlesim = layoutManager, let kapsayici = textContainer else { return }
-        let alan = kirliAlan.intersection(visibleRect).offsetBy(dx: -textContainerOrigin.x, dy: -textContainerOrigin.y)
+        let kirpma = kirliAlan.intersection(visibleRect)
+        guard !kirpma.isEmpty else { return }
+        let alan = kirpma.insetBy(dx: -7, dy: -7).offsetBy(dx: -textContainerOrigin.x, dy: -textContainerOrigin.y)
         let glifler = yerlesim.glyphRange(forBoundingRect: alan, in: kapsayici)
-        let karakterler = yerlesim.characterRange(forGlyphRange: glifler, actualGlyphRange: nil)
-        // Her bitişik paragraf grubu ayrı çizilir; bölünen/kopyalanan kimlikler atlanmaz.
-        // Yalnızca görünür aralık ölçülür; belge taranmaz.
-        depo.enumerateAttribute(kUyariKutusuAnahtari, in: karakterler) { deger, aralik, _ in
-            guard let kimlik = deger as? String,
-                  let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil)) else { return }
-            guard let kare = guvenliKare(karakter: aralik)?
-                .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y) else { return }
-            let x = textContainerOrigin.x + kapsayici.lineFragmentPadding + CGFloat(blok.seviye) * 24
-            let oncekiAyni = aralik.location > 0 && depo.attribute(kUyariKutusuAnahtari, at: aralik.location - 1, effectiveRange: nil) as? String == kimlik
-            let sonrakiAyni = NSMaxRange(aralik) < depo.length && depo.attribute(kUyariKutusuAnahtari, at: NSMaxRange(aralik), effectiveRange: nil) as? String == kimlik
-            let ustPay: CGFloat = oncekiAyni ? 12 : 3
-            let altPay: CGFloat = sonrakiAyni ? 12 : 3
-            let arkaplan = NSRect(x: x, y: kare.minY - ustPay,
-                                  width: max(0, kapsayici.size.width - kapsayici.lineFragmentPadding * 2 - CGFloat(blok.seviye) * 24),
-                                  height: kare.height + ustPay + altPay)
-            let renk: NSColor
-            switch blok.renk {
-            case "mavi": renk = .systemBlue
-            case "sarı": renk = .systemYellow
-            case "kırmızı": renk = .systemRed
-            case "yeşil": renk = .systemGreen
-            default: renk = .systemGray
-            }
-            renk.withAlphaComponent(0.14).setFill()
-            NSBezierPath(roundedRect: arkaplan, xRadius: 6, yRadius: 6).fill()
-            if !blok.devam, depo.mutableString.character(at: aralik.location) == 0x200B {
-                (blok.emoji as NSString).draw(at: NSPoint(x: x + 8, y: kare.minY),
-                    withAttributes: [.font: NSFont.systemFont(ofSize: kTabanPunto * (kucukYazi ? 0.85 : 1))])
+        var karakterler = yerlesim.characterRange(forGlyphRange: glifler, actualGlyphRange: nil)
+        if glifler.length == 0, depo.length > 0,
+           yerlesim.extraLineFragmentRect.insetBy(dx: -7, dy: -7).intersects(alan) {
+            karakterler = NSRange(location: depo.length - 1, length: 1)
+        }
+        // Belge sonunun extra-line alanında glif yoktur; son karakterin kutusu
+        // alt kenarı yine de kapsar. Komşu karakterler yalnızca aday bulur.
+        let bas = max(0, karakterler.location - 1)
+        let son = min(depo.length, NSMaxRange(karakterler) + 1)
+        let adaylar = NSRange(location: bas, length: max(0, son - bas))
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        NSBezierPath(rect: kirpma).addClip()
+        for aralik in cerceveliBlokAraliklari(adaylar, anahtar: anahtar) {
+            guard let kare = blokCerceveKaresi(aralik, anahtar: anahtar), kare.intersects(kirpma) else { continue }
+            let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
+            let renkler: [String: NSColor] = ["mavi": .systemBlue, "sarı": .systemYellow,
+                "kırmızı": .systemRed, "yeşil": .systemGreen]
+            let renk = anahtar == kKodBloguAnahtari ? kMetinRenk : renkler[blok?.renk ?? ""] ?? .systemGray
+            blokCercevesiniCiz(kare, renk: renk)
+        }
+    }
+
+    func blokCercevesiniCiz(_ kare: NSRect, renk: NSColor) {
+        let cerceve = NSBezierPath(roundedRect: kare.insetBy(dx: 0.5, dy: 0.5), xRadius: 6, yRadius: 6)
+        renk.withAlphaComponent(0.03).setFill()
+        cerceve.fill()
+        renk.withAlphaComponent(0.7).setStroke()
+        cerceve.lineWidth = 1
+        cerceve.stroke()
+    }
+
+    /// Eski ve yeni kutu kenarları da kirlenir; yalnızca değişimin komşuları okunur.
+    func blokCerceveleriniKirlet(_ aralik: NSRange) {
+        guard let depo = textStorage else { return }
+        let bas = max(0, aralik.location - 1)
+        let son = min(depo.length, NSMaxRange(aralik) + 1)
+        guard son > bas else { return }
+        for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari] {
+            for blok in cerceveliBlokAraliklari(NSRange(location: bas, length: son - bas), anahtar: anahtar) {
+                if let kare = blokCerceveKaresi(blok, anahtar: anahtar) { setNeedsDisplay(kare.insetBy(dx: -1, dy: -1)) }
             }
         }
+    }
+
+    func uyariBasindaSil() -> Bool {
+        guard isEditable, let depo = textStorage, selectedRange().length == 0 else { return false }
+        let paragraf = paragrafAraligi()
+        guard let mevcut = blok(paragraf), mevcut.tur == .uyari,
+              selectedRange().location <= paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location) else { return false }
+        let eski = depo.attributedSubstring(from: paragraf)
+        if kodBloguGovdesi(eski).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            menuBlogunuUygula(nil, komutAraligi: NSRange(location: paragraf.location, length: 0))
+            return true
+        }
+        guard paragraf.location > 0,
+              depo.attribute(kUyariKutusuAnahtari, at: paragraf.location - 1, effectiveRange: nil) as? String == mevcut.uyariKimligi else { return true }
+        let onceki = depo.mutableString.paragraphRange(for: NSRange(location: paragraf.location - 1, length: 0))
+        guard let oncekiBlok = blok(onceki) else { return true }
+        let kapsam = NSUnionRange(onceki, paragraf)
+        let yeni = NSMutableAttributedString(attributedString: depo.attributedSubstring(from: kapsam))
+        let oncekiGovdeSonu = (depo.mutableString.substring(with: onceki).trimmingCharacters(in: .newlines) as NSString).length
+        let silinecek = NSRange(location: oncekiGovdeSonu, length: onceki.length - oncekiGovdeSonu + blokIsaretiUzunlugu(eski))
+        yeni.deleteCharacters(in: silinecek)
+        blokBiciminiUygula(oncekiBlok, metne: yeni, aralik: NSRange(location: 0, length: yeni.length))
+        blokDuzenle(kapsam, yeni: yeni, secim: NSRange(location: onceki.location + oncekiGovdeSonu, length: 0), yazim: oncekiBlok.oznitelikler)
+        return true
     }
 
     /// Yerel silme/kesme kutunun başını kaldırabilir; yalnızca değişen ve komşu paragraf denetlenir.
@@ -54,7 +121,7 @@ extension NotMetinGorunumu {
         var konum = kapsam.location
         while konum < son {
             let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
-            // Başı gizli işaretle kalan kutunun girintisini MacBelgeAdaptoru hizalar.
+            // Baş/devam bilgisi kayıtta korunur; görsel girinti ikisinde de aynıdır.
             if var blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil)), blok.tur == .uyari {
                 let devam = konum > 0 && depo.attribute(kUyariKutusuAnahtari, at: konum - 1, effectiveRange: nil) as? String == blok.uyariKimligi
                 if blok.devam != devam {
@@ -110,55 +177,5 @@ extension NotMetinGorunumu {
         }
         blokDuzenle(kapsam, yeni: yeni, secim: secim, yazim: typingAttributes)
         blokYaziminiGuncelle()
-    }
-
-    func uyariEmojisiniTikla(noktada nokta: NSPoint) -> Bool {
-        guard isEditable, let depo = textStorage, let kapsayici = textContainer else { return false }
-        let konum = min(characterIndexForInsertion(at: nokta), depo.length)
-        let paragraf = depo.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
-        guard let blok = blok(paragraf), blok.tur == .uyari, !blok.devam else { return false }
-        let isaretUzunlugu = blokIsaretiUzunlugu(depo, konum: paragraf.location)
-        let gizliIsaret = depo.mutableString.character(at: paragraf.location) == 0x200B
-        let aralik = NSRange(location: paragraf.location, length: gizliIsaret ? 1 : (blok.emoji as NSString).length)
-        guard var kare = guvenliKare(karakter: aralik)?
-            .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y).insetBy(dx: -4, dy: -3) else { return false }
-        if gizliIsaret {
-            kare.origin.x = textContainerOrigin.x + kapsayici.lineFragmentPadding + CGFloat(blok.seviye) * 24 + 4
-            kare.size.width = 28
-        }
-        guard kare.contains(nokta) else { return false }
-        setSelectedRange(NSRange(location: paragraf.location + isaretUzunlugu, length: 0))
-        yuzerGorunumleriGizle()
-        let uyari = NSAlert()
-        uyari.messageText = "Uyarı kutusu emojisi"
-        uyari.informativeText = "Emoji paletinden bir emoji seçin."
-        uyari.addButton(withTitle: "Uygula")
-        uyari.addButton(withTitle: "Vazgeç")
-        let alan = NSTextField(string: blok.emoji)
-        alan.font = NSFont.systemFont(ofSize: 28)
-        let palet = NSButton(title: "Emoji paletini aç", target: self, action: #selector(uyariEmojiPaletiniAc))
-        let kutu = NSStackView(views: [alan, palet])
-        kutu.orientation = .vertical
-        kutu.frame = NSRect(x: 0, y: 0, width: 240, height: 80)
-        alan.widthAnchor.constraint(equalToConstant: 220).isActive = true
-        uyari.accessoryView = kutu
-        uyari.window.initialFirstResponder = alan
-        uyariEmojiAlani = alan
-        DispatchQueue.main.async { [weak self] in self?.uyariEmojiPaletiniAc() }
-        let sonuc = uyari.runModal()
-        uyariEmojiAlani = nil
-        if sonuc == .alertFirstButtonReturn {
-            let emoji = alan.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            if emojiGecerliMi(emoji) { uyariKutusuDegistir(emoji: emoji) } else { NSSound.beep() }
-        }
-        window?.makeFirstResponder(self)
-        return true
-    }
-
-    @objc private func uyariEmojiPaletiniAc() {
-        guard let alan = uyariEmojiAlani else { return }
-        alan.window?.makeFirstResponder(alan)
-        alan.currentEditor()?.selectAll(nil)
-        NSApp.orderFrontCharacterPalette(nil)
     }
 }

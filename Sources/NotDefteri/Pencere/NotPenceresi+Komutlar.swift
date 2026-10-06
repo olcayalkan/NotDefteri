@@ -77,7 +77,7 @@ extension NotPenceresi {
             }
             metinGorunumu.menuBlogunuUygula(MetinBlogu(tur: tur), komutAraligi: aralik)
         case .kod:
-            metinGorunumu.menuBlogunuUygula(nil, kod: true, komutAraligi: aralik)
+            metinGorunumu.kodDilSeciminiBaslat(aralik)
         case .sayfa, .gorsel:
             guard metinGorunumu.textStorage != nil else { return }
             metinGorunumu.blokDuzenle(aralik, yeni: NSAttributedString(),

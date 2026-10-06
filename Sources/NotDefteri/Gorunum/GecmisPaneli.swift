@@ -9,6 +9,8 @@ final class GecmisPaneli: NSViewController, NSTableViewDataSource, NSTableViewDe
     private let tablo = NSTableView()
     private let onizleme = NSTextView()
     private let yukle = NSButton(title: "Bu sürümü geri yükle", target: nil, action: nil)
+    private var geriYuklemeBekliyor = false
+    private var kapatildi = false
     private var surumler: [SayfaSurumu] = []
     private let bicim = DateFormatter()
 
@@ -85,22 +87,46 @@ final class GecmisPaneli: NSViewController, NSTableViewDataSource, NSTableViewDe
 
     func tableViewSelectionDidChange(_ notification: Notification) {
         let satir = tablo.selectedRow
-        yukle.isEnabled = surumler.indices.contains(satir)
+        yukle.isEnabled = !geriYuklemeBekliyor && surumler.indices.contains(satir)
         guard yukle.isEnabled else { return }
-        let metin = surumMetni(surumler[satir])
-        let belge = MacBelgeAdaptoru.markdownuAc(sayfaUstbilgisiniAyir(metin).govde, taban: sayfaKlasoru(sayfaURL))
-        onizleme.textStorage?.setAttributedString(belge)
-    }
-
-    private func surumMetni(_ surum: SayfaSurumu) -> String {
-        (try? String(contentsOf: surum.url, encoding: .utf8)) ?? ""
+        do {
+            let metin = try SayfaGecmisi.surumMetniniOku(surumler[satir])
+            let belge = MacBelgeAdaptoru.markdownuAc(sayfaUstbilgisiniAyir(metin).govde, taban: sayfaKlasoru(sayfaURL))
+            onizleme.textStorage?.setAttributedString(belge)
+        } catch {
+            yukle.isEnabled = false
+            onizleme.string = "Sürüm okunamadı."
+            NSAlert(error: error).runModal()
+        }
     }
 
     @objc private func yukleTiklandi() {
-        guard surumler.indices.contains(tablo.selectedRow) else { return }
-        geriYukle(sayfaUstbilgisiniAyir(surumMetni(surumler[tablo.selectedRow])).govde)
-        kapat()
+        guard surumler.indices.contains(tablo.selectedRow), yukle.isEnabled else { return }
+        do {
+            let metin = try SayfaGecmisi.surumMetniniOku(surumler[tablo.selectedRow])
+            try notlarYolunuDogrula(sayfaURL)
+            let mevcut = try String(contentsOf: sayfaURL, encoding: .utf8)
+            yukle.isEnabled = false
+            geriYuklemeBekliyor = true
+            SayfaGecmisi.kaydet(metin: mevcut, icerikURL: sayfaURL, zorla: true) { [weak self] sonuc in
+                guard let self, !self.kapatildi else { return }
+                do {
+                    _ = try sonuc.get()
+                    try notlarYolunuDogrula(self.sayfaURL)
+                    // Koruma sürümü beklenirken disk değiştiyse eski yedekle geri yükleme yapma.
+                    guard try String(contentsOf: self.sayfaURL, encoding: .utf8) == mevcut else {
+                        throw CocoaError(.fileReadUnknown, userInfo: [NSLocalizedDescriptionKey: "Sayfa değişti. Geçmiş panelini yeniden açın."])
+                    }
+                    self.geriYukle(sayfaUstbilgisiniAyir(metin).govde)
+                    self.kapat()
+                } catch {
+                    self.geriYuklemeBekliyor = false
+                    self.yukle.isEnabled = true
+                    NSAlert(error: error).runModal()
+                }
+            }
+        } catch { NSAlert(error: error).runModal() }
     }
 
-    @objc private func kapatTiklandi() { kapat() }
+    @objc private func kapatTiklandi() { kapatildi = true; kapat() }
 }

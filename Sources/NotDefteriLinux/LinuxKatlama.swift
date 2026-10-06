@@ -41,7 +41,7 @@ final class LinuxKatlama {
     private final class Baslik {
         let bas: UnsafeMutablePointer<GtkTextMark>
         let govde: UnsafeMutablePointer<GtkTextMark>
-        let metin: String
+        var metin: String
         let seviye: Int
         var son: UnsafeMutablePointer<GtkTextMark>?
         var katli: Bool
@@ -84,6 +84,18 @@ final class LinuxKatlama {
                                "nd-katlama", veri, { veri in
             if let veri { Unmanaged<LinuxKatlama>.fromOpaque(veri).release() }
         })
+        // Kısayollar editör tuş kancasında işlenir; menüde yalnızca görünür.
+        pencere.menuEkle(["Düzen", "Kaynak Biçimiyle Yapıştır"], kisayol: "<Control><Shift>v", kisayoluKaydet: false) {
+            [weak katlama] in katlama?.kaynakYapistir()
+        }
+        let komutlar: [(String, String, Bool, Bool)] = [
+            ("Bölümü katla", "<Control><Alt>bracketleft", true, false), ("Bölümü aç", "<Control><Alt>bracketright", false, false),
+            ("Tümünü katla", "<Control><Alt><Shift>bracketleft", true, true), ("Tümünü aç", "<Control><Alt><Shift>bracketright", false, true)]
+        for (ad, tetik, katla, tumu) in komutlar {
+            pencere.menuEkle(["Görünüm", ad], kisayol: tetik, kisayoluKaydet: false) { [weak katlama] in
+                katlama?.katlamaKomutu(katla: katla, tumu: tumu)
+            }
+        }
     }
 
     private init(_ editor: LinuxEditor) {
@@ -119,7 +131,7 @@ final class LinuxKatlama {
             self?.panoNesli += 1
             self?.cizimGerekli = true
         }
-        editor.notAcildi.append { [weak self] _ in self?.sayfayiAc() }
+        LinuxEklentiler.yasamDongusunuIzle(editor) { [weak self] in self?.sayfayiAc() }
         editor.degisiklikSonrasi.append { [weak self] in self?.degisiklikBitti() }
         editor.tusOncesi.append { [weak self] tus, durum in self?.tus(tus, durum) ?? false }
         editor.yapistirmaOncesi.append { [weak self] pano in self?.yapistir(pano, kaynak: false) ?? false }
@@ -261,6 +273,8 @@ final class LinuxKatlama {
         }
         let alt = gtk_text_iter_get_offset(&b), ust = gtk_text_iter_get_offset(&s)
         let aralik = LinuxMetinDonusumu.aralik(b, s)
+        let ayni = editor.belgeyiOku { belge in baslikYapisiAyni(belge, aralik, alt: alt, ust: ust) }
+        if ayni { kirliyiSil(); return }
         var eskiler: [Int32: Baslik] = [:]
         basliklar.removeAll { baslik in
             let yer = konum(baslik.bas)
@@ -276,6 +290,53 @@ final class LinuxKatlama {
         gorunurluguUygula()
         secimiAc()
         sakla()
+    }
+
+    /// Gövde yazımı bölüm sınırlarını değiştirmez; GTK mark'ları konumları taşır.
+    private func baslikYapisiAyni(_ belge: NSAttributedString, _ aralik: NSRange, alt: Int32, ust: Int32) -> Bool {
+        let eskiler = Array(basliklar[baslikIndisi(alt)..<baslikIndisi(max(alt + 1, ust))])
+        let ns = belge.attributedSubstring(from: aralik).string as NSString
+        var yer = 0, sira = 0
+        var gtkIter = LinuxMetinDonusumu.iter(tampon, aralik.location)
+        var guncellemeler: [(Baslik, String, GtkTextIter)] = []
+        while yer < ns.length {
+            let paragraf = ns.paragraphRange(for: NSRange(location: yer, length: 0))
+            guard paragraf.length > 0 else { break }
+            var son = gtkIter
+            gtk_text_iter_forward_chars(&son, Int32(LinuxMetinDonusumu.karakterSayisi(ns, paragraf)))
+            if let seviye = belge.attribute(kBaslikSeviyesiAnahtari, at: aralik.location + yer, effectiveRange: nil) as? Int,
+               (1...3).contains(seviye) {
+                let metin = ns.substring(with: paragraf).replacingOccurrences(of: "\u{200B}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !metin.isEmpty {
+                    guard sira < eskiler.count, eskiler[sira].seviye == seviye,
+                          konum(eskiler[sira].bas) == gtk_text_iter_get_offset(&gtkIter) else { return false }
+                    guncellemeler.append((eskiler[sira], metin, son)); sira += 1
+                }
+            }
+            yer = NSMaxRange(paragraf); gtkIter = son
+        }
+        guard sira == eskiler.count else { return false }
+        baslikMetinleriniGuncelle(guncellemeler)
+        return true
+    }
+
+    private func baslikIndisi(_ konum: Int32) -> Int {
+        var sol = 0, sag = basliklar.count
+        while sol < sag {
+            let orta = (sol + sag) / 2
+            if self.konum(basliklar[orta].bas) < konum { sol = orta + 1 } else { sag = orta }
+        }
+        return sol
+    }
+
+    private func baslikMetinleriniGuncelle(_ guncellemeler: [(Baslik, String, GtkTextIter)]) {
+        var metinDegisti = false
+        for (baslik, metin, govde) in guncellemeler {
+            if baslik.metin != metin { baslik.metin = metin; metinDegisti = true }
+            var son = govde
+            gtk_text_buffer_move_mark(tampon, baslik.govde, &son)
+        }
+        if metinDegisti { sakla() }
     }
 
     private func basliklariOku(_ belge: NSAttributedString, _ aralik: NSRange, eskiler: [Int32: Baslik] = [:]) {
@@ -390,12 +451,24 @@ final class LinuxKatlama {
         }
         guard mask & ~GDK_SHIFT_MASK.rawValue == GDK_CONTROL_MASK.rawValue | GDK_ALT_MASK.rawValue,
               [0x5b, 0x5d, 0x7b, 0x7d].contains(tus) else { return false }
+        katlamaKomutu(katla: tus == 0x5b || tus == 0x7b, tumu: mask & GDK_SHIFT_MASK.rawValue != 0)
+        return true
+    }
+
+    /// Kısayol ve Görünüm menüsü aynı yoldan geçer: imlecin bölümü ya da tüm bölümler.
+    fileprivate func katlamaKomutu(katla: Bool, tumu: Bool) {
+        guard let editor, editor.acikURL != nil, gtk_text_view_get_editable(gorunum) != 0 else { return }
         if kirliBas != nil { iptal?(); iptal = nil; basliklariTazele() }
         var imlec = GtkTextIter()
         gtk_text_buffer_get_iter_at_mark(tampon, &imlec, gtk_text_buffer_get_insert(tampon))
         let hedef = basliklar.last { konum($0.bas) <= gtk_text_iter_get_offset(&imlec) }
-        degistir(tus == 0x5b || tus == 0x7b, mask & GDK_SHIFT_MASK.rawValue != 0 ? basliklar : hedef.map { [$0] } ?? [])
-        return true
+        degistir(katla, tumu ? basliklar : hedef.map { [$0] } ?? [])
+    }
+
+    fileprivate func kaynakYapistir() {
+        guard let editor, let pano = gtk_widget_get_clipboard(editor.metinGorunumu) else { return }
+        gtk_widget_grab_focus(editor.metinGorunumu)
+        _ = yapistir(pano, kaynak: true)
     }
 
     fileprivate func fareyiAyarla(_ x: Double?, _ y: Double?) {
@@ -489,7 +562,8 @@ private extension LinuxKatlama {
         let aralik = LinuxMetinDonusumu.secim(tampon)
         let oznitelikler = editor.belgeyiOku { belge -> Oznitelikler in
             guard belge.length > 0 else { return [:] }
-            return belge.attributes(at: min(aralik.location, belge.length - 1), effectiveRange: nil)
+            return LinuxEditor.yapisalYazimIsaretleriniTemizle(
+                belge.attributes(at: min(aralik.location, belge.length - 1), effectiveRange: nil))
         }
         let kod = oznitelikler[kKodBloguAnahtari] != nil || oznitelikler[kSatirIciKodAnahtari] != nil
         let beklenen = panoNesli

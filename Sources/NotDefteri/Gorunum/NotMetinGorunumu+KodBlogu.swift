@@ -48,6 +48,25 @@ final class KodBloguAraclari: NSView {
 }
 
 extension NotMetinGorunumu {
+    func kodBloklariniCiz(_ kirliAlan: NSRect) {
+        cerceveliBloklariCiz(kirliAlan, anahtar: kKodBloguAnahtari)
+    }
+
+    func kodBloguBasindaSil() -> Bool {
+        guard isEditable, let depo = textStorage, depo.length > 0, selectedRange().length == 0 else { return false }
+        var aralik = NSRange()
+        let konum = min(selectedRange().location, depo.length - 1)
+        guard depo.attribute(kKodBloguAnahtari, at: konum, longestEffectiveRange: &aralik,
+                             in: NSRange(location: 0, length: depo.length)) != nil,
+              selectedRange().location <= aralik.location + blokIsaretiUzunlugu(depo, konum: aralik.location) else { return false }
+        let govde = kodBloguGovdesi(depo.attributedSubstring(from: aralik))
+        if govde.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            blokDuzenle(aralik, yeni: NSAttributedString(string: govde),
+                        secim: NSRange(location: aralik.location, length: 0), yazim: [:])
+        }
+        return true
+    }
+
     func kodDurumunuSifirla() {
         kodZamanlayicisi?.invalidate()
         kodZamanlayicisi = nil
@@ -193,7 +212,7 @@ extension NotMetinGorunumu {
         blokMenusu.goster(imlecEkranKaresi(aralik.location), pencere: pencere)
     }
 
-    private func kodBlogunuEkle(dil: String, komutAraligi: NSRange) {
+    func kodBlogunuEkle(dil: String, komutAraligi: NSRange) {
         guard isEditable, let depo = textStorage, NSMaxRange(komutAraligi) <= depo.length else { return }
         let paragraf = depo.mutableString.paragraphRange(for: NSRange(location: komutAraligi.location, length: 0))
         guard NSMaxRange(komutAraligi) <= NSMaxRange(paragraf) else { return }

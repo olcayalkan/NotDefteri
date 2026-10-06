@@ -27,48 +27,67 @@ package enum SayfaGecmisi {
         sayfaKlasoru(icerikURL).appendingPathComponent(klasorAdi, isDirectory: true)
     }
 
-    /// Başarılı kayıttan sonra çağrılır; hata sessizce yutulur (kayıt zaten başarılı).
-    /// `zorla`: zaman/değişim şartlarına bakmadan (aynı içerik değilse) sürüm saklar.
-    package static func kaydet(metin: String, icerikURL: URL, zorla: Bool = false) {
+    /// Başarı: yeni sürüm URL'si; nil: aynı içerik veya olağan kayıt eşiği nedeniyle mevcut sürüm korundu.
+    /// Zorla kayıtta nil yalnızca aynı içeriğin zaten saklandığını belirtir. Sonuç UI kuyruğuna teslim edilir.
+    package static func kaydet(metin: String, icerikURL: URL, zorla: Bool = false,
+                               kok: URL = notlarKlasoru(),
+                               tamamlandi: ((Result<URL?, Error>) -> Void)? = nil) {
         kuyruk.async {
-            let fm = FileManager.default
-            let dizin = klasor(icerikURL)
-            if (try? dizin.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink == true { return }
-            let b = bicim()
-            let mevcut = surumleriOku(dizin, bicim: b)
-            if let son = mevcut.first, let eski = try? String(contentsOf: son.url, encoding: .utf8) {
-                if eski == metin { return }
-                if !zorla, Date().timeIntervalSince(son.tarih) < enAzAralik,
-                   degisimOrani(eski, metin) <= esikOran { return }
-            }
-            // Sayfa kuyruk beklerken taşınmış/silinmiş olabilir; eski klasörü hayalet olarak yeniden yaratma.
-            guard fm.fileExists(atPath: icerikURL.path) else { return }
-            let sayfaDizini = sayfaKlasoru(icerikURL)
-            // Eski düz notta "Ad/" henüz yoksa (not dosyası var) tek başına oluşturulur; ara klasör asla.
-            if !fm.fileExists(atPath: sayfaDizini.path), (try? fm.createDirectory(at: sayfaDizini, withIntermediateDirectories: false)) == nil { return }
-            if !fm.fileExists(atPath: dizin.path), (try? fm.createDirectory(at: dizin, withIntermediateDirectories: false)) == nil { return }
-            var an = Date()
-            if let son = mevcut.first, an <= son.tarih { an = son.tarih.addingTimeInterval(1) }
-            var hedef = dizin.appendingPathComponent(b.string(from: an) + ".md")
-            while fm.fileExists(atPath: hedef.path) {
-                an.addTimeInterval(1)
-                hedef = dizin.appendingPathComponent(b.string(from: an) + ".md")
-            }
-            guard (try? metin.write(to: hedef, atomically: true, encoding: .utf8)) != nil else { return }
-            eskileriniSil(dizin, bicim: b)
+            let sonuc = Result { try surumuKaydet(metin: metin, icerikURL: icerikURL, zorla: zorla, kok: kok) }
+            if let tamamlandi { Platform.anaIsParcaciginda { tamamlandi(sonuc) } }
         }
+    }
+
+    private static func surumuKaydet(metin: String, icerikURL: URL, zorla: Bool, kok: URL) throws -> URL? {
+        let fm = FileManager.default
+        try notlarYolunuDogrula(icerikURL, kok: kok)
+        guard fm.fileExists(atPath: icerikURL.path) else { throw CocoaError(.fileReadNoSuchFile) }
+        let dizin = klasor(icerikURL)
+        try notlarYolunuDogrula(dizin, kok: kok)
+        let b = bicim()
+        let mevcut = try surumleriOku(dizin, bicim: b)
+        // Son sürüm okunamıyorsa karşılaştırma atlanır; aksi hâlde geçmiş sonsuza dek donar.
+        if let son = mevcut.first, let eski = try? surumMetniniOku(son, kok: kok) {
+            if eski == metin { return nil }
+            if !zorla, Date().timeIntervalSince(son.tarih) < enAzAralik,
+               degisimOrani(eski, metin) <= esikOran { return nil }
+        }
+        // Kuyruk beklerken silinen/taşınan sayfanın eski klasörünü yeniden yaratma.
+        try notlarYolunuDogrula(icerikURL, kok: kok)
+        guard fm.fileExists(atPath: icerikURL.path) else { throw CocoaError(.fileReadNoSuchFile) }
+        let sayfaDizini = sayfaKlasoru(icerikURL)
+        if !dosyaYoluVarMi(sayfaDizini) { try fm.createDirectory(at: sayfaDizini, withIntermediateDirectories: false) }
+        if !dosyaYoluVarMi(dizin) { try fm.createDirectory(at: dizin, withIntermediateDirectories: false) }
+        var an = Date()
+        if let son = mevcut.first, an <= son.tarih { an = son.tarih.addingTimeInterval(1) }
+        var hedef = dizin.appendingPathComponent(b.string(from: an) + ".md")
+        while dosyaYoluVarMi(hedef) {
+            an.addTimeInterval(1)
+            hedef = dizin.appendingPathComponent(b.string(from: an) + ".md")
+        }
+        try notlarYolunuDogrula(hedef, kok: kok)
+        try metin.write(to: hedef, atomically: true, encoding: .utf8)
+        eskileriniSil(dizin, bicim: b, kok: kok)
+        return hedef
+    }
+
+    package static func surumMetniniOku(_ surum: SayfaSurumu, kok: URL = notlarKlasoru()) throws -> String {
+        try notlarYolunuDogrula(surum.url, kok: kok)
+        return try String(contentsOf: surum.url, encoding: .utf8)
     }
 
     /// Yeniden eskiye sıralı sürümler; ana thread'i bloklamamak için kuyrukta okunur.
     package static func listele(_ icerikURL: URL, tamamlandi: @escaping ([SayfaSurumu]) -> Void) {
         kuyruk.async {
-            let sonuc = surumleriOku(klasor(icerikURL), bicim: bicim())
+            let sonuc = (try? notlarYolunuDogrula(klasor(icerikURL))) != nil
+                ? (try? surumleriOku(klasor(icerikURL), bicim: bicim())) ?? [] : []
             Platform.anaIsParcaciginda { tamamlandi(sonuc) }
         }
     }
 
-    private static func surumleriOku(_ dizin: URL, bicim b: DateFormatter) -> [SayfaSurumu] {
-        guard let adlar = try? FileManager.default.contentsOfDirectory(atPath: dizin.path) else { return [] }
+    private static func surumleriOku(_ dizin: URL, bicim b: DateFormatter) throws -> [SayfaSurumu] {
+        guard dosyaYoluVarMi(dizin) else { return [] }
+        let adlar = try FileManager.default.contentsOfDirectory(atPath: dizin.path)
         return adlar.compactMap { ad -> SayfaSurumu? in
             guard ad.hasSuffix(".md"), let tarih = b.date(from: String(ad.dropLast(3))) else { return nil }
             return SayfaSurumu(url: dizin.appendingPathComponent(ad), tarih: tarih)
@@ -88,14 +107,15 @@ package enum SayfaGecmisi {
     }
 
     /// Yalnızca `.gecmis` altındaki, gerçek (sembolik olmayan) sürüm dosyalarını siler.
-    private static func eskileriniSil(_ dizin: URL, bicim b: DateFormatter) {
-        let surumler = surumleriOku(dizin, bicim: b)
+    private static func eskileriniSil(_ dizin: URL, bicim b: DateFormatter, kok: URL) {
+        guard let surumler = try? surumleriOku(dizin, bicim: b) else { return }
         guard surumler.count > enFazlaSurum else { return }
         let onek = dizin.standardizedFileURL.path + "/"
         for s in surumler.dropFirst(enFazlaSurum) {
             let hedef = s.url.standardizedFileURL
             guard hedef.path.hasPrefix(onek), hedef.deletingLastPathComponent().lastPathComponent == klasorAdi,
                   (try? hedef.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink != true else { continue }
+            guard (try? notlarYolunuDogrula(hedef, kok: kok)) != nil else { continue }
             try? FileManager.default.removeItem(at: hedef)
         }
     }

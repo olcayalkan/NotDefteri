@@ -216,65 +216,18 @@ extension NotMetinGorunumu {
     }
 
     func bloktaYeniSatir() -> Bool {
-        guard let depo = textStorage else { return false }
-        let paragraf = paragrafAraligi()
-        let secim = selectedRange()
-        let eski = depo.attributedSubstring(from: paragraf)
-        if typingAttributes[kKodBloguAnahtari] != nil,
-           eski.string.replacingOccurrences(of: "\u{200B}", with: "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            blokDuzenle(paragraf, yeni: NSAttributedString(string: "\n", attributes: duzYazim),
-                        secim: NSRange(location: paragraf.location + 1, length: 0), yazim: duzYazim)
-            return true
-        }
-        let baslik = eski.length > 0 ? eski.attribute(kBaslikSeviyesiAnahtari, at: 0, effectiveRange: nil) as? Int : nil
-        if baslik != nil || blok(paragraf)?.tur == .ayirici {
-            let yeni = NSMutableAttributedString(attributedString: eski)
-            let yerel = NSRange(location: secim.location - paragraf.location, length: secim.length)
-            yeni.replaceCharacters(in: yerel, with: NSAttributedString(string: "\n", attributes: typingAttributes))
-            let alt = NSRange(location: yerel.location + 1, length: yeni.length - yerel.location - 1)
-            yeni.removeAttribute(kBaslikSeviyesiAnahtari, range: alt)
-            yeni.removeAttribute(kBlokIsaretiAnahtari, range: alt)
-            yeni.removeAttribute(kMetinBloguAnahtari, range: alt)
-            yeni.removeAttribute(kUyariKutusuAnahtari, range: alt)
-            yeni.removeAttribute(kParagrafGeometrisiAnahtari, range: alt)
-            fontAnlamlariniKaldir(yeni, aralik: alt)
-            blokDuzenle(paragraf, yeni: yeni, secim: NSRange(location: secim.location + 1, length: 0), yazim: duzYazim)
-            return true
-        }
-        guard var blok = blok(paragraf) else { return false }
-        let isaret = blokIsaretiUzunlugu(eski)
-        let govde = (eski.string as NSString).substring(from: isaret).trimmingCharacters(in: .whitespacesAndNewlines)
-        if govde.isEmpty {
-            let yeni = NSMutableAttributedString(attributedString: eski)
-            yeni.deleteCharacters(in: NSRange(location: 0, length: isaret))
-            blokBiciminiKaldir(yeni)
-            if blok.tur == .uyari, !yeni.string.hasSuffix("\n") {
-                yeni.append(NSAttributedString(string: "\n", attributes: duzYazim))
-            }
-            blokDuzenle(paragraf, yeni: yeni, secim: NSRange(location: paragraf.location, length: 0),
-                        yazim: duzYazim, numarala: blok.listeMi)
-            return true
-        }
-        let yeni = NSMutableAttributedString(attributedString: eski)
-        let bas = max(isaret, secim.location - paragraf.location)
-        let son = max(bas, NSMaxRange(secim) - paragraf.location)
-        let yerel = NSRange(location: bas, length: son - bas)
-        yeni.replaceCharacters(in: yerel, with: NSAttributedString(string: "\n", attributes: typingAttributes))
-        blok.tamamlandi = false
-        blok.kaynakOnEk = nil
-        if blok.tur == .uyari { blok.devam = true }
-        if blok.tur == .numarali { blok.numara = blok.numara == Int.max ? 1 : blok.numara + 1 }
-        let yeniIsaret = blokIsaretiniUret(blok)
-        let altBaslangic = yerel.location + 1
-        yeni.insert(yeniIsaret, at: altBaslangic)
-        let alt = NSRange(location: altBaslangic, length: yeni.length - altBaslangic)
-        blokBiciminiUygula(blok, metne: yeni, aralik: alt)
-        var yazim = typingAttributes
-        yazim.removeValue(forKey: kBlokIsaretiAnahtari)
-        yazim.merge(blok.oznitelikler) { _, yeni in yeni }
-        blokDuzenle(paragraf, yeni: yeni,
-                    secim: NSRange(location: paragraf.location + altBaslangic + yeniIsaret.length, length: 0),
-                    yazim: yazim, numarala: blok.listeMi)
+        guard let depo = textStorage,
+              let degisim = yapiEnterKurali(depo, imlec: selectedRange()) else { return false }
+        blokDuzenle(degisim.aralik, yeni: degisim.metin,
+                    secim: NSRange(location: degisim.imlec, length: 0), yazim: degisim.yazim)
+        return true
+    }
+
+    func blokDevamindaGeriSil() -> Bool {
+        guard isEditable, let depo = textStorage,
+              let degisim = yapiDevamindaGeriSil(depo, imlec: selectedRange()) else { return false }
+        blokDuzenle(degisim.aralik, yeni: degisim.metin,
+                    secim: NSRange(location: degisim.imlec, length: 0), yazim: degisim.yazim)
         return true
     }
 

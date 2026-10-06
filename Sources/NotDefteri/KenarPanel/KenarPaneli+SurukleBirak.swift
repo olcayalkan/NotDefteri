@@ -16,6 +16,11 @@ import NotDefteriCekirdek
 /// dışından gelen şeyleri sayfaymış gibi taşımaya kalkardı.
 let kSayfaSurukleTipi = NSPasteboard.PasteboardType("tr.notdefteri.sayfa")
 
+/// validateDrop her fare hareketinde çağrılır; dosya sistemi doğrulaması yalnızca kaynak/hedef değişince
+/// yeniden yapılır. Sürükleme bitince (acceptDrop) ya da kısa sürede bayatlayarak düşer.
+/// Ana iş parçacığında kullanılır (AppKit sürükleme geri çağrıları).
+private var sonTasimaDogrulamasi: (anahtar: String, gecerli: Bool, zaman: Date)?
+
 extension KenarPaneli {
 
     /// Sürüklemeyi başlatan düğümün yolları panoya yazılır.
@@ -52,15 +57,12 @@ extension KenarPaneli {
                 outlineView.setDropItem(item, dropChildIndex: konum + kayma)
                 return .move
             }
-            guard tasimaGecerliMi(kaynakKlasor: surukleneN.klasor, hedefKlasor: hedefKlasor,
-                                  mevcutUst: surukleneN.mevcutUst) else { return [] }
+            guard tasimaGecerliMi(surukleneN.klasor, hedefKlasor, surukleneN.mevcutUst) else { return [] }
             outlineView.setDropItem(item, dropChildIndex: araKonum(index - kayma, liste: liste,
                                                                    klasor: surukleneN.klasor) + kayma)
             return .move
         }
-        guard tasimaGecerliMi(kaynakKlasor: surukleneN.klasor,
-                              hedefKlasor: hedefKlasor,
-                              mevcutUst: surukleneN.mevcutUst) else { return [] }
+        guard tasimaGecerliMi(surukleneN.klasor, hedefKlasor, surukleneN.mevcutUst) else { return [] }
 
         outlineView.setDropItem(item, dropChildIndex: NSOutlineViewDropOnItemIndex)
         return .move
@@ -75,6 +77,7 @@ extension KenarPaneli {
             kisaYollariPlanla()
             return true
         }
+        sonTasimaDogrulamasi = nil
         guard !(item is KenarBolumu),
               !((item as? AgacDugumu).map { kisaYolMu($0) } ?? false),
               let suruklenen = suruklenenYollar(info) else { return false }
@@ -108,7 +111,9 @@ extension KenarPaneli {
             yeniIcerik = yeni
             yeniKlasor = sayfaKlasoru(yeni)
         } else {
-            guard let yeni = klasoruTasi(suruklenen.klasor, hedefKlasor: hedefKlasor) else { return false }
+            guard let yeni = sayfaTasimaUyarisiIle({
+                try klasorTasimaSonucu(suruklenen.klasor, hedefKlasor: hedefKlasor)
+            }) else { return false }
             yeniKlasor = yeni
         }
 
@@ -147,6 +152,18 @@ extension KenarPaneli {
     private func kardesListesi(_ item: Any?) -> (liste: [AgacDugumu], kayma: Int) {
         if let dugum = item as? AgacDugumu { return (dugum.cocuklar, 0) }
         return (kokDugumler, kenarBolumleri.count)
+    }
+
+    /// Aynı kaynak/hedef çifti için sonuç 2 sn boyunca yeniden kullanılır (hover başına disk doğrulaması yok).
+    private func tasimaGecerliMi(_ kaynak: URL, _ hedef: URL, _ mevcutUst: URL) -> Bool {
+        let anahtar = [kaynak.path, hedef.path, mevcutUst.path].joined(separator: "\n")
+        if let onbellek = sonTasimaDogrulamasi, onbellek.anahtar == anahtar, Date().timeIntervalSince(onbellek.zaman) < 2 {
+            return onbellek.gecerli
+        }
+        var gecerli = false
+        if case .success = tasimayiDogrula(kaynakKlasor: kaynak, hedefKlasor: hedef, mevcutUst: mevcutUst) { gecerli = true }
+        sonTasimaDogrulamasi = (anahtar, gecerli, Date())
+        return gecerli
     }
 
     private func aynıUstMu(_ a: URL, _ b: URL) -> Bool {

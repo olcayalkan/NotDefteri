@@ -35,14 +35,88 @@ private func cocukModeliUret(_ oge: gpointer?, _ veri: gpointer?) -> OpaquePoint
     return tutucu.calistir(oge)
 }
 
+// MARK: Sürükle-bırak sinyalleri (dönüş değerli imzalar köprüde yok)
+
+private func cBagla(_ nesne: gpointer, _ ad: String, _ geriCagri: GCallback, _ tutucu: AnyObject) {
+    g_signal_connect_data(nesne, ad, geriCagri, Unmanaged.passRetained(tutucu).toOpaque(), tutucuyuBirak,
+                          GConnectFlags(rawValue: 0))
+}
+
+/// GtkDragSource::prepare → GdkContentProvider (transfer full); nil sürüklemeyi başlatmaz.
+private let hazirlaC: @convention(c) (gpointer?, Double, Double, gpointer?) -> gpointer? = { _, _, _, veri in
+    guard let veri else { return nil }
+    return Unmanaged<Tutucu<() -> gpointer?>>.fromOpaque(veri).takeUnretainedValue().calistir()
+}
+
+/// GtkDragSource::drag-end; yalnızca sürükleme durumunu temizler, veri silmez.
+private let suruklemeBittiC: @convention(c) (gpointer?, gpointer?, gboolean, gpointer?) -> Void = { _, _, _, veri in
+    guard let veri else { return }
+    Unmanaged<Tutucu<() -> Void>>.fromOpaque(veri).takeUnretainedValue().calistir()
+}
+
+private let hareketC: @convention(c) (gpointer?, Double, Double, gpointer?) -> GdkDragAction = { _, x, y, veri in
+    guard let veri else { return GdkDragAction(rawValue: 0) }
+    return Unmanaged<Tutucu<(Double, Double) -> GdkDragAction>>.fromOpaque(veri).takeUnretainedValue().calistir(x, y)
+}
+
+private let birakC: @convention(c) (gpointer?, UnsafePointer<GValue>?, Double, Double, gpointer?) -> gboolean = {
+    _, deger, x, y, veri in
+    guard let veri else { return 0 }
+    let tutucu = Unmanaged<Tutucu<(UnsafePointer<GValue>?, Double, Double) -> Bool>>.fromOpaque(veri).takeUnretainedValue()
+    return tutucu.calistir(deger, x, y) ? 1 : 0
+}
+
+private func metinSaglayici(_ metin: String) -> gpointer? {
+    var deger = GValue()
+    g_value_init(&deger, g_type_from_name("gchararray"))
+    defer { g_value_unset(&deger) }
+    g_value_set_string(&deger, metin)
+    return gdk_content_provider_new_for_value(&deger).map { UnsafeMutableRawPointer($0) }
+}
+
+private func turMu(_ widget: Parca, _ tur: GType) -> Bool {
+    g_type_check_instance_is_a(UnsafeMutableRawPointer(widget).assumingMemoryBound(to: GTypeInstance.self), tur) != 0
+}
+
+/// Pano yalnızca bu oturumda üretilen belirteci taşır; dışarıdan gelen metin sürüklemesi sayfa sayılmaz.
+private struct SuruklenenSayfa {
+    let klasor: URL
+    let icerik: URL?
+    let mevcutUst: URL
+}
+
+private enum Suruklenen {
+    case sayfa(SuruklenenSayfa)
+    case favori(URL)
+}
+
+/// `ust` nil ise kök; `konum` nil ise üstüne bırakma (sıranın sonuna).
+private struct BirakmaPlani {
+    let ust: AgacDugumu?
+    let hedefKlasor: URL
+    let liste: [AgacDugumu]
+    let konum: Int?
+    let ayniUst: Bool
+    var sabitler: Set<String> { Set(liste.filter { $0.sabit }.map { $0.ad }) }
+}
+
 /// Linux kenar panelinin sayfa ağacı (macOS KenarPaneli'nin temel ağaç davranışı).
 final class LinuxKenarPaneli {
-    /// Taşıma/silme/yeniden adlandırma/yeni sayfa öncesi açık notu kaydeder; false dönerse işlem iptal olur.
-    var tasinmadanOnce: (() -> Bool)?
-    var kaydetmedenDevam: ((@escaping () -> Void) -> Void)?
+    var islemOncesi: ((@escaping () -> Void) -> Void)?
+    /// Bağlanmadıysa işlem sessizce düşmez, doğrudan devam eder.
+    private func islemOncesiCalistir(_ devam: @escaping () -> Void) {
+        if let islemOncesi { islemOncesi(devam) } else { devam() }
+    }
     var notSilindi: ((URL) -> Void)?
     var notYenidenAdlandirildi: ((URL, URL) -> Void)?
+    var baglarYenidenYazildi: (([String: String]) -> Void)?
+    let favoriler = Favoriler()
+    let sayfaBaglantilari = SayfaBaglantilari()
+    var veriDegisti: [() -> Void] = []
+    var anaSayfaIstendi: (() -> Void)?
     private(set) var acikNotURL: URL?
+    /// Arama süzgecinden bağımsız, ağaç sırasındaki tüm notlar (Önceki/Sonraki Not).
+    var tumNotUrlListesi: [URL] { tumNotlar }
 
     private weak var pencere: LinuxPencere?
     private let kok: Parca
@@ -59,13 +133,26 @@ final class LinuxKenarPaneli {
     private var acikKlasorYollari = Set(UserDefaults.standard.stringArray(forKey: "acikKlasorler") ?? [])
     private var aramaFiltresiEtkin = false
     private var dalGeriYukleniyor = false
+    /// Her motion olayında dosya sistemi doğrulaması yapılmasın; yalnızca kaynak/hedef değişince yeniden hesaplanır.
+    private var tasimaOnbellegi: (anahtar: String, gecerli: Bool)?
     private var aramaIptal: ZamanlayiciIptal?
-    private var icerikOnbellek: [URL: OnbellekGirdisi] = [:]
+    private(set) var icerikOnbellek: [URL: OnbellekGirdisi] = [:]
     private var onbellekNesli = 0
-    private let copKutusu = CopKutusu()
+    /// Tek örnek: açılış temizliği ve çöp penceresi (LinuxCopKutusu) aynı kilidi paylaşır.
+    let copKutusu = CopKutusu()
     private var menuDugumu: AgacDugumu?
     private var acikMenu: Parca?
     private var genislemeBaglari: [OpaquePointer: gulong] = [:]
+
+    private let kisaYolKutusu = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2)!
+    private let favoriBolumu = gtk_expander_new("Favoriler")!
+    private let favoriListesi = gtk_list_box_new()!
+    private let sonBolumu = gtk_expander_new("Son açılanlar")!
+    private let sonListesi = gtk_list_box_new()!
+    private var favoriURLleri: [URL] = []
+    private var sonURLleri: [URL] = []
+    private var kisaYolBekliyor = false
+    private var surukleme: (belirtec: String, oge: Suruklenen)?
 
     init(pencere: LinuxPencere) {
         self.pencere = pencere
@@ -73,6 +160,7 @@ final class LinuxKenarPaneli {
         liste = gtk_list_view_new(nil, nil)!
         arayuzuKur()
         eylemleriKur()
+        sayfaBaglantilari.sonAcilanlarDegisti = { [weak self] in self?.veriyiBildir() }
         yenile()
     }
 
@@ -82,8 +170,11 @@ final class LinuxKenarPaneli {
 
     /// Editör bir notu açınca ağacı yeniden kurmadan yalnızca açık sayfayı vurgular.
     func acikNotuBildir(_ url: URL?) {
+        let onceki = acikNotURL
         acikNotURL = url
         acikNotuSec()
+        if let url, url != onceki { sayfaBaglantilari.acildi(url) }
+        veriyiBildir()
     }
 
     func notIceriginiGuncelle(_ url: URL, metin: String) {
@@ -91,6 +182,7 @@ final class LinuxKenarPaneli {
         // Eski disk okuması yeni kaydı ezmesin; kalan notlar yeni nesilde tamamlanır.
         onbellegiTazele()
         if aramaFiltresiEtkin { filtreUygula() }
+        veriyiBildir()
     }
 
     /// Ağacı diskten yeniden kurar.
@@ -98,15 +190,33 @@ final class LinuxKenarPaneli {
         if let secili { acikNotURL = secili }
         tumKokDugumler = agaciYukle()
         tumNotlar = notlariDuzlestir(tumKokDugumler)
+        sayfaBaglantilari.guncelle(tumNotlar.map { SayfaSecenegi(url: $0) })
+        favoriler.olmayanlariDusur()
+        sayfaBaglantilari.olmayanSonAcilanlariDusur()
         let mevcut = Set(tumNotlar)
         icerikOnbellek = icerikOnbellek.filter { mevcut.contains($0.key) }
         onbellegiTazele()
         filtreUygula()
+        veriyiBildir()
+    }
+
+    private func veriyiBildir() {
+        kisaYollariPlanla()
+        for kanca in veriDegisti { kanca() }
     }
 
     // MARK: Arayüz
 
     private func arayuzuKur() {
+        // macOS'taki "Ana Sayfa" düğmesi: kenar panelin en üstünde.
+        let anaSayfa = gtk_button_new_with_label("🏠 Ana Sayfa")!
+        gtk_widget_set_margin_top(anaSayfa, 8)
+        gtk_widget_set_margin_start(anaSayfa, 8)
+        gtk_widget_set_margin_end(anaSayfa, 8)
+        gtk_widget_set_tooltip_text(anaSayfa, "Ana Sayfa")
+        GtkKoprusu.sinyalBagla(ham(anaSayfa), "clicked") { [weak self] in self?.anaSayfaIstendi?() }
+        gtk_box_append(nd_box(kok), anaSayfa)
+
         let yeniSayfa = gtk_button_new_with_label("+ Yeni sayfa")!
         gtk_widget_set_margin_top(yeniSayfa, 8)
         gtk_widget_set_margin_start(yeniSayfa, 8)
@@ -123,6 +233,18 @@ final class LinuxKenarPaneli {
         GtkKoprusu.sinyalBagla(ham(aramaAlani), "changed") { [weak self] in self?.aramaDegisti() }
         gtk_box_append(nd_box(kok), aramaAlani)
 
+        // ponytail: kısa yollar ağacın üstünde sabit alanda; çok favoride bölüm katlanır, ayrı kaydırma gerekirse eklenir.
+        bolumKur(favoriBolumu, favoriListesi, anahtar: "favorilerKatli", favori: true)
+        bolumKur(sonBolumu, sonListesi, anahtar: "sonAcilanlarKatli", favori: false)
+        gtk_widget_set_visible(favoriBolumu, 0)
+        gtk_widget_set_margin_start(kisaYolKutusu, 8)
+        gtk_widget_set_margin_end(kisaYolKutusu, 8)
+        gtk_box_append(nd_box(kok), kisaYolKutusu)
+        birakmaHedefiKur(favoriListesi, hareket: { [weak self] _, _ in
+            if case .favori? = self?.surukleme?.oge { return true }
+            return false
+        }, birak: { [weak self] deger, x, y in self?.favoriyeBirak(deger, x, y) ?? false })
+
         let fabrika = gtk_signal_list_item_factory_new()!
         GtkKoprusu.sinyalBagla(ham(fabrika), "setup") { [weak self] (oge: gpointer?) in
             if let oge { self?.satirKur(OpaquePointer(oge)) }
@@ -137,6 +259,11 @@ final class LinuxKenarPaneli {
         g_object_unref(ham(fabrika))
         gtk_list_view_set_single_click_activate(OpaquePointer(ham(liste)), 1)
         GtkKoprusu.sinyalBagla(ham(liste), "activate") { [weak self] (konum: guint) in self?.satirEtkinlesti(konum) }
+        // Tek hedef: satır, satır arası ve boşluk (kök) aynı yerde ayrılır; satır payına bırakma köke kaçmaz.
+        birakmaHedefiKur(liste, hareket: { [weak self] x, y in
+            guard let self, case .sayfa(let kaynak)? = self.surukleme?.oge else { return false }
+            return self.birakmaPlani(kaynak, x, y) != nil
+        }, birak: { [weak self] deger, x, y in self?.agacaBirak(deger, x, y) ?? false })
 
         let kaydirma = gtk_scrolled_window_new()!
         gtk_scrolled_window_set_policy(OpaquePointer(ham(kaydirma)), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC)
@@ -149,9 +276,12 @@ final class LinuxKenarPaneli {
     private func eylemleriKur() {
         let grup = g_simple_action_group_new()!
         let eylemler: [(String, (AgacDugumu) -> Void)] = [
+            ("favori", { [weak self] in self?.favoriyiDegistir($0) }),
             ("altsayfa", { [weak self] in self?.altSayfaEkle($0) }),
+            ("kardes", { [weak self] in self?.kardesSayfaEkle($0) }),
             ("adlandir", { [weak self] in self?.adlandirmaSor($0) }),
             ("sabitle", { [weak self] in self?.sabitlemeyiDegistir($0) }),
+            ("klasor", { [weak self] in self?.klasoreDonustur($0) }),
             ("sil", { [weak self] in self?.silmeSor($0) })
         ]
         for (ad, govde) in eylemler {
@@ -189,17 +319,26 @@ final class LinuxKenarPaneli {
         gtk_tree_expander_set_child(OpaquePointer(ham(genisletici)), kutu)
         gtk_list_item_set_child(oge, genisletici)
 
+        // Widget geri kullanılır; düğüm her olayda öğenin GÜNCEL satırından çözülür.
+        sagTikKur(genisletici) { [weak self] x, y in
+            guard let self, let satir = gtk_list_item_get_item(oge), let dugum = self.dugumu(OpaquePointer(satir)) else { return }
+            self.menuAc(dugum, genisletici, x, y)
+        }
+        surukleKaynagiKur(genisletici) { [weak self] in
+            guard let satir = gtk_list_item_get_item(oge), let dugum = self?.dugumu(OpaquePointer(satir)) else { return nil }
+            let ust = dugum.icerikURL.map { ustKlasor($0) } ?? dugum.klasorURL.deletingLastPathComponent()
+            return .sayfa(SuruklenenSayfa(klasor: dugum.klasorURL, icerik: dugum.icerikURL, mevcutUst: ust))
+        }
+    }
+
+    private func sagTikKur(_ widget: Parca, _ eylem: @escaping (Double, Double) -> Void) {
         let jest = gtk_gesture_click_new()!
         gtk_gesture_single_set_button(OpaquePointer(ham(jest)), 3)
-        let tutucu = Tutucu<(Double, Double) -> Void> { [weak self] x, y in
-            guard let satir = gtk_list_item_get_item(oge) else { return }
-            self?.menuAc(OpaquePointer(satir), genisletici, x, y)
-        }
         g_signal_connect_data(ham(jest), "pressed",
                               unsafeBitCast(basmaCagir as @convention(c) (gpointer?, Int32, Double, Double, gpointer?) -> Void,
                                             to: GCallback.self),
-                              Unmanaged.passRetained(tutucu).toOpaque(), tutucuyuBirak, GConnectFlags(rawValue: 0))
-        gtk_widget_add_controller(genisletici, OpaquePointer(ham(jest)))
+                              Unmanaged.passRetained(Tutucu(eylem)).toOpaque(), tutucuyuBirak, GConnectFlags(rawValue: 0))
+        gtk_widget_add_controller(widget, OpaquePointer(ham(jest)))
     }
 
     private func satirBagla(_ oge: OpaquePointer) {
@@ -374,6 +513,8 @@ final class LinuxKenarPaneli {
         aramaIptal = nil
         let sorgu = aramaIcinSadelestir(aramaMetni().trimmingCharacters(in: .whitespacesAndNewlines))
         aramaFiltresiEtkin = !sorgu.isEmpty
+        // macOS'taki gibi arama sırasında kısa yol bölümleri gizlenir.
+        gtk_widget_set_visible(kisaYolKutusu, aramaFiltresiEtkin ? 0 : 1)
         gorunenKok = sorgu.isEmpty ? tumKokDugumler : suzulmusAgac(tumKokDugumler, sorgu: sorgu)
         modeliKur()
     }
@@ -421,6 +562,7 @@ final class LinuxKenarPaneli {
             Platform.anaIsParcaciginda {
                 guard let self, nesil == self.onbellekNesli else { return }
                 self.icerikOnbellek = yeni
+                self.veriyiBildir()
                 if self.aramaFiltresiEtkin { self.filtreUygula() }
             }
         }
@@ -428,16 +570,24 @@ final class LinuxKenarPaneli {
 
     // MARK: Sağ tık menüsü
 
-    private func menuAc(_ satir: OpaquePointer, _ hedef: Parca, _ x: Double, _ y: Double) {
-        guard let dugum = dugumu(satir) else { return }
+    /// `kisaYol`: favori/son açılan satırı; düğüm ağaçtaki örnek olmadığından sabitleme sunulmaz.
+    private func menuAc(_ dugum: AgacDugumu, _ hedef: Parca, _ x: Double, _ y: Double, kisaYol: Bool = false) {
         menuyuKapat()
         menuDugumu = dugum
         let model = g_menu_new()!
+        if let url = dugum.icerikURL {
+            g_menu_append(model, favoriler.iceriyor(url) ? "Favorilerden çıkar" : "Favorilere ekle", "kenar.favori")
+        }
         g_menu_append(model, "Yeni alt sayfa", "kenar.altsayfa")
+        g_menu_append(model, "Yanına sayfa ekle", "kenar.kardes")
         g_menu_append(model, "Yeniden adlandır", "kenar.adlandir")
         // Süzülmüş ağaçta sıra kaydı güvenilmez; macOS'taki gibi arama sırasında sabitleme yok.
-        if !aramaFiltresiEtkin {
+        if !aramaFiltresiEtkin, !kisaYol {
             g_menu_append(model, dugum.sabit ? "Sabitlemeyi kaldır" : "📌 Sabitle", "kenar.sabitle")
+        }
+        // macOS gibi: dönüştürme yalnızca eski düzendeki ("Ad.md") düz notlarda sunulur.
+        if let icerik = dugum.icerikURL, icerik.lastPathComponent != kIcerikDosyaAdi {
+            g_menu_append(model, "Sayfa klasörüne dönüştür", "kenar.klasor")
         }
         g_menu_append(model, "Sil", "kenar.sil")
         let menu = gtk_popover_menu_new_from_model(GtkKoprusu.gtkIsaretci(ham(model)))!
@@ -461,9 +611,269 @@ final class LinuxKenarPaneli {
         gtk_widget_unparent(menu)
     }
 
+    // MARK: Favoriler ve son açılanlar (macOS KenarPaneli+KisaYollar)
+
+    private func bolumKur(_ bolum: Parca, _ liste: Parca, anahtar: String, favori: Bool) {
+        let kutu = OpaquePointer(ham(liste))
+        gtk_list_box_set_selection_mode(kutu, GTK_SELECTION_NONE)
+        gtk_expander_set_child(OpaquePointer(ham(bolum)), liste)
+        gtk_expander_set_expanded(OpaquePointer(ham(bolum)), UserDefaults.standard.bool(forKey: anahtar) ? 0 : 1)
+        GtkKoprusu.sinyalBagla(ham(bolum), "notify::expanded") { (_: gpointer?) in
+            UserDefaults.standard.set(gtk_expander_get_expanded(OpaquePointer(ham(bolum))) == 0, forKey: anahtar)
+        }
+        GtkKoprusu.sinyalBagla(ham(liste), "row-activated") { [weak self] (satir: gpointer?) in
+            guard let self, let satir else { return }
+            let sira = Int(gtk_list_box_row_get_index(GtkKoprusu.gtkIsaretci(satir)))
+            let urller = favori ? self.favoriURLleri : self.sonURLleri
+            guard urller.indices.contains(sira) else { return }
+            self.pencere?.notSecildi(urller[sira])
+        }
+        gtk_box_append(nd_box(kisaYolKutusu), bolum)
+    }
+
+    /// Açma/seçim/sürükleme sinyalinin içinde satırlar yok edilmez; güncelleme sonraki döngüdedir.
+    private func kisaYollariPlanla() {
+        guard !kisaYolBekliyor else { return }
+        kisaYolBekliyor = true
+        Platform.anaIsParcaciginda { [weak self] in self?.kisaYollariYenile() }
+    }
+
+    private func kisaYollariYenile() {
+        kisaYolBekliyor = false
+        let favoriler = self.favoriler.sayfalar
+        let sonlar = Array(sayfaBaglantilari.sonAcilanlar.prefix(5))
+        guard favoriler != favoriURLleri || sonlar != sonURLleri else { return }
+        // Açık menünün üst satırı silinebilir; popover önce ayrılır.
+        menuyuKapat()
+        favoriURLleri = favoriler
+        sonURLleri = sonlar
+        satirlariKur(favoriListesi, favoriler, favori: true)
+        satirlariKur(sonListesi, sonlar, favori: false)
+        gtk_widget_set_visible(favoriBolumu, favoriler.isEmpty ? 0 : 1)
+    }
+
+    private func satirlariKur(_ liste: Parca, _ urller: [URL], favori: Bool) {
+        let kutu = OpaquePointer(ham(liste))
+        while let cocuk = gtk_widget_get_first_child(liste) { gtk_list_box_remove(kutu, cocuk) }
+        for url in urller {
+            let etiket = gtk_label_new(sayfaAdi(url))!
+            gtk_label_set_xalign(nd_label(etiket), 0)
+            gtk_label_set_ellipsize(nd_label(etiket), PANGO_ELLIPSIZE_END)
+            gtk_widget_set_margin_start(etiket, 6)
+            gtk_widget_set_tooltip_text(etiket, sayfaBagYolu(url))
+            gtk_list_box_append(kutu, etiket)
+            guard let satir = gtk_widget_get_parent(etiket) else { continue }
+            sagTikKur(satir) { [weak self] x, y in
+                self?.menuAc(AgacDugumu(icerikURL: url, klasorURL: sayfaKlasoru(url)), satir, x, y, kisaYol: true)
+            }
+            if favori { surukleKaynagiKur(satir) { .favori(url) } }
+        }
+    }
+
+    private func favoriyiDegistir(_ dugum: AgacDugumu) {
+        guard let url = dugum.icerikURL else { return }
+        if favoriler.iceriyor(url) { favoriler.cikar(url) } else { favoriler.ekle(url) }
+        veriyiBildir()
+    }
+
+    /// Favoriler yalnızca kendi içinde yeniden sıralanır (macOS ile aynı).
+    private func favoriyeBirak(_ deger: UnsafePointer<GValue>?, _ x: Double, _ y: Double) -> Bool {
+        guard case .favori(let url)? = suruklenenAl(deger) else { return false }
+        var hedef = favoriURLleri.count
+        if let satir = gtk_list_box_get_row_at_y(OpaquePointer(ham(favoriListesi)), Int32(y)) {
+            let sira = Int(gtk_list_box_row_get_index(satir))
+            let widget: Parca = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(satir))
+            var sx = 0.0, sy = 0.0
+            gtk_widget_translate_coordinates(favoriListesi, widget, x, y, &sx, &sy)
+            hedef = sy > Double(gtk_widget_get_height(widget)) / 2 ? sira + 1 : sira
+        }
+        favoriler.tasi(url, hedef: hedef)
+        veriyiBildir()
+        return true
+    }
+
+    // MARK: Sürükle-bırak (macOS KenarPaneli+SurukleBirak)
+
+    private func surukleKaynagiKur(_ widget: Parca, _ oge: @escaping () -> Suruklenen?) {
+        let kaynak = gtk_drag_source_new()!
+        gtk_drag_source_set_actions(kaynak, GDK_ACTION_MOVE)
+        cBagla(ham(kaynak), "prepare", unsafeBitCast(hazirlaC, to: GCallback.self), Tutucu<() -> gpointer?> { [weak self] in
+            guard let self, let suruklenen = oge() else { return nil }
+            let belirtec = "notdefteri-sayfa:\(UUID().uuidString)"
+            self.surukleme = (belirtec, suruklenen)
+            return metinSaglayici(belirtec)
+        })
+        cBagla(ham(kaynak), "drag-end", unsafeBitCast(suruklemeBittiC, to: GCallback.self),
+               Tutucu<() -> Void> { [weak self] in
+                   self?.surukleme = nil
+                   self?.tasimaOnbellegi = nil
+               })
+        gtk_widget_add_controller(widget, kaynak)
+    }
+
+    private func birakmaHedefiKur(_ widget: Parca, hareket: @escaping (Double, Double) -> Bool,
+                                  birak: @escaping (UnsafePointer<GValue>?, Double, Double) -> Bool) {
+        let hedef = gtk_drop_target_new(g_type_from_name("gchararray"), GDK_ACTION_MOVE)!
+        cBagla(ham(hedef), "motion", unsafeBitCast(hareketC, to: GCallback.self),
+               Tutucu<(Double, Double) -> GdkDragAction> { hareket($0, $1) ? GDK_ACTION_MOVE : GdkDragAction(rawValue: 0) })
+        cBagla(ham(hedef), "drop", unsafeBitCast(birakC, to: GCallback.self), Tutucu(birak))
+        gtk_widget_add_controller(widget, hedef)
+    }
+
+    /// Yalnızca bu panelin başlattığı sürüklemenin belirteci kabul edilir; bir kez tüketilir.
+    private func suruklenenAl(_ deger: UnsafePointer<GValue>?) -> Suruklenen? {
+        guard let deger, deger.pointee.g_type == g_type_from_name("gchararray"),
+              let metin = g_value_get_string(deger), let surukleme,
+              String(cString: metin) == surukleme.belirtec else { return nil }
+        self.surukleme = nil
+        return surukleme.oge
+    }
+
+    private enum BirakmaNoktasi {
+        case bosluk
+        case cozulemedi
+        case satir(OpaquePointer, oran: Double)
+    }
+
+    /// Bırakma noktasındaki güncel GtkTreeListRow ve satır içindeki dikey oran. Boşluk (kök) ile
+    /// çözülemeyen nokta ayrıdır: ikincisinde bırakma reddedilir, sayfa yanlışlıkla köke gitmez.
+    private func satirBul(_ x: Double, _ y: Double) -> BirakmaNoktasi {
+        guard var widget = gtk_widget_pick(liste, x, y, GTK_PICK_DEFAULT) else { return .cozulemedi }
+        if widget == liste { return .bosluk }
+        let tur = gtk_tree_expander_get_type()
+        while !turMu(widget, tur) {
+            guard let ust = gtk_widget_get_parent(widget) else { return .cozulemedi }
+            if ust == liste {
+                // Satır kabının payı: içindeki genişletici satırı temsil eder.
+                guard let cocuk = gtk_widget_get_first_child(widget), turMu(cocuk, tur) else { return .cozulemedi }
+                widget = cocuk
+                break
+            }
+            widget = ust
+        }
+        guard let satir = gtk_tree_expander_get_list_row(OpaquePointer(ham(widget))) else { return .cozulemedi }
+        var sx = 0.0, sy = 0.0
+        gtk_widget_translate_coordinates(liste, widget, x, y, &sx, &sy)
+        return .satir(satir, oran: sy / Double(max(1, gtk_widget_get_height(widget))))
+    }
+
+    /// Üst/alt çeyrek araya, orta üstüne bırakmadır; geçersiz bırakmada nil (macOS validateDrop).
+    private func birakmaPlani(_ kaynak: SuruklenenSayfa, _ x: Double, _ y: Double) -> BirakmaPlani? {
+        var ust: AgacDugumu?
+        var konum: Int?
+        switch satirBul(x, y) {
+        case .cozulemedi: return nil
+        case .bosluk: break
+        case .satir(let satir, let oran):
+            guard let hedef = dugumu(satir) else { return nil }
+            // Arama sırasında düğümler kopya; araya bırakma üstüne bırakmaya düşer.
+            let araya = !aramaFiltresiEtkin && (oran < 0.25 || oran > 0.75)
+            if araya, oran > 0.75, gtk_tree_list_row_get_expanded(satir) != 0 {
+                ust = hedef
+                konum = 0
+            } else if araya {
+                ust = dugumler[hedef.klasorURL.deletingLastPathComponent().path]
+                guard let sira = (ust?.cocuklar ?? gorunenKok).firstIndex(where: { $0 === hedef }) else { return nil }
+                konum = oran > 0.75 ? sira + 1 : sira
+            } else {
+                ust = hedef
+            }
+        }
+        let hedefKlasor = ust?.cocuklarKlasoru ?? notlarKlasoru()
+        let liste = ust?.cocuklar ?? gorunenKok
+        let ayniUst = hedefKlasor.standardizedFileURL.path == kaynak.mevcutUst.standardizedFileURL.path
+        if let sira = konum { konum = araKonum(sira, liste: liste, klasor: kaynak.klasor) }
+        if (konum == nil || !ayniUst), !tasimaGecerliMi(kaynak, hedefKlasor) { return nil }
+        return BirakmaPlani(ust: ust, hedefKlasor: hedefKlasor, liste: liste, konum: konum, ayniUst: ayniUst)
+    }
+
+    private func tasimaGecerliMi(_ kaynak: SuruklenenSayfa, _ hedefKlasor: URL) -> Bool {
+        let anahtar = [kaynak.klasor.path, hedefKlasor.path, kaynak.mevcutUst.path].joined(separator: "\n")
+        if let onbellek = tasimaOnbellegi, onbellek.anahtar == anahtar { return onbellek.gecerli }
+        var gecerli = false
+        if case .success = tasimayiDogrula(kaynakKlasor: kaynak.klasor, hedefKlasor: hedefKlasor, mevcutUst: kaynak.mevcutUst) {
+            gecerli = true
+        }
+        tasimaOnbellegi = (anahtar, gecerli)
+        return gecerli
+    }
+
+    /// Bırakma konumunu bölge sınırına oturtur: sabit öğe sabitler içinde, değilse sabitlerin ardında.
+    private func araKonum(_ sira: Int, liste: [AgacDugumu], klasor: URL) -> Int {
+        let sabitSayisi = liste.prefix { $0.sabit }.count
+        let yol = klasor.standardizedFileURL.path
+        let sabitMi = liste.first { $0.klasorURL.standardizedFileURL.path == yol }?.sabit ?? false
+        let konum = min(max(sira, 0), liste.count)
+        return sabitMi ? min(konum, sabitSayisi) : max(konum, sabitSayisi)
+    }
+
+    /// Aynı üst altında araya bırakma yalnızca sırayı yazar. Taşıma kayıt kancasından geçer;
+    /// onay asenkron olduğundan drop başarı sayılmaz (false) ve taşıma onaydan sonra yapılır.
+    private func agacaBirak(_ deger: UnsafePointer<GValue>?, _ x: Double, _ y: Double) -> Bool {
+        guard case .sayfa(let kaynak)? = suruklenenAl(deger), let plan = birakmaPlani(kaynak, x, y) else { return false }
+        guard let konum = plan.konum, plan.ayniUst else {
+            Platform.anaIsParcaciginda { [weak self] in
+                self?.islemOncesiCalistir { [weak self] in self?.tasi(kaynak, plan) }
+            }
+            return false
+        }
+        let ad = kaynak.klasor.lastPathComponent
+        var adlar = plan.liste.map { $0.ad }
+        guard let eski = adlar.firstIndex(of: ad) else { return false }
+        adlar.remove(at: eski)
+        adlar.insert(ad, at: konum - (eski < konum ? 1 : 0))
+        let yazildi = siraKaydet(klasor: plan.hedefKlasor, adlar: adlar, sabitler: plan.sabitler)
+        // Ağaç sürükleme oturumu kapanmadan yeniden kurulmaz.
+        Platform.anaIsParcaciginda { [weak self] in
+            if !yazildi { self?.hataGoster("Sıralanamadı", "Sıra kaydı yazılamadı.") }
+            self?.yenile()
+        }
+        return yazildi
+    }
+
+    /// Dosya işlemi ve yol doğrulaması çekirdekte yeniden yapılır; hata olursa kayıtlar değişmez.
+    private func tasi(_ kaynak: SuruklenenSayfa, _ plan: BirakmaPlani) {
+        let yeniKlasor: URL
+        var yeniIcerik: URL?
+        do {
+            if let icerik = kaynak.icerik {
+                guard let yeni = try sayfaTasimaSonucu(icerik, hedefKlasor: plan.hedefKlasor) else {
+                    if let ust = pencere?.pencere {
+                        LinuxDiyalog.bilgi(ust: ust, baslik: "Sayfa taşınamadı",
+                                           aciklama: "Sayfa hedef klasöre taşınamadı.", hata: true)
+                    }
+                    yenile()
+                    return
+                }
+                yeniIcerik = yeni
+                yeniKlasor = sayfaKlasoru(yeni)
+            } else {
+                yeniKlasor = try klasorTasimaSonucu(kaynak.klasor, hedefKlasor: plan.hedefKlasor)
+            }
+        } catch {
+            tasimaHatasiGoster(error)
+            yenile()
+            return
+        }
+        // Eski klasörün kaydından çık; araya bırakıldıysa yeni klasörde konuma yerleş.
+        let yeniAd = yeniKlasor.lastPathComponent
+        siraAdiniDegistir(klasor: kaynak.mevcutUst, eski: kaynak.klasor.lastPathComponent, yeni: nil)
+        if let konum = plan.konum {
+            var adlar = plan.liste.map { $0.ad }
+            adlar.insert(yeniAd, at: min(konum, adlar.count))
+            siraKaydet(klasor: plan.hedefKlasor, adlar: adlar, sabitler: plan.sabitler)
+        } else {
+            siraAdiniDegistir(klasor: plan.hedefKlasor, eski: yeniAd, yeni: nil)
+        }
+        // Taşınan sayfa görünsün diye hedef dal açık kalır (dalTasindi kaydeder).
+        if plan.ust != nil { acikKlasorYollari.insert(plan.hedefKlasor.path) }
+        dalTasindi(eskiKlasor: kaynak.klasor, yeniKlasor: yeniKlasor, eskiIcerik: kaynak.icerik, yeniIcerik: yeniIcerik)
+        yenile()
+    }
+
     // MARK: Sayfa işlemleri
 
-    private func hedefKlasor() -> URL {
+    func hedefKlasor() -> URL {
         acikNotURL.map { ustKlasor($0) } ?? notlarKlasoru()
     }
 
@@ -478,12 +888,36 @@ final class LinuxKenarPaneli {
         yeniSayfa(klasor: dugum.cocuklarKlasoru)
     }
 
+    /// Sağ tıklanan sayfanın yanına (aynı seviyeye) yeni sayfa açar.
+    private func kardesSayfaEkle(_ dugum: AgacDugumu) {
+        yeniSayfa(klasor: dugum.sayfaMi ? dugum.klasorURL.deletingLastPathComponent() : dugum.klasorURL)
+    }
+
+    /// "Ad.md" düzenindeki notu "Ad/index.md" düzenine taşır; açık yol ve bağlar dala göre güncellenir.
+    private func klasoreDonustur(_ dugum: AgacDugumu, kaydiAtla: Bool = false) {
+        guard let icerik = dugum.icerikURL else { return }
+        if !kaydiAtla {
+            islemOncesiCalistir { [weak self] in self?.klasoreDonustur(dugum, kaydiAtla: true) }
+            return
+        }
+        guard let yeni = sayfayiKlasoreDonustur(icerik) else {
+            hataGoster("Sayfa klasöre dönüştürülemedi", "Dosya taşınamadı veya hedefte index.md zaten var.")
+            return
+        }
+        dalTasindi(eskiKlasor: dugum.klasorURL, yeniKlasor: sayfaKlasoru(yeni), eskiIcerik: icerik, yeniIcerik: yeni)
+        yenile()
+    }
+
     /// Sayfayı hemen diske yazar (kenar panelde anında görünsün) ve editörde açar.
     private func yeniSayfa(klasor: URL, kaydiAtla: Bool = false) {
-        guard kaydiAtla || islemOncesi({ [weak self] in self?.yeniSayfa(klasor: klasor, kaydiAtla: true) }) else { return }
+        if !kaydiAtla {
+            islemOncesiCalistir { [weak self] in self?.yeniSayfa(klasor: klasor, kaydiAtla: true) }
+            return
+        }
         let url = benzersizSayfaURLSonucu(taban: "Yeni Sayfa", klasor: klasor).url
         let fm = FileManager.default
         do {
+            _ = try notlarYolunuDogrula(url)
             try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try "".write(to: url, atomically: true, encoding: .utf8)
         } catch {
@@ -512,7 +946,10 @@ final class LinuxKenarPaneli {
                        "Sayfa adı boş olamaz, noktayla başlayamaz, / veya : içeremez; ekler ve Görseller adları ayrılmıştır.")
             return
         }
-        guard kaydiAtla || islemOncesi({ [weak self] in self?.adiDegistir(dugum, yeniAd: yeniAd, kaydiAtla: true) }) else { return }
+        if !kaydiAtla {
+            islemOncesiCalistir { [weak self] in self?.adiDegistir(dugum, yeniAd: yeniAd, kaydiAtla: true) }
+            return
+        }
         let eskiKlasor = dugum.klasorURL
         let yeniKlasor: URL
         var yeniSayfaURL: URL?
@@ -531,13 +968,13 @@ final class LinuxKenarPaneli {
             }
         } else {
             // Eski yapıdan kalan salt kapsayıcı klasör.
-            let ust = dugum.klasorURL.deletingLastPathComponent()
-            let aday = benzersizSayfaURLSonucu(taban: yeniAd, klasor: ust).url.deletingLastPathComponent()
-            do { try FileManager.default.moveItem(at: dugum.klasorURL, to: aday) } catch {
-                hataGoster("Klasör yeniden adlandırılamadı", error.localizedDescription)
+            do {
+                guard let aday = try klasoruYenidenAdlandir(dugum.klasorURL, yeniAd: yeniAd) else { return }
+                yeniKlasor = aday
+            } catch {
+                tasimaHatasiGoster(error)
                 return
             }
-            yeniKlasor = aday
         }
         siraAdiniDegistir(klasor: eskiKlasor.deletingLastPathComponent(), eski: dugum.ad, yeni: yeniKlasor.lastPathComponent)
         dalTasindi(eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor, eskiIcerik: dugum.icerikURL, yeniIcerik: yeniSayfaURL)
@@ -547,13 +984,23 @@ final class LinuxKenarPaneli {
     /// Açık notun yolunu ve açık dal kayıtlarını taşınan dala göre günceller;
     /// aksi hâlde editör silinmiş bir yolu kaydetmeye çalışır.
     private func dalTasindi(eskiKlasor: URL, yeniKlasor: URL, eskiIcerik: URL?, yeniIcerik: URL?) {
-        if let eskiIcerik, let yeniIcerik, acikNotURL == eskiIcerik {
-            acikNotURL = yeniIcerik
-            notYenidenAdlandirildi?(eskiIcerik, yeniIcerik)
-        } else if let acik = acikNotURL, acik.path.hasPrefix(eskiKlasor.path + "/") {
-            let yeni = URL(fileURLWithPath: yeniKlasor.path + acik.path.dropFirst(eskiKlasor.path.count))
-            acikNotURL = yeni
-            notYenidenAdlandirildi?(acik, yeni)
+        let sonuc = sayfaBaglantilari.daliGuncelle(eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,
+            eskiIcerik: eskiIcerik, yeniIcerik: yeniIcerik, notlar: tumNotlar,
+            onbellek: icerikOnbellek, favoriler: favoriler)
+        tumNotlar = sonuc.notlar
+        icerikOnbellek = sonuc.onbellek
+        onbellekNesli += 1
+        if let acik = acikNotURL {
+            let yeni = SayfaBaglantilari.tasinanURL(acik, eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,
+                                                 eskiIcerik: eskiIcerik, yeniIcerik: yeniIcerik)
+            if yeni != acik {
+                acikNotURL = yeni
+                notYenidenAdlandirildi?(acik, yeni)
+            }
+        }
+        baglarYenidenYazildi?(sonuc.hedefler)
+        if !sonuc.hatalar.isEmpty {
+            hataGoster("Bazı sayfa bağlantıları güncellenemedi", sonuc.hatalar.joined(separator: "\n"))
         }
         let eski = eskiKlasor.path
         for yol in acikKlasorYollari where yol == eski || yol.hasPrefix(eski + "/") {
@@ -592,7 +1039,10 @@ final class LinuxKenarPaneli {
     }
 
     private func sil(_ dugum: AgacDugumu, kaydiAtla: Bool = false) {
-        guard kaydiAtla || islemOncesi({ [weak self] in self?.sil(dugum, kaydiAtla: true) }) else { return }
+        if !kaydiAtla {
+            islemOncesiCalistir { [weak self] in self?.sil(dugum, kaydiAtla: true) }
+            return
+        }
         let altKlasor = dugum.klasorURL
         do {
             try copKutusu.sil(dugum)
@@ -614,14 +1064,6 @@ final class LinuxKenarPaneli {
     }
 
     // MARK: İletişim kutuları (GtkMessageDialog variadik olduğundan GtkWindow ile kurulur)
-
-    private func islemOncesi(_ devam: @escaping () -> Void) -> Bool {
-        guard tasinmadanOnce?() == true else {
-            kaydetmedenDevam?(devam)
-            return false
-        }
-        return true
-    }
 
     private func tasimaHatasiGoster(_ hata: Error) {
         let tasima = hata as? SayfaTasimaHatasi

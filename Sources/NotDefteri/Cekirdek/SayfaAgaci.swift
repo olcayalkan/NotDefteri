@@ -242,31 +242,38 @@ package struct SayfaTasimaHatasi: Error {
 /// hem dosya hem varsa alt dal klasörü taşınır. Yeni içerik yolunu döner.
 /// İkinci parçanın taşıma hatası, geri alma bilgisiyle fırlatılır.
 @discardableResult
-package func sayfayiYenidenAdlandirmaSonucu(_ icerikURL: URL, yeniAd: String) throws -> URL? {
+package func sayfayiYenidenAdlandirmaSonucu(_ icerikURL: URL, yeniAd: String, kok: URL = notlarKlasoru()) throws -> URL? {
     guard sayfaAdiGecerliMi(yeniAd) else { return nil }
+    try notlarYolunuDogrula(icerikURL, kok: kok)
+    try notlarYolunuDogrula(sayfaKlasoru(icerikURL), kok: kok)
     let fm = FileManager.default
     let ust = ustKlasor(icerikURL)
     guard yeniAd != sayfaAdi(icerikURL) else { return icerikURL }
 
     let hedefKlasor = benzersizTasimaHedefi(ad: yeniAd, klasor: ust)
+    try notlarYolunuDogrula(hedefKlasor, kok: kok)
 
     if icerikURL.lastPathComponent == kIcerikDosyaAdi {
-        guard (try? fm.moveItem(at: sayfaKlasoru(icerikURL), to: hedefKlasor)) != nil else { return nil }
+        try fm.moveItem(at: sayfaKlasoru(icerikURL), to: hedefKlasor)
         return hedefKlasor.appendingPathComponent(kIcerikDosyaAdi)
     }
 
     // Eski düzen: Ad.md (+ varsa Ad/ klasörü)
-    return try eskiSayfayiTasi(icerikURL, hedef: hedefKlasor)
+    return try eskiSayfayiTasi(icerikURL, hedef: hedefKlasor, kok: kok)
 }
 
 /// Eski düzenin iki parçasından ikincisi taşınamazsa ilkini geri alır.
-private func eskiSayfayiTasi(_ icerikURL: URL, hedef: URL) throws -> URL? {
+private func eskiSayfayiTasi(_ icerikURL: URL, hedef: URL, kok: URL) throws -> URL? {
     let fm = FileManager.default
     let hedefDosya = hedef.deletingLastPathComponent().appendingPathComponent("\(hedef.lastPathComponent).md")
-    guard (try? fm.moveItem(at: icerikURL, to: hedefDosya)) != nil else { return nil }
+    try notlarYolunuDogrula(icerikURL, kok: kok)
+    try notlarYolunuDogrula(hedefDosya, kok: kok)
+    try fm.moveItem(at: icerikURL, to: hedefDosya)
     do {
         let kaynakKlasor = sayfaKlasoru(icerikURL)
-        if fm.fileExists(atPath: kaynakKlasor.path) {
+        try notlarYolunuDogrula(kaynakKlasor, kok: kok)
+        try notlarYolunuDogrula(hedef, kok: kok)
+        if dosyaYoluVarMi(kaynakKlasor) {
             try fm.moveItem(at: kaynakKlasor, to: hedef)
         }
         return hedefDosya
@@ -274,6 +281,8 @@ private func eskiSayfayiTasi(_ icerikURL: URL, hedef: URL) throws -> URL? {
         let neden = error
         var geriAlmaHatasi: Error?
         do {
+            try notlarYolunuDogrula(hedefDosya, kok: kok)
+            try notlarYolunuDogrula(icerikURL, kok: kok)
             try fm.moveItem(at: hedefDosya, to: icerikURL)
         } catch {
             geriAlmaHatasi = error
@@ -289,6 +298,8 @@ package func sayfayiKlasoreDonustur(_ icerikURL: URL) -> URL? {
     guard icerikURL.lastPathComponent != kIcerikDosyaAdi else { return icerikURL }
     let fm = FileManager.default
     let klasor = sayfaKlasoru(icerikURL)
+    guard (try? notlarYolunuDogrula(icerikURL)) != nil,
+          (try? notlarYolunuDogrula(klasor.appendingPathComponent(kIcerikDosyaAdi))) != nil else { return nil }
     if !fm.fileExists(atPath: klasor.path) {
         guard (try? fm.createDirectory(at: klasor, withIntermediateDirectories: true)) != nil else { return nil }
     }
@@ -300,28 +311,46 @@ package func sayfayiKlasoreDonustur(_ icerikURL: URL) -> URL? {
 
 // MARK: - Taşıma (kenar panelde sürükle-bırak)
 
-/// Taşıma geçerli mi? Bir sayfa kendi altına, kendi içine ya da hâlihazırda
-/// bulunduğu klasöre taşınamaz.
-///
-/// Kendi altına taşımaya izin verilseydi `moveItem` klasörü kendi torununa
-/// taşıyıp dalı tamamen erişilemez hâle getirirdi.
-package func tasimaGecerliMi(kaynakKlasor: URL, hedefKlasor: URL, mevcutUst: URL) -> Bool {
-    let kaynak = kaynakKlasor.standardizedFileURL.path
-    let hedef = hedefKlasor.standardizedFileURL.path
-    guard hedef != kaynak, !hedef.hasPrefix(kaynak + "/") else { return false }
-    return hedef != mevcutUst.standardizedFileURL.path
+package enum TasimaDogrulamaHatasi: LocalizedError {
+    case kendiAltina
+    case ayniUst
+    case yol(Error)
+
+    package var errorDescription: String? {
+        switch self {
+        case .kendiAltina: return "Sayfa kendi içine veya altına taşınamaz."
+        case .ayniUst: return "Sayfa zaten bu klasörde."
+        case .yol(let hata): return hata.localizedDescription
+        }
+    }
+}
+
+/// UI ön doğrulamada hata türünü kullanır; gerçek taşıma aynı kontrolü yeniden yapar.
+package func tasimayiDogrula(kaynakKlasor: URL, hedefKlasor: URL, mevcutUst: URL,
+                            kok: URL = notlarKlasoru()) -> Result<Void, TasimaDogrulamaHatasi> {
+    do {
+        let kaynak = try notlarYolunuDogrula(kaynakKlasor, kok: kok).path
+        let hedef = try notlarYolunuDogrula(hedefKlasor, kok: kok, kokDahil: true).path
+        let ust = try notlarYolunuDogrula(mevcutUst, kok: kok, kokDahil: true).path
+        guard hedef != kaynak, !hedef.hasPrefix(kaynak + "/") else { return .failure(.kendiAltina) }
+        guard hedef != ust else { return .failure(.ayniUst) }
+        return .success(())
+    } catch { return .failure(.yol(error)) }
+}
+
+package func tasimaGecerliMi(kaynakKlasor: URL, hedefKlasor: URL, mevcutUst: URL,
+                           kok: URL = notlarKlasoru()) -> Bool {
+    if case .success = tasimayiDogrula(kaynakKlasor: kaynakKlasor, hedefKlasor: hedefKlasor,
+                                     mevcutUst: mevcutUst, kok: kok) { return true }
+    return false
 }
 
 /// Hedef klasörde `ad` ile çakışmayan bir yol üretir.
 /// Hem "Ad/" klasörü hem eski düzenin "Ad.md" dosyası kontrol edilir.
 private func benzersizTasimaHedefi(ad: String, klasor: URL) -> URL {
-    let fm = FileManager.default
-    func doluMu(_ aday: URL) -> Bool {
-        fm.fileExists(atPath: aday.path) || fm.fileExists(atPath: aday.path + ".md")
-    }
     var aday = klasor.appendingPathComponent(ad, isDirectory: true)
     var sayac = 2
-    while doluMu(aday) {
+    while sayfaHedefiDoluMu(aday) {
         aday = klasor.appendingPathComponent("\(ad) (\(sayac))", isDirectory: true)
         sayac += 1
     }
@@ -329,39 +358,59 @@ private func benzersizTasimaHedefi(ad: String, klasor: URL) -> URL {
 }
 
 /// Sayfayı, alt sayfaları ve görselleriyle birlikte başka bir klasörün altına taşır.
-/// Yeni içerik yolunu döner; geçersiz taşıma ya da ilk adım hatasında nil.
+/// Yeni içerik yolunu döner; doğrulama ve dosya işlemi hataları UI katmanına fırlatılır.
 /// İkinci parçanın taşıma hatası, geri alma bilgisiyle fırlatılır.
 @discardableResult
-package func sayfaTasimaSonucu(_ icerikURL: URL, hedefKlasor: URL) throws -> URL? {
+package func sayfaTasimaSonucu(_ icerikURL: URL, hedefKlasor: URL, kok: URL = notlarKlasoru()) throws -> URL? {
     let fm = FileManager.default
     let kaynakKlasor = sayfaKlasoru(icerikURL)
-    guard tasimaGecerliMi(kaynakKlasor: kaynakKlasor, hedefKlasor: hedefKlasor,
-                          mevcutUst: ustKlasor(icerikURL)) else { return nil }
-    guard (try? fm.createDirectory(at: hedefKlasor, withIntermediateDirectories: true)) != nil else { return nil }
+    try tasimayiDogrula(kaynakKlasor: kaynakKlasor, hedefKlasor: hedefKlasor,
+                       mevcutUst: ustKlasor(icerikURL), kok: kok).get()
+    try notlarYolunuDogrula(icerikURL, kok: kok)
+    try fm.createDirectory(at: hedefKlasor, withIntermediateDirectories: true)
 
     let hedef = benzersizTasimaHedefi(ad: sayfaAdi(icerikURL), klasor: hedefKlasor)
+    try notlarYolunuDogrula(hedef, kok: kok)
 
     // Yeni düzen: her şey klasörün içinde, tek hamle yeter.
     if icerikURL.lastPathComponent == kIcerikDosyaAdi {
-        guard (try? fm.moveItem(at: kaynakKlasor, to: hedef)) != nil else { return nil }
+        try notlarYolunuDogrula(kaynakKlasor, kok: kok)
+        try fm.moveItem(at: kaynakKlasor, to: hedef)
         return hedef.appendingPathComponent(kIcerikDosyaAdi)
     }
 
     // Eski düzen: "Ad.md" ve varsa alt dallarını tutan "Ad/" klasörü birlikte gider.
-    return try eskiSayfayiTasi(icerikURL, hedef: hedef)
+    return try eskiSayfayiTasi(icerikURL, hedef: hedef, kok: kok)
 }
 
 /// Eski yapıdan kalan salt kapsayıcı klasörü taşır. Yeni klasör yolunu döner.
 @discardableResult
-package func klasoruTasi(_ klasorURL: URL, hedefKlasor: URL) -> URL? {
-    let fm = FileManager.default
-    guard tasimaGecerliMi(kaynakKlasor: klasorURL, hedefKlasor: hedefKlasor,
-                          mevcutUst: klasorURL.deletingLastPathComponent()) else { return nil }
-    guard (try? fm.createDirectory(at: hedefKlasor, withIntermediateDirectories: true)) != nil else { return nil }
+package func klasorTasimaSonucu(_ klasorURL: URL, hedefKlasor: URL, kok: URL = notlarKlasoru()) throws -> URL {
+    try tasimayiDogrula(kaynakKlasor: klasorURL, hedefKlasor: hedefKlasor,
+                       mevcutUst: klasorURL.deletingLastPathComponent(), kok: kok).get()
+    return try klasorIslemi(klasorURL, ad: klasorURL.lastPathComponent, hedefKlasor: hedefKlasor, kok: kok)
+}
 
-    let hedef = benzersizTasimaHedefi(ad: klasorURL.lastPathComponent, klasor: hedefKlasor)
-    guard (try? fm.moveItem(at: klasorURL, to: hedef)) != nil else { return nil }
+package func klasoruYenidenAdlandir(_ klasorURL: URL, yeniAd: String, kok: URL = notlarKlasoru()) throws -> URL? {
+    guard sayfaAdiGecerliMi(yeniAd) else { return nil }
+    try notlarYolunuDogrula(klasorURL, kok: kok)
+    guard yeniAd != klasorURL.lastPathComponent else { return klasorURL }
+    return try klasorIslemi(klasorURL, ad: yeniAd, hedefKlasor: klasorURL.deletingLastPathComponent(), kok: kok)
+}
+
+private func klasorIslemi(_ kaynak: URL, ad: String, hedefKlasor: URL, kok: URL) throws -> URL {
+    try notlarYolunuDogrula(kaynak, kok: kok)
+    try notlarYolunuDogrula(hedefKlasor, kok: kok, kokDahil: true)
+    try FileManager.default.createDirectory(at: hedefKlasor, withIntermediateDirectories: true)
+    let hedef = benzersizTasimaHedefi(ad: ad, klasor: hedefKlasor)
+    try notlarYolunuDogrula(hedef, kok: kok)
+    try FileManager.default.moveItem(at: kaynak, to: hedef)
     return hedef
+}
+
+@discardableResult
+package func klasoruTasi(_ klasorURL: URL, hedefKlasor: URL) -> URL? {
+    try? klasorTasimaSonucu(klasorURL, hedefKlasor: hedefKlasor)
 }
 
 /// Bağlantı yolu köke görelidir; kapsayıcı klasörler de ad çakışmasını ayırır.

@@ -28,9 +28,10 @@ final class LinuxIcindekiler {
     private var sayfaOnbellegi: [URL: SayfaSecenegi] = [:]
     private var baglantiVerenler: [SayfaSecenegi] = []
 
-    static func kur(pencere: LinuxPencere, editor: LinuxEditor) {
-        let panel = LinuxIcindekiler(pencere: pencere, editor: editor)
-        let veri = Unmanaged.passRetained(panel).toOpaque()
+    static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
+        let icindekiler = LinuxIcindekiler(pencere: pencere, editor: editor)
+        panel.veriDegisti.append { [weak icindekiler] in icindekiler?.geriBaglantilariTazele() }
+        let veri = Unmanaged.passRetained(icindekiler).toOpaque()
         let yuva: UnsafeMutablePointer<GObject> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(pencere.sagPanelYuvasi))
         g_object_set_data_full(yuva, "nd-icindekiler", veri, { veri in
             if let veri { Unmanaged<LinuxIcindekiler>.fromOpaque(veri).release() }
@@ -42,7 +43,7 @@ final class LinuxIcindekiler {
         self.editor = editor
         gorunumuKur(pencere)
         kancalariBagla(pencere, editor)
-        if editor.acikURL != nil { notAcildi() }
+        if editor.editorEtkin { notAcildi() }
     }
 
     deinit { baslikIptal?() }
@@ -63,10 +64,8 @@ final class LinuxIcindekiler {
 
     private func kancalariBagla(_ pencere: LinuxPencere, _ editor: LinuxEditor) {
         editor.degisiklikSonrasi.append { [weak self] in self?.basliklariPlanla() }
-        editor.notAcildi.append { [weak self] _ in self?.notAcildi() }
-        let oncekiKayit = editor.notKaydedildi
-        editor.notKaydedildi = { [weak self] url, metin in
-            oncekiKayit?(url, metin)
+        LinuxEklentiler.yasamDongusunuIzle(editor) { [weak self] in self?.notAcildi() }
+        editor.kayitSonrasi.append { [weak self] url, metin in
             self?.bagOnbellegi[url] = onbellekGirdisiUret(metin, tarih: degistirilmeTarihi(URL(fileURLWithPath: url.path)))
             self?.geriBaglantilariTazele()
         }
@@ -78,7 +77,7 @@ final class LinuxIcindekiler {
             [weak self] (_: gpointer?) in self?.etkinBasligiGuncelle()
         }
         // macOS hover ile açılır; Linux'ta kalıcı panel ve gizleme kısayolu kullanılır.
-        pencere.kisayolEkle("<Control><Shift>backslash") { [weak self] in
+        pencere.menuEkle(["Görünüm", "İçindekiler paneli"], kisayol: "<Control><Shift>backslash") { [weak self] in
             guard let self else { return }
             self.gizli.toggle()
             self.gorunurluguGuncelle()
@@ -105,7 +104,7 @@ final class LinuxIcindekiler {
     private func basliklariPlanla() {
         baslikNesli += 1
         baslikIptal?()
-        guard editor?.acikURL != nil else {
+        guard editor?.editorEtkin == true else {
             baslikIptal = nil
             notAcildi()
             return
@@ -121,7 +120,7 @@ final class LinuxIcindekiler {
 
     private func basliklariGuncelle() {
         let yeni: [Girdi]
-        if let editor, editor.acikURL != nil { yeni = basliklariTopla(editor.belge) }
+        if let editor, editor.editorEtkin { yeni = basliklariTopla(editor.belge) }
         else { yeni = [] }
         if girdiler != yeni {
             etkinligiAyarla(nil)
@@ -164,7 +163,7 @@ final class LinuxIcindekiler {
     }
 
     private func etkinBasligiGuncelle() {
-        guard !konumlarGecersiz, let editor, editor.acikURL != nil else { return }
+        guard !konumlarGecersiz, let editor, editor.editorEtkin else { return }
         var iter = GtkTextIter()
         gtk_text_buffer_get_iter_at_mark(editor.tampon, &iter, gtk_text_buffer_get_insert(editor.tampon))
         let konum = LinuxMetinDonusumu.konum(iter)
@@ -203,7 +202,7 @@ final class LinuxIcindekiler {
     }
 
     private func basligaGit(_ konum: Int) {
-        guard !konumlarGecersiz, let editor, editor.acikURL != nil, konum < editor.belge.length else { return }
+        guard !konumlarGecersiz, let editor, editor.editorEtkin, konum < editor.belge.length else { return }
         var iter = LinuxMetinDonusumu.iter(editor.tampon, konum)
         gtk_text_buffer_place_cursor(editor.tampon, &iter)
         let gorunum: UnsafeMutablePointer<GtkTextView> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(editor.metinGorunumu))
@@ -296,7 +295,7 @@ final class LinuxIcindekiler {
 
     private func gorunurluguGuncelle() {
         guard let pencere else { return }
-        let gorunur = !gizli && !girdiler.isEmpty && editor?.acikURL != nil
+        let gorunur = !gizli && !girdiler.isEmpty && editor?.editorEtkin == true
         if !gorunur, let odak = gtk_window_get_focus(nd_window(pencere.pencere)),
            odak == pencere.sagPanelYuvasi || gtk_widget_is_ancestor(odak, pencere.sagPanelYuvasi) != 0,
            let editor { gtk_widget_grab_focus(editor.metinGorunumu) }
