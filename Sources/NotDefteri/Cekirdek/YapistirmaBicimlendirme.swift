@@ -41,9 +41,9 @@ private func sadelestirmeleriUygula(_ ms: NSMutableString) {
         ("(?m)[ \t]+$", "", true),   // satır sonu boşluk artıkları
     ]
     for (desen, yenisi, duzenliMi) in kurallar {
-        ms.replaceOccurrences(of: desen, with: yenisi,
-                              options: duzenliMi ? .regularExpression : [],
-                              range: NSRange(location: 0, length: ms.length))
+        _ = ms.replaceOccurrences(of: desen, with: yenisi,
+                                  options: duzenliMi ? .regularExpression : [],
+                                  range: NSRange(location: 0, length: ms.length))
     }
 }
 
