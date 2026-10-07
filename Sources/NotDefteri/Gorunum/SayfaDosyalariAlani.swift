@@ -15,6 +15,8 @@ final class SayfaDosyalariAlani: NSView, NSTableViewDataSource, NSTableViewDeleg
     override init(frame: NSRect) {
         super.init(frame: frame)
         isHidden = true
+        // Kâğıt temaları açık renklidir; koyu sistem görünümünde grup satırı ve seçim koyu çizilmesin.
+        appearance = NSAppearance(named: .aqua)
         baslik.isBordered = false
         baslik.alignment = .left
         baslik.font = .systemFont(ofSize: 12, weight: .medium)
@@ -64,7 +66,8 @@ final class SayfaDosyalariAlani: NSView, NSTableViewDataSource, NSTableViewDeleg
     }
 
     private func basligiGuncelle() {
-        baslik.title = "\(acik ? "▾" : "▸") Dosyalar (\(dosyaSayisi))"
+        baslik.attributedTitle = NSAttributedString(string: "\(acik ? "▾" : "▸") Dosyalar (\(dosyaSayisi))",
+            attributes: [.font: baslik.font ?? .systemFont(ofSize: 12, weight: .medium), .foregroundColor: kMetinRenk])
         baslik.setAccessibilityLabel("Dosyalar (\(dosyaSayisi))")
         baslik.setAccessibilityValue(acik ? "Açık" : "Katlı")
         kaydirma.isHidden = !acik
@@ -88,31 +91,44 @@ final class SayfaDosyalariAlani: NSView, NSTableViewDataSource, NSTableViewDeleg
     func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { satirlar[row].dosya != nil }
     func tableView(_ tableView: NSTableView, shouldEdit tableColumn: NSTableColumn?, row: Int) -> Bool { false }
 
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat { 22 }
+
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let satir = satirlar[row]
         let boyutSutunu = tableColumn?.identifier.rawValue == "boyut"
         let hucre = NSTableCellView()
         let etiket = NSTextField(labelWithString: "")
+        etiket.translatesAutoresizingMaskIntoConstraints = false
         etiket.font = .systemFont(ofSize: 11, weight: satir.dosya == nil ? .medium : .regular)
         etiket.lineBreakMode = .byTruncatingMiddle
-        etiket.textColor = satir.dosya == nil || boyutSutunu ? .secondaryLabelColor : .labelColor
-        etiket.autoresizingMask = [.width, .height]
+        // Panel kâğıt temasının üstünde durur; sistem etiket renkleri koyu görünümde zeminle karışır.
+        etiket.textColor = satir.dosya == nil || boyutSutunu ? kMetinRenk.withAlphaComponent(0.65) : kMetinRenk
+        etiket.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         hucre.textField = etiket
         hucre.addSubview(etiket)
+        var kisitlar = [etiket.centerYAnchor.constraint(equalTo: hucre.centerYAnchor),
+                        etiket.trailingAnchor.constraint(equalTo: hucre.trailingAnchor, constant: -4)]
+        var solKenar = etiket.leadingAnchor.constraint(equalTo: hucre.leadingAnchor, constant: 2)
         if let dosya = satir.dosya {
             if boyutSutunu {
                 etiket.stringValue = ByteCountFormatter.string(fromByteCount: dosya.boyut, countStyle: .file)
                 etiket.alignment = .right
             } else {
                 etiket.stringValue = dosya.goreliYol
-                let simge = NSImageView(frame: NSRect(x: 0, y: 3, width: 16, height: 16))
+                let simge = NSImageView()
+                simge.translatesAutoresizingMaskIntoConstraints = false
                 simge.image = NSImage(systemSymbolName: dosya.kodMu ? "chevron.left.forwardslash.chevron.right" : dosya.metinMi ? "doc.text" : "doc", accessibilityDescription: dosya.kodMu ? "Kod" : dosya.metinMi ? "Metin" : "Dosya")
+                simge.contentTintColor = kMetinRenk
                 hucre.addSubview(simge)
-                etiket.frame.origin.x = 22
+                kisitlar += [simge.leadingAnchor.constraint(equalTo: hucre.leadingAnchor, constant: 2),
+                             simge.centerYAnchor.constraint(equalTo: hucre.centerYAnchor),
+                             simge.widthAnchor.constraint(equalToConstant: 16),
+                             simge.heightAnchor.constraint(equalToConstant: 16)]
+                solKenar = etiket.leadingAnchor.constraint(equalTo: simge.trailingAnchor, constant: 6)
                 hucre.toolTip = dosya.goreliYol
             }
         } else if !boyutSutunu { etiket.stringValue = satir.klasor }
-        etiket.frame.size = NSSize(width: max(0, (tableColumn?.width ?? 100) - etiket.frame.minX), height: 22)
+        NSLayoutConstraint.activate(kisitlar + [solKenar])
         return hucre
     }
 

@@ -182,7 +182,7 @@ final class LinuxKatlama {
         let anahtarlar = anahtarlar()
         let katlilar = basliklar.indices.filter { basliklar[$0].katli }.map { anahtarlar[$0] }
         Self.sayfalar[yol] = katlilar
-        UserDefaults.standard.set(katlilar, forKey: "baslikKatlama." + yol)
+        gAyarlar.set(katlilar, forKey: "baslikKatlama." + yol)
     }
 
     private func sayfayiAc() {
@@ -203,7 +203,7 @@ final class LinuxKatlama {
             let tam = $0.standardizedFileURL.resolvingSymlinksInPath().path
             return tam.hasPrefix(kok) ? String(tam.dropFirst(kok.count)) : nil
         }
-        let yuklenecek = Set(yol.map { Self.sayfalar[$0] ?? UserDefaults.standard.stringArray(forKey: "baslikKatlama." + $0) ?? [] } ?? [])
+        let yuklenecek = Set(yol.map { Self.sayfalar[$0] ?? gAyarlar.stringArray(forKey: "baslikKatlama." + $0) ?? [] } ?? [])
         editor?.belgeyiOku { belge in basliklariOku(belge, NSRange(location: 0, length: belge.length)) }
         let anahtarlar = anahtarlar()
         for sira in basliklar.indices { basliklar[sira].katli = yuklenecek.contains(anahtarlar[sira]) }
@@ -275,15 +275,16 @@ final class LinuxKatlama {
         let aralik = LinuxMetinDonusumu.aralik(b, s)
         let ayni = editor.belgeyiOku { belge in baslikYapisiAyni(belge, aralik, alt: alt, ust: ust) }
         if ayni { kirliyiSil(); return }
-        var eskiler: [Int32: Baslik] = [:]
+        // Aynı konuma çöken başlıklar birbirini ezmez; hepsinin mark'ı temizlenir.
+        var eskiler: [Int32: [Baslik]] = [:]
         basliklar.removeAll { baslik in
             let yer = konum(baslik.bas)
             guard yer >= alt && (yer < ust || yer == alt) else { return false }
-            eskiler[yer] = baslik
+            eskiler[yer, default: []].append(baslik)
             return true
         }
         editor.belgeyiOku { belge in basliklariOku(belge, aralik, eskiler: eskiler) }
-        for eski in eskiler.values { basligiSil(eski) }
+        for eski in eskiler.values.joined() { basligiSil(eski) }
         basliklar.sort { konum($0.bas) < konum($1.bas) }
         kirliyiSil()
         bolumleriHesapla()
@@ -339,7 +340,7 @@ final class LinuxKatlama {
         if metinDegisti { sakla() }
     }
 
-    private func basliklariOku(_ belge: NSAttributedString, _ aralik: NSRange, eskiler: [Int32: Baslik] = [:]) {
+    private func basliklariOku(_ belge: NSAttributedString, _ aralik: NSRange, eskiler: [Int32: [Baslik]] = [:]) {
         guard aralik.location <= belge.length, NSMaxRange(aralik) <= belge.length else { return }
         let ns = belge.string as NSString
         var yer = aralik.location
@@ -352,7 +353,7 @@ final class LinuxKatlama {
             if let seviye = belge.attribute(kBaslikSeviyesiAnahtari, at: yer, effectiveRange: nil) as? Int,
                (1...3).contains(seviye) {
                 let metin = ns.substring(with: paragraf).replacingOccurrences(of: "\u{200B}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-                let eski = eskiler[gtk_text_iter_get_offset(&gtkIter)]
+                let eski = eskiler[gtk_text_iter_get_offset(&gtkIter)]?.last
                 let baslik = Baslik(bas: gtk_text_buffer_create_mark(tampon, nil, &gtkIter, 1)!,
                                     govde: gtk_text_buffer_create_mark(tampon, nil, &son, 1)!,
                                     metin: metin, seviye: seviye, katli: eski?.seviye == seviye && eski?.katli == true)

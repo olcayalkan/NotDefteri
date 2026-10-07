@@ -174,7 +174,7 @@ private final class SayfaBulucusu {
         for (ad, callback) in [("insert-text", unsafeBitCast(bagEklenecekC, to: GCallback.self)),
                                ("delete-range", unsafeBitCast(bagSilinecekC, to: GCallback.self))] {
             bulucuSinyali(UnsafeMutableRawPointer(editor.tampon), ad, callback,
-                         { [weak self] (bas: GtkTextIter, son: GtkTextIter) in self?.degisenParagraflariIsaretle(bas, son) })
+                         { [weak self] (bas: GtkTextIter, son: GtkTextIter) -> Void in self?.degisenParagraflariIsaretle(bas, son) })
         }
         // Adjustment değişimleri kaydırmayı ve boyut dağıtımını birlikte kapsar.
         for ayar in [gtk_scrollable_get_hadjustment(OpaquePointer(editor.metinGorunumu)),
@@ -675,7 +675,7 @@ private final class SayfaBulucusu {
         gtk_dialog_set_default_response(dialog, 0)
         diyalog = widget
         let kaynakURL = editor?.acikURL
-        bulucuSinyali(nesne, "response", unsafeBitCast(bulucuYanitiC, to: GCallback.self), { [weak self] (secilen: Int32) in
+        bulucuSinyali(nesne, "response", unsafeBitCast(bulucuYanitiC, to: GCallback.self), { [weak self] (secilen: Int32) -> Void in
             guard let self, self.diyalog == widget else { return }
             self.diyalog = nil
             // Callback'in destroy_data'sı yanıt işlenirken bırakılmasın.

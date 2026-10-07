@@ -105,9 +105,9 @@ package final class SayfaBaglantilari {
     package private(set) var sayfalar: [SayfaSecenegi] = []
     private var hedefler: [String: [URL]] = [:]
     private var urlIndeksi: [URL: SayfaSecenegi] = [:]
-    package private(set) var sonAcilanlar = (UserDefaults.standard.stringArray(forKey: "sonAcilanSayfalar") ?? []).map { URL(fileURLWithPath: $0) }
+    package private(set) var sonAcilanlar = (gAyarlar.stringArray(forKey: "sonAcilanSayfalar") ?? []).map { URL(fileURLWithPath: $0) }
 
-    private var sonAcilmaTarihleri = UserDefaults.standard.dictionary(forKey: "sonAcilmaTarihleri") as? [String: Double] ?? [:]
+    private var sonAcilmaTarihleri = gAyarlar.dictionary(forKey: "sonAcilmaTarihleri") as? [String: Double] ?? [:]
 
     package func sonAcilmaTarihi(_ url: URL) -> Date? {
         sonAcilmaTarihleri[url.path].map { Date(timeIntervalSince1970: $0) }
@@ -123,10 +123,10 @@ package final class SayfaBaglantilari {
     }
 
     private func sonAcilanlariKaydet() {
-        UserDefaults.standard.set(sonAcilanlar.map(\.path), forKey: "sonAcilanSayfalar")
+        gAyarlar.set(sonAcilanlar.map(\.path), forKey: "sonAcilanSayfalar")
         let yollar = Set(sonAcilanlar.map(\.path))
         sonAcilmaTarihleri = sonAcilmaTarihleri.filter { yollar.contains($0.key) }
-        UserDefaults.standard.set(sonAcilmaTarihleri, forKey: "sonAcilmaTarihleri")
+        gAyarlar.set(sonAcilmaTarihleri, forKey: "sonAcilmaTarihleri")
         sonAcilanlarDegisti?()
     }
 
@@ -176,14 +176,20 @@ package final class SayfaBaglantilari {
             Self.tasinanURL(url, eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,
                             eskiIcerik: eskiIcerik, yeniIcerik: yeniIcerik)
         }
+        // Yol çözümü pahalı; konumu değişmeyen sayfanın seçeneği yeniden kurulmaz.
+        let yeniSayfalar = sayfalar.map { sayfa -> SayfaSecenegi in
+            let yeniURL = donustur(sayfa.url)
+            return yeniURL == sayfa.url ? sayfa : SayfaSecenegi(url: yeniURL)
+        }
+        let yeniSecenekler = Dictionary(yeniSayfalar.map { ($0.url, $0) }, uniquingKeysWith: { ilk, _ in ilk })
         let yeniIndeks = SayfaBaglantilari()
-        yeniIndeks.guncelle(sayfalar.map { SayfaSecenegi(url: donustur($0.url)) })
+        yeniIndeks.guncelle(yeniSayfalar)
         let hedefler = yenidenYazimlar(yeni: yeniIndeks, donustur: donustur)
         let yeniNotlar = notlar.map(donustur)
         var yeniOnbellek = Dictionary(onbellek.map { (donustur($0.key), $0.value) }, uniquingKeysWith: { ilk, _ in ilk })
         favoriler.yolGuncelle(donustur)
         yollariTasi(donustur)
-        guncelle(yeniNotlar.map { SayfaSecenegi(url: $0) })
+        guncelle(yeniNotlar.map { yeniSecenekler[$0] ?? SayfaSecenegi(url: $0) })
         let yazim = bagDosyalariniYenidenYaz(notlar: yeniNotlar, onbellek: yeniOnbellek, hedefler: hedefler, kok: kok)
         for (url, metin) in yazim.metinler {
             yeniOnbellek[url] = onbellekGirdisiUret(metin, tarih: degistirilmeTarihi(url))

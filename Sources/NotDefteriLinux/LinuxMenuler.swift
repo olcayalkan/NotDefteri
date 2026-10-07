@@ -5,6 +5,9 @@ import NotDefteriCekirdek
 /// macOS Menu.swift ile eşlik: başka dosyada karşılığı bulunmayan menü öğeleri ve kenar panelin
 /// alt çubukları (B1/B2/B3/Aa başlık düzeyi, A−/A+ punto). Kısayollar Cmd → Ctrl olarak taşınır.
 enum LinuxMenuler {
+    /// macOS'ta paket/Info.plist olmadığı için tek sürüm kaynağı yok; Hakkında penceresi bunu gösterir.
+    private static let surum = "1.0 (Linux)"
+
     static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
         uygulamaMenusu(pencere)
         duzenMenusu(pencere, editor)
@@ -20,6 +23,8 @@ enum LinuxMenuler {
             guard let ust = pencere?.pencere else { return }
             let hakkinda = gtk_about_dialog_new()!
             gtk_about_dialog_set_program_name(OpaquePointer(hakkinda), "Not Defteri")
+            gtk_about_dialog_set_version(OpaquePointer(hakkinda), surum)
+            gtk_about_dialog_set_comments(OpaquePointer(hakkinda), "Markdown tabanlı, bağımlılıksız not defteri.")
             gtk_window_set_transient_for(nd_window(hakkinda), nd_window(ust))
             gtk_window_set_modal(nd_window(hakkinda), 1)
             gtk_window_present(nd_window(hakkinda))
@@ -78,7 +83,7 @@ enum LinuxMenuler {
         for (sira, yol) in yollar.enumerated() {
             pencere.menuEkle(yol, kisayol: nil) { [weak pencere] in
                 gTemaIndex = sira
-                UserDefaults.standard.set(sira, forKey: "temaIndex")
+                gAyarlar.set(sira, forKey: "temaIndex")
                 pencere?.temayiUygula()
                 isaretle()
             }

@@ -89,7 +89,8 @@ private final class LinuxGorselYoneticisi {
     private var gecmisURL: URL?
     private var surum = 0
     fileprivate enum Adim {
-        case aralik(konum: Int, eski: NSAttributedString, yeni: NSAttributedString)
+        /// `imlecBasta`: silme, imleç silinen aralığın başındayken (Delete) yapıldı; geri almada imleç oraya döner.
+        case aralik(konum: Int, eski: NSAttributedString, yeni: NSAttributedString, imlecBasta: Bool = false)
         case ustbilgi(eski: SayfaUstbilgisi, yeni: SayfaUstbilgisi)
     }
     private var geri: [[Adim]] = [], ileri: [[Adim]] = []
@@ -98,6 +99,10 @@ private final class LinuxGorselYoneticisi {
     /// `geri.last` tek harflik yazım/silme zinciriyse son düzenleme anı (systemUptime).
     private var birlesen: Double?
     private var kesik = false
+    /// Yapıştırma/kesme sinyali geldi; sıradaki tek harflik adım zincire girmez.
+    private var zincirDisi = false
+    /// Tek zincirde birleşen yazı/silme uzunluğu (UTF-16) bu sınıra varınca yeni adım açılır.
+    private static let zincirSiniri = 100
 
     init(pencere: LinuxPencere, editor: LinuxEditor) { self.pencere = pencere; self.editor = editor }
     deinit { bekleyen?() }
@@ -110,6 +115,8 @@ private final class LinuxGorselYoneticisi {
         editor.yapistirmaOncesi.append { [weak self] pano in self?.panodanEkle(pano) ?? false }
         LinuxEklentiler.yasamDongusunuIzle(editor) { [weak self] in self?.sifirla() }
         editor.degisiklikSonrasi.append { [weak self] in self?.degisti() }
+        // Yapıştırma sinyali panoYapistirC tarafından durdurulabilir; yapıştırma bayrağı panodanEkle'de kurulur.
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(editor.metinGorunumu), "cut-clipboard") { [weak self] in self?.zincirDisi = true }
         let nesne = UnsafeMutableRawPointer(editor.tampon)
         GtkKoprusu.sinyalBagla(nesne, "begin-user-action") { [weak self] in
             guard let self, !self.geriAliniyor else { return }
@@ -170,8 +177,14 @@ private final class LinuxGorselYoneticisi {
     private func genisligiGuncelle() { for hucre in hucreler { hucre.genisligiGuncelle() } }
 
     func kaydet(aralik: NSRange, eski: NSAttributedString, yeni: NSAttributedString) {
+        // Silme sinyali tampon değişmeden gelir; imleç hâlâ özgün konumdadır.
+        var imlecBasta = false
+        if let tampon = editor?.tampon, eski.length > 0, yeni.length == 0 {
+            let imlec = LinuxMetinDonusumu.secim(tampon)
+            imlecBasta = imlec.length == 0 && imlec.location == aralik.location
+        }
         adimEkle(.aralik(konum: aralik.location, eski: NSAttributedString(attributedString: eski),
-                         yeni: NSAttributedString(attributedString: yeni)))
+                         yeni: NSAttributedString(attributedString: yeni), imlecBasta: imlecBasta))
     }
 
     /// Geri alma/yineleme sırasında uygulanan adımlar kaydedilmez; `ileri` yalnızca yeni adımla temizlenir.
@@ -188,8 +201,8 @@ private final class LinuxGorselYoneticisi {
     /// Ardışık tek harflik yazım ya da silmeler (NSTextView gibi) son grupta birleşir; kesme koşulları `birlestir`dedir.
     private func grubuKaydet(_ adimlar: [Adim]) {
         guard !adimlar.isEmpty, !geriAliniyor else { return }
-        defer { kesik = false }
-        if adimlar.count == 1, !kesik, Self.tekHarfMi(adimlar[0]) {
+        defer { kesik = false; zincirDisi = false }
+        if adimlar.count == 1, !kesik, !zincirDisi, Self.tekHarfMi(adimlar[0]) {
             let simdi = ProcessInfo.processInfo.systemUptime
             if let onceki = birlesen, simdi - onceki < 1, geri.last?.count == 1,
                let toplam = Self.birlestir(geri[geri.count - 1][0], adimlar[0]) {
@@ -205,14 +218,16 @@ private final class LinuxGorselYoneticisi {
     }
 
     private static func tekHarfMi(_ adim: Adim) -> Bool {
-        guard case let .aralik(_, eski, yeni) = adim else { return false }
+        guard case let .aralik(_, eski, yeni, _) = adim else { return false }
         return eski.length == 0 ? yeni.string.count == 1 : yeni.length == 0 && eski.string.count == 1
     }
 
     /// Yazma: bitişik ekleme. Silme: Backspace (öncesi) ya da Delete (aynı konum). Boşluktan sonra yeni kelime
-    /// başlayınca, ya da yazma/silme değişince nil döner (zincir kesilir).
+    /// başlayınca, satır sonu gelince, zincir `zincirSiniri`na varınca ya da yazma/silme değişince nil döner.
     private static func birlestir(_ a: Adim, _ b: Adim) -> Adim? {
-        guard case let .aralik(k1, e1, y1) = a, case let .aralik(k2, e2, y2) = b else { return nil }
+        guard case let .aralik(k1, e1, y1, bas1) = a, case let .aralik(k2, e2, y2, _) = b,
+              max(e1.length, y1.length) < zincirSiniri,
+              !e2.string.contains("\n"), !y2.string.contains("\n") else { return nil }
         func bosluk(_ s: NSAttributedString, sondaki: Bool) -> Bool {
             (sondaki ? s.string.last : s.string.first)?.isWhitespace == true
         }
@@ -230,7 +245,7 @@ private final class LinuxGorselYoneticisi {
         }
         guard k2 == k1, !bosluk(e1, sondaki: true) || bosluk(e2, sondaki: false) else { return nil }
         toplam.append(e1); toplam.append(e2)
-        return .aralik(konum: k1, eski: toplam, yeni: y1)
+        return .aralik(konum: k1, eski: toplam, yeni: y1, imlecBasta: bas1)
     }
 
     /// Ctrl+Z/Y, Düzen menüsü ve başlık çubuğu düğmeleri tek yoldan geçer; adım türüne göre uygulanır.
@@ -244,9 +259,10 @@ private final class LinuxGorselYoneticisi {
         defer { geriAliniyor = false }
         for adim in ileriMi ? adimlar : adimlar.reversed() {
             switch adim {
-            case let .aralik(konum, eski, yeni):
+            case let .aralik(konum, eski, yeni, imlecBasta):
                 editor.aralikDegistir(NSRange(location: konum, length: ileriMi ? eski.length : yeni.length),
-                                      ile: ileriMi ? yeni : eski)
+                                      ile: ileriMi ? yeni : eski,
+                                      secim: !ileriMi && imlecBasta ? NSRange(location: konum, length: 0) : nil)
             case let .ustbilgi(eski, yeni):
                 editor.ustbilgiyiUygula(ileriMi ? yeni : eski)
             }
@@ -269,6 +285,7 @@ private final class LinuxGorselYoneticisi {
 
     private func panodanEkle(_ pano: OpaquePointer) -> Bool {
         birlesen = nil
+        zincirDisi = true
         guard let editor, editor.acikURL != nil, gtk_text_view_get_editable(gorunum(editor)) != 0,
               let bicimler = gdk_clipboard_get_formats(pano) else { return false }
         let tur = gdk_content_formats_contain_gtype(bicimler, gdk_file_list_get_type()) != 0
@@ -430,7 +447,7 @@ private final class LinuxGorselHucresi {
             oran = min(10_000, max(0.0001, Double(gdk_texture_get_width(texture)) / Double(gdk_texture_get_height(texture))))
             let dogal = min(360, Double(gdk_texture_get_width(texture)), 10_000 * oran)
             let en = gorsel["genislik"] as? Double, boy = gorsel["yukseklik"] as? Double
-            kayitEni = en.flatMap { en in boy.flatMap { anlamsalGorselBoyutuGecerliMi(en: en, boy: $0) && en >= 48 ? en : nil } } ?? dogal
+            kayitEni = en.flatMap { en in boy.flatMap { anlamsalGorselBoyutuGecerliMi(en: en, boy: $0) ? en : nil } } ?? dogal
             widget = gtk_overlay_new()!
             let picture = gtk_picture_new_for_paintable(texture)!
             gtk_picture_set_keep_aspect_ratio(OpaquePointer(picture), 1)
@@ -469,7 +486,7 @@ private final class LinuxGorselHucresi {
         })
         let hareket = gtk_event_controller_motion_new()!
         gorselBagla(UnsafeMutableRawPointer(hareket), "motion", unsafeBitCast(gorselHareketC, to: GCallback.self)) {
-            [weak self] (x: Double, y: Double) in
+            [weak self] (x: Double, y: Double) -> Void in
             guard let self else { return }
             self.uzerinde = true
             gtk_widget_set_cursor_from_name(self.widget, self.tutamacYonu(x, y) == nil ? "default" : "ew-resize")

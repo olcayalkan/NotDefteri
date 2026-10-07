@@ -27,7 +27,7 @@ extension NotPenceresi {
 
     func kenarPaneliniAcKapa() {
         kenarPanelGizli.toggle()
-        UserDefaults.standard.set(kenarPanelGizli, forKey: "kenarPanelGizli")
+        gAyarlar.set(kenarPanelGizli, forKey: "kenarPanelGizli")
         kenarPaneliYerlesiminiUygula(animasyonlu: true)
     }
 
@@ -95,7 +95,7 @@ extension NotPenceresi {
         let nokta = icerikGorunum.convert(event.locationInWindow, from: nil)
         let yeniGenislik = min(max(nokta.x, kKenarPanelMinGenislik), kKenarPanelMaksGenislik)
         gKenarPanelGenislik = yeniGenislik
-        UserDefaults.standard.set(Double(yeniGenislik), forKey: "kenarPanelGenislik")
+        gAyarlar.set(Double(yeniGenislik), forKey: "kenarPanelGenislik")
 
         kenarPaneliYerlesiminiUygula(animasyonlu: false)
     }

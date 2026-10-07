@@ -53,6 +53,11 @@ final class NotMetinGorunumu: NSTextView {
     var kodSurumu = 0
     /// Depo düzenlemesi bitince boyanacak sayfa bağı aralığı (bkz. didProcessEditing).
     var bekleyenBagBoyamasi: NSRange?
+    /// Bağ özniteliği yeniden yazılınca imlecin kalması gereken konum (bkz. willProcessEditing).
+    var bagSonrasiImlec: Int?
+    /// Yalnızca NSTextView'in kullanıcı yazımı (shouldChangeText → didChangeText) kayıt üretir;
+    /// doğrudan depo düzenlemesi, blok dönüşümü ve undo/redo imleci kendisi belirler.
+    var kullaniciYazimi = false
     private weak var izlenenKodDeposu: NSTextStorage?
     private weak var izlenenKaydirmaIcerigi: NSClipView?
     let kodAraclari = KodBloguAraclari()
@@ -182,7 +187,9 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+        bagSonrasiImlec = nil
         let izin = super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+        kullaniciYazimi = izin && !blokDuzenleniyor && undoManager?.isUndoing != true && undoManager?.isRedoing != true
         if izin { blokCerceveleriniKirlet(affectedCharRange) }
         return izin
     }
@@ -191,6 +198,14 @@ final class NotMetinGorunumu: NSTextView {
         blokMenusu.gizle()
         secimCubugu.gizle()
         yazimOlceginiGuncelle()
+        let imlec = bagSonrasiImlec
+        bagSonrasiImlec = nil
+        kullaniciYazimi = false
+        // Çoklu seçim veya seçili aralık (Replace-All vb.) varsa seçime dokunulmaz.
+        if let imlec, !hasMarkedText(), selectedRanges.count == 1, selectedRange().length == 0,
+           imlec <= (textStorage?.length ?? 0) {
+            setSelectedRange(NSRange(location: imlec, length: 0))
+        }
         super.didChangeText()
         blokCerceveleriniKirlet(selectedRange())
         DispatchQueue.main.async { [weak self] in
@@ -480,7 +495,11 @@ final class NotMetinGorunumu: NSTextView {
                 }
                 return true
             }
-            return super.readSelection(from: pboard, type: type)
+            // HTML süre sınırına takıldıysa super onu süresiz yeniden indirmesin; düz metne düşülür.
+            // AppKit türü eski adıyla da ("Apple HTML pasteboard type") verebiliyor.
+            let htmlMi = type == .html || type.rawValue == "Apple HTML pasteboard type"
+            let duzMetneDus = htmlMi && pboard.string(forType: .string) != nil
+            return super.readSelection(from: pboard, type: duzMetneDus ? .string : type)
         }
         // Önce kendi tipimiz: görseller ve başlıklar eksiksiz taşınsın.
         if let bilgi = pboard.propertyList(forType: kNotPanoTipi) as? [String: Any], bilgi["markdown"] is String {
@@ -533,11 +552,14 @@ final class NotMetinGorunumu: NSTextView {
            let icerik = NSAttributedString(rtfd: veri, documentAttributes: nil) { return icerik }
         if let veri = pano.data(forType: .rtf),
            let icerik = NSAttributedString(rtf: veri, documentAttributes: nil) { return icerik }
+        // HTML içe aktarıcı uzak <img> adreslerini ana thread'de indirir; erişilemeyen bir
+        // adres yapıştırmayı ~60 sn kilitliyordu. Süre dolunca nil döner ve düz metne düşülür.
         if let veri = pano.data(forType: .html),
            let icerik = try? NSAttributedString(
                data: veri,
                options: [.documentType: NSAttributedString.DocumentType.html,
-                         .characterEncoding: String.Encoding.utf8.rawValue],
+                         .characterEncoding: String.Encoding.utf8.rawValue,
+                         .timeout: 3.0],
                documentAttributes: nil) { return icerik }
         return nil
     }

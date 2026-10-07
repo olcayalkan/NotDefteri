@@ -99,9 +99,10 @@ final class KisayolPenceresi: NSWindowController, NSSearchFieldDelegate {
 
     private func menuKisayollari() -> [(String, [(String, String)])] {
         guard let menu = NSApp.mainMenu else { return [] }
-        return menu.items.compactMap { oge in
+        // Birinci menü uygulama menüsüdür; başlığı boş verildiğinde AppKit "NSMenuItem" yazar.
+        return menu.items.enumerated().compactMap { sira, oge in
             guard let altMenu = oge.submenu else { return nil }
-            let baslik = altMenu.title.isEmpty ? (oge.title.isEmpty ? "Not Defteri" : oge.title) : altMenu.title
+            let baslik = sira == 0 ? "Not Defteri" : altMenu.title.isEmpty ? oge.title : altMenu.title
             let satirlar = menuSatirlari(altMenu)
             return satirlar.isEmpty ? nil : (baslik, satirlar)
         }
@@ -110,12 +111,18 @@ final class KisayolPenceresi: NSWindowController, NSSearchFieldDelegate {
     private func menuSatirlari(_ menu: NSMenu) -> [(String, String)] {
         menu.items.flatMap { oge -> [(String, String)] in
             var satirlar: [(String, String)] = []
-            if !oge.isSeparatorItem, !oge.keyEquivalent.isEmpty {
+            if !oge.isSeparatorItem, !oge.isAlternate, !oge.keyEquivalent.isEmpty, !sistemKomutuMu(oge) {
                 satirlar.append((oge.title, tusGosterimi(oge)))
             }
             if let altMenu = oge.submenu { satirlar += menuSatirlari(altMenu) }
             return satirlar
         }
+    }
+
+    /// AppKit'in Düzen menüsüne kendiliğinden eklediği öğeler (Dikte, Emoji) kısayol listesine girmez.
+    private func sistemKomutuMu(_ oge: NSMenuItem) -> Bool {
+        guard let eylem = oge.action else { return false }
+        return ["startDictation:", "orderFrontCharacterPalette:"].contains(NSStringFromSelector(eylem))
     }
 
     private func tusGosterimi(_ oge: NSMenuItem) -> String {

@@ -6,8 +6,8 @@ final class KenarBolumu: NSObject {
     let anahtar: String
     var sayfalar: [AgacDugumu] = []
     var katli: Bool {
-        get { UserDefaults.standard.bool(forKey: anahtar) }
-        set { UserDefaults.standard.set(newValue, forKey: anahtar) }
+        get { gAyarlar.bool(forKey: anahtar) }
+        set { gAyarlar.set(newValue, forKey: anahtar) }
     }
     init(_ ad: String, anahtar: String) { self.ad = ad; self.anahtar = anahtar }
 }

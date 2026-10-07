@@ -41,6 +41,17 @@ final class GecmisPaneli: NSViewController, NSTableViewDataSource, NSTableViewDe
         sag.hasVerticalScroller = true
         sag.borderType = .bezelBorder
         onizleme.isEditable = false
+        // Belge öznitelikleri koyu metin taşır; zemin sistem görünümüne bırakılırsa koyu modda metin görünmez.
+        onizleme.drawsBackground = true
+        onizleme.backgroundColor = aktifTema.arkaplan
+        onizleme.textColor = kMetinRenk
+        // Boş çerçeveyle doğan NSTextView kendiliğinden yerleşmez; genişliği kaydırma görünümüne bağla.
+        onizleme.frame = NSRect(origin: .zero, size: sag.contentSize)
+        onizleme.minSize = NSSize(width: 0, height: sag.contentSize.height)
+        onizleme.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        onizleme.isVerticallyResizable = true
+        onizleme.isHorizontallyResizable = false
+        onizleme.textContainer?.widthTracksTextView = true
         onizleme.autoresizingMask = [.width]
         onizleme.textContainerInset = NSSize(width: 8, height: 8)
         sag.documentView = onizleme

@@ -130,7 +130,7 @@ final class LinuxKenarPaneli {
     /// Klasör yolu → görüntülenen düğüm; model öğeleri (GtkStringObject) yolu taşır.
     private var dugumler: [String: AgacDugumu] = [:]
     /// Açık bırakılan dallar oturumlar arasında hatırlanır (macOS ile aynı anahtar).
-    private var acikKlasorYollari = Set(UserDefaults.standard.stringArray(forKey: "acikKlasorler") ?? [])
+    private var acikKlasorYollari = Set(gAyarlar.stringArray(forKey: "acikKlasorler") ?? [])
     private var aramaFiltresiEtkin = false
     private var dalGeriYukleniyor = false
     /// Her motion olayında dosya sistemi doğrulaması yapılmasın; yalnızca kaynak/hedef değişince yeniden hesaplanır.
@@ -190,7 +190,10 @@ final class LinuxKenarPaneli {
         if let secili { acikNotURL = secili }
         tumKokDugumler = agaciYukle()
         tumNotlar = notlariDuzlestir(tumKokDugumler)
-        sayfaBaglantilari.guncelle(tumNotlar.map { SayfaSecenegi(url: $0) })
+        // Yol çözümü pahalı (3.5k notta ~250 ms); değişmeyen sayfa yeniden kurulmaz (macOS sayfaIndeksiniGuncelle).
+        let eskiler = Dictionary(sayfaBaglantilari.sayfalar.map { ($0.url, $0) }, uniquingKeysWith: { ilk, _ in ilk })
+        let sayfalar = tumNotlar.map { eskiler[$0] ?? SayfaSecenegi(url: $0) }
+        if sayfalar != sayfaBaglantilari.sayfalar { sayfaBaglantilari.guncelle(sayfalar) }
         favoriler.olmayanlariDusur()
         sayfaBaglantilari.olmayanSonAcilanlariDusur()
         let mevcut = Set(tumNotlar)
@@ -479,7 +482,7 @@ final class LinuxKenarPaneli {
     }
 
     private func acikKlasorleriKaydet() {
-        UserDefaults.standard.set(Array(acikKlasorYollari), forKey: "acikKlasorler")
+        gAyarlar.set(Array(acikKlasorYollari), forKey: "acikKlasorler")
     }
 
     /// Açık sayfanın satırını seçili (vurgulu) yapar; yoksa seçimi kaldırır.
@@ -617,9 +620,9 @@ final class LinuxKenarPaneli {
         let kutu = OpaquePointer(ham(liste))
         gtk_list_box_set_selection_mode(kutu, GTK_SELECTION_NONE)
         gtk_expander_set_child(OpaquePointer(ham(bolum)), liste)
-        gtk_expander_set_expanded(OpaquePointer(ham(bolum)), UserDefaults.standard.bool(forKey: anahtar) ? 0 : 1)
+        gtk_expander_set_expanded(OpaquePointer(ham(bolum)), gAyarlar.bool(forKey: anahtar) ? 0 : 1)
         GtkKoprusu.sinyalBagla(ham(bolum), "notify::expanded") { (_: gpointer?) in
-            UserDefaults.standard.set(gtk_expander_get_expanded(OpaquePointer(ham(bolum))) == 0, forKey: anahtar)
+            gAyarlar.set(gtk_expander_get_expanded(OpaquePointer(ham(bolum))) == 0, forKey: anahtar)
         }
         GtkKoprusu.sinyalBagla(ham(liste), "row-activated") { [weak self] (satir: gpointer?) in
             guard let self, let satir else { return }

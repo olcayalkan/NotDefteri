@@ -7,7 +7,7 @@ package final class Favoriler {
     package private(set) var yollar: [String]
     package var sayfalar: [URL] { yollar.map { kok.appendingPathComponent($0) } }
 
-    package init(kok: URL = notlarKlasoru(), ayarlar: UserDefaults = .standard) {
+    package init(kok: URL = notlarKlasoru(), ayarlar: UserDefaults = gAyarlar) {
         self.kok = kok.standardizedFileURL
         self.ayarlar = ayarlar
         yollar = ayarlar.stringArray(forKey: "favoriSayfalar") ?? []

@@ -27,7 +27,10 @@ extension NotPenceresi {
 
     private func aktarimHedefi(ad: String, uzanti: String) -> URL? {
         let panel = NSSavePanel()
-        panel.title = "\(uzanti.uppercased()) olarak kaydet"
+        let tur = ["md": "Markdown"][uzanti] ?? uzanti.uppercased()
+        panel.title = "\(tur) olarak kaydet"
+        // Test köküyle çalışırken panel konumu gerçek NotDefteri ayar alanına yazılmasın.
+        if ProcessInfo.processInfo.environment["NOTDEFTERI_KOK"]?.hasPrefix("/") == true { panel.setFrameAutosaveName("NotDefteriTestKaydetPaneli") }
         panel.nameFieldStringValue = ad + "." + uzanti
         panel.allowedContentTypes = [UTType(filenameExtension: uzanti) ?? .plainText]
         panel.canCreateDirectories = true

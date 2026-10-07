@@ -62,8 +62,16 @@ package func sayfaHedefiDoluMu(_ url: URL) -> Bool {
 
 // MARK: - Kaydetme konumu (Belgeler/NotDefteri)
 
+/// NOTDEFTERI_KOK mutlak bir yolsa canlı denemeler gerçek notlara dokunmasın diye not kökü o olur.
 package func notlarKlasoru() -> URL {
     let fm = FileManager.default
+    if let kok = ProcessInfo.processInfo.environment["NOTDEFTERI_KOK"], kok.hasPrefix("/") {
+        let klasor = URL(fileURLWithPath: kok, isDirectory: true)
+        if !fm.fileExists(atPath: klasor.path) {
+            try? fm.createDirectory(at: klasor, withIntermediateDirectories: true)
+        }
+        return klasor
+    }
     #if os(Linux)
     let belgeler = linuxBelgelerKlasoru()
     #else

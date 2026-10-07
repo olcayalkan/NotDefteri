@@ -165,7 +165,7 @@ private final class KodVeUyariAraclari {
         for (ad, callback) in [("insert-text", unsafeBitCast(kodEklemeC, to: GCallback.self)),
                                ("delete-range", unsafeBitCast(kodSilmeC, to: GCallback.self))] {
             kodUyariSinyali(UnsafeMutableRawPointer(editor.tampon), ad, callback,
-                           { [weak self] (bas: GtkTextIter, son: GtkTextIter) in self?.isaretle(bas, son) })
+                           { [weak self] (bas: GtkTextIter, son: GtkTextIter) -> Void in self?.isaretle(bas, son) })
         }
         for ad in ["apply-tag", "remove-tag"] {
             kodUyariSinyali(UnsafeMutableRawPointer(editor.tampon), ad, unsafeBitCast(kodEtiketC, to: GCallback.self),
@@ -184,7 +184,7 @@ private final class KodVeUyariAraclari {
         let hareket = gtk_event_controller_motion_new()!
         gtk_event_controller_set_propagation_phase(hareket, GTK_PHASE_CAPTURE)
         kodUyariSinyali(UnsafeMutableRawPointer(hareket), "motion", unsafeBitCast(kodHareketC, to: GCallback.self),
-                       { [weak self] (x: Double, y: Double) in self?.fare = (x, y); self?.araciGuncelle() })
+                       { [weak self] (x: Double, y: Double) -> Void in self?.fare = (x, y); self?.araciGuncelle() })
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(hareket), "leave") { [weak self] in
             self?.fare = nil
             self?.araciGizle()
