@@ -57,7 +57,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `CopKutusuPaneli.swift` | 149 | Çöp popover’ı: önbellekte ad arama, sayfa/klasör simgesi ve göreli tarih, geri yükleme, kalıcı silme/boşaltma onayı |
 | `HizliBulucu.swift` | 203 | ⌘P ve [[ için ortak AppKit arama/listesi, üst yol ve klavye gezinmesi |
 | `NotMetinGorunumu+UyariKutusu.swift` | 171 | Görünür callout çizimi, yerel sınır düzeltme, renk menüsü ve sistem emoji paleti |
-| `NotMetinGorunumu.swift` | 554 | `NSTextView` alt sınıfı: görsel/pano işlemleri, slash tuşları, yüzen görünümler, bağlantı tıklaması ve satır içi sayfa bulucu |
+| `NotMetinGorunumu.swift` | 750 | `NSTextView` alt sınıfı: görsel/pano işlemleri, slash tuşları, yüzen görünümler, bağlantı tıklaması ve satır içi sayfa bulucu |
 | `BlokMenusu.swift` | 166 | Türkçe filtreli blok ve uyarı rengi seçenekleri, klavye gezinmesi ve odağı koruyan çocuk panel |
 | `SecimCubugu.swift` | 33 | Seçim üzerinde altı biçim düğmesi; pencerenin biçim komutlarını çağırır |
 | `Tema.swift` | 53 | `Tema`, `temaListesi`, `aktifTema`, renk türetme |

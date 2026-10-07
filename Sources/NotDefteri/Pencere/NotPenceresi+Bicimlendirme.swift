@@ -151,7 +151,7 @@ extension NotPenceresi {
     @objc func temaSecKomutu(_ sender: NSMenuItem) {
         guard let index = sender.representedObject as? Int, temaListesi.indices.contains(index) else { return }
         gTemaIndex = index
-        UserDefaults.standard.set(index, forKey: "temaIndex")
+        gAyarlar.set(index, forKey: "temaIndex")
         temaUygulaTumUI()
     }
 

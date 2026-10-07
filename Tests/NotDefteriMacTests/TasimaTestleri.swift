@@ -48,7 +48,7 @@ final class TasimaTestleri: XCTestCase {
         let kaynak = try sayfaKur("Notlar")
         let hedef = try sayfaKur("Arşiv")
 
-        let yeni = sayfayiTasi(kaynak, hedefKlasor: sayfaKlasoru(hedef))
+        let yeni = try sayfaTasimaSonucu(kaynak, hedefKlasor: sayfaKlasoru(hedef), kok: kok)
 
         XCTAssertEqual(yeni, kok.appendingPathComponent("Arşiv/Notlar/index.md"))
         XCTAssertTrue(varMi(yeni!))
@@ -59,7 +59,7 @@ final class TasimaTestleri: XCTestCase {
         let kaynak = try sayfaKur("SSRF", altSayfa: "Laboratuvar", gorselli: true)
         let hedef = try sayfaKur("Güvenlik")
 
-        let yeni = try XCTUnwrap(sayfayiTasi(kaynak, hedefKlasor: sayfaKlasoru(hedef)))
+        let yeni = try XCTUnwrap(sayfaTasimaSonucu(kaynak, hedefKlasor: sayfaKlasoru(hedef), kok: kok))
         let yeniKlasor = sayfaKlasoru(yeni)
 
         XCTAssertTrue(varMi(yeniKlasor.appendingPathComponent("Laboratuvar/\(kIcerikDosyaAdi)")))
@@ -70,7 +70,7 @@ final class TasimaTestleri: XCTestCase {
         let ust = try sayfaKur("Üst")
         let ic = try sayfaKur("İç", ust: sayfaKlasoru(ust))
 
-        let yeni = try XCTUnwrap(sayfayiTasi(ic, hedefKlasor: kok))
+        let yeni = try XCTUnwrap(sayfaTasimaSonucu(ic, hedefKlasor: kok, kok: kok))
 
         XCTAssertEqual(yeni, kok.appendingPathComponent("İç/index.md"))
         XCTAssertFalse(varMi(sayfaKlasoru(ust).appendingPathComponent("İç")))
@@ -81,24 +81,24 @@ final class TasimaTestleri: XCTestCase {
     func testSayfaKendiAltinaTasinamaz() throws {
         let ust = try sayfaKur("Üst", altSayfa: "Alt")
 
-        XCTAssertNil(sayfayiTasi(ust, hedefKlasor: sayfaKlasoru(ust)))
-        XCTAssertNil(sayfayiTasi(ust, hedefKlasor: sayfaKlasoru(ust).appendingPathComponent("Alt")))
+        XCTAssertThrowsError(try sayfaTasimaSonucu(ust, hedefKlasor: sayfaKlasoru(ust), kok: kok))
+        XCTAssertThrowsError(try sayfaTasimaSonucu(ust, hedefKlasor: sayfaKlasoru(ust).appendingPathComponent("Alt"), kok: kok))
         XCTAssertTrue(varMi(ust), "Başarısız taşıma kaynağa dokunmamalı")
     }
 
     func testAyniKlasoreTasimaYokSayilir() throws {
         let sayfa = try sayfaKur("Sayfa")
-        XCTAssertNil(sayfayiTasi(sayfa, hedefKlasor: kok))
+        XCTAssertThrowsError(try sayfaTasimaSonucu(sayfa, hedefKlasor: kok, kok: kok))
         XCTAssertTrue(varMi(sayfa))
     }
 
     func testGecerlilikKuraliDogrudan() {
         let a = kok.appendingPathComponent("A")
         let b = kok.appendingPathComponent("B")
-        XCTAssertTrue(tasimaGecerliMi(kaynakKlasor: a, hedefKlasor: b, mevcutUst: kok))
-        XCTAssertFalse(tasimaGecerliMi(kaynakKlasor: a, hedefKlasor: a, mevcutUst: kok))
-        XCTAssertFalse(tasimaGecerliMi(kaynakKlasor: a, hedefKlasor: a.appendingPathComponent("C"), mevcutUst: kok))
-        XCTAssertFalse(tasimaGecerliMi(kaynakKlasor: a, hedefKlasor: kok, mevcutUst: kok))
+        XCTAssertTrue(tasimaGecerliMi(kaynakKlasor: a, hedefKlasor: b, mevcutUst: kok, kok: kok))
+        XCTAssertFalse(tasimaGecerliMi(kaynakKlasor: a, hedefKlasor: a, mevcutUst: kok, kok: kok))
+        XCTAssertFalse(tasimaGecerliMi(kaynakKlasor: a, hedefKlasor: a.appendingPathComponent("C"), mevcutUst: kok, kok: kok))
+        XCTAssertFalse(tasimaGecerliMi(kaynakKlasor: a, hedefKlasor: kok, mevcutUst: kok, kok: kok))
     }
 
     // MARK: Ad çakışması
@@ -108,7 +108,7 @@ final class TasimaTestleri: XCTestCase {
         try sayfaKur("Aynı", ust: sayfaKlasoru(hedef))
         let kaynak = try sayfaKur("Aynı")
 
-        let yeni = try XCTUnwrap(sayfayiTasi(kaynak, hedefKlasor: sayfaKlasoru(hedef)))
+        let yeni = try XCTUnwrap(sayfaTasimaSonucu(kaynak, hedefKlasor: sayfaKlasoru(hedef), kok: kok))
 
         XCTAssertEqual(sayfaAdi(yeni), "Aynı (2)")
         XCTAssertTrue(varMi(sayfaKlasoru(hedef).appendingPathComponent("Aynı/\(kIcerikDosyaAdi)")),
@@ -125,7 +125,7 @@ final class TasimaTestleri: XCTestCase {
         try Data([1]).write(to: dalKlasoru.appendingPathComponent("g.png"))
         let hedef = try sayfaKur("Hedef")
 
-        let yeni = try XCTUnwrap(sayfayiTasi(notURL, hedefKlasor: sayfaKlasoru(hedef)))
+        let yeni = try XCTUnwrap(sayfaTasimaSonucu(notURL, hedefKlasor: sayfaKlasoru(hedef), kok: kok))
 
         XCTAssertEqual(yeni, sayfaKlasoru(hedef).appendingPathComponent("Eski.md"))
         XCTAssertTrue(varMi(sayfaKlasoru(hedef).appendingPathComponent("Eski/g.png")))
@@ -141,7 +141,7 @@ final class TasimaTestleri: XCTestCase {
         let notURL = kok.appendingPathComponent("Eski.md")
         try "# gelen\n".write(to: notURL, atomically: true, encoding: .utf8)
 
-        let yeni = try XCTUnwrap(sayfayiTasi(notURL, hedefKlasor: sayfaKlasoru(hedef)))
+        let yeni = try XCTUnwrap(sayfaTasimaSonucu(notURL, hedefKlasor: sayfaKlasoru(hedef), kok: kok))
 
         XCTAssertEqual(yeni.lastPathComponent, "Eski (2).md")
         XCTAssertEqual(try String(contentsOf: mevcut, encoding: .utf8), "# var olan\n")
@@ -155,7 +155,7 @@ final class TasimaTestleri: XCTestCase {
         try sayfaKur("İçerdeki", ust: kapsayici)
         let hedef = try sayfaKur("Hedef")
 
-        let yeni = try XCTUnwrap(klasoruTasi(kapsayici, hedefKlasor: sayfaKlasoru(hedef)))
+        let yeni = try klasorTasimaSonucu(kapsayici, hedefKlasor: sayfaKlasoru(hedef), kok: kok)
 
         XCTAssertEqual(yeni, sayfaKlasoru(hedef).appendingPathComponent("Konular"))
         XCTAssertTrue(varMi(yeni.appendingPathComponent("İçerdeki/\(kIcerikDosyaAdi)")))
@@ -167,7 +167,7 @@ final class TasimaTestleri: XCTestCase {
         try fm.createDirectory(at: kapsayici, withIntermediateDirectories: true)
         let ust = kok.appendingPathComponent("Konular")
 
-        XCTAssertNil(klasoruTasi(ust, hedefKlasor: kapsayici))
+        XCTAssertThrowsError(try klasorTasimaSonucu(ust, hedefKlasor: kapsayici, kok: kok))
         XCTAssertTrue(varMi(kapsayici))
     }
 
@@ -177,7 +177,7 @@ final class TasimaTestleri: XCTestCase {
         let kaynak = try sayfaKur("Gezen", altSayfa: "Yavru")
         let hedef = try sayfaKur("Ev")
 
-        sayfayiTasi(kaynak, hedefKlasor: sayfaKlasoru(hedef))
+        _ = try sayfaTasimaSonucu(kaynak, hedefKlasor: sayfaKlasoru(hedef), kok: kok)
         let agac = agaciYukle(kok)
 
         XCTAssertEqual(agac.count, 1)

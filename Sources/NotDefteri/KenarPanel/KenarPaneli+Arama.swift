@@ -229,7 +229,7 @@ extension KenarPaneli {
     }
 
     func acikKlasorleriKaydet() {
-        UserDefaults.standard.set(Array(acikKlasorYollari), forKey: "acikKlasorler")
+        gAyarlar.set(Array(acikKlasorYollari), forKey: "acikKlasorler")
     }
 
     func controlTextDidChange(_ obj: Notification) {

@@ -192,7 +192,8 @@ private final class LinuxDuzenlemeAraclari {
         editor.tusOncesi.append { [weak self] in self?.tus($0, $1) ?? false }
         editor.degisiklikSonrasi.append { [weak self] in self?.guncellemeyiPlanla() }
         LinuxEklentiler.yasamDongusunuIzle(editor) { [weak self] in self?.sifirla() }
-        let veri = Unmanaged.passRetained(MenuEylemi { [weak self] in self?.secimDegisti() }).toOpaque()
+        // Tür açık yazılır: `self?.f()` çıkarımı `() -> Void?` verir ve generic kutu secimDegistiC'nin okuduğu `() -> Void` ile uyuşmaz.
+        let veri = Unmanaged.passRetained(MenuEylemi<() -> Void> { [weak self] in self?.secimDegisti() }).toOpaque()
         g_signal_connect_data(UnsafeMutableRawPointer(editor.tampon), "mark-set", unsafeBitCast(secimDegistiC, to: GCallback.self),
                               veri, menuVerisiniBirak, GConnectFlags(rawValue: 0))
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(editor.metinGorunumu), "notify::has-focus") { [weak self] (_: gpointer?) in
@@ -301,19 +302,27 @@ private final class LinuxDuzenlemeAraclari {
     private func slashGuncelle(_ secim: NSRange, kisayol: Bool = false) -> Bool {
         guard let editor, secim.length == 0 else { menuKapat(); return false }
         let imlec = secim.location
+        // Tüm belgeyi NSString'e çevirmek yerine yalnızca imlecin satırının başından imlece kadarı okunur;
+        // `yerel` belge konumunu bu dilime çevirir.
+        var satirBasiIter = LinuxMetinDonusumu.iter(editor.tampon, imlec)
+        gtk_text_iter_set_line_offset(&satirBasiIter, 0)
+        let satirBasi = LinuxMetinDonusumu.konum(satirBasiIter)
+        func yerel(_ aralik: NSRange) -> NSRange { NSRange(location: aralik.location - satirBasi, length: aralik.length) }
         return editor.belgeyiOku { belge in
-            let ns = belge.string as NSString
-            let paragraf = ns.paragraphRange(for: NSRange(location: imlec, length: 0))
-            let slash = ns.range(of: "/", options: .backwards, range: NSRange(location: paragraf.location, length: imlec - paragraf.location))
-            guard slash.location != NSNotFound,
-                  slash.location == paragraf.location + blokIsaretiUzunlugu(belge, konum: paragraf.location) ||
-                    (slash.location > paragraf.location && ns.rangeOfCharacter(from: .whitespaces, range: NSRange(location: slash.location - 1, length: 1)).location != NSNotFound),
-                  belge.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
-                  belge.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else {
+            guard satirBasi <= imlec, imlec <= belge.length else { menuKapat(); return false }
+            let ns = belge.attributedSubstring(from: NSRange(location: satirBasi, length: imlec - satirBasi)).string as NSString
+            let yerelSlash = ns.range(of: "/", options: .backwards).location
+            guard yerelSlash != NSNotFound else { menuKapat(); kapatilanSlash = nil; return false }
+            let slash = satirBasi + yerelSlash
+            guard
+                  yerelSlash == blokIsaretiUzunlugu(belge, konum: satirBasi) ||
+                    (yerelSlash > 0 && ns.rangeOfCharacter(from: .whitespaces, range: NSRange(location: yerelSlash - 1, length: 1)).location != NSNotFound),
+                  belge.attribute(kKodBloguAnahtari, at: slash, effectiveRange: nil) == nil,
+                  belge.attribute(kSatirIciKodAnahtari, at: slash, effectiveRange: nil) == nil else {
                 menuKapat(); kapatilanSlash = nil; return false
             }
-            let aralik = NSRange(location: slash.location, length: imlec - slash.location)
-            let metin = ns.substring(with: aralik)
+            let aralik = NSRange(location: slash, length: imlec - slash)
+            let metin = ns.substring(with: yerel(aralik))
             let sorgu = String(metin.dropFirst())
             // Escape yalnızca menüyü kapatır; tam kısayol metni yine uygulanır.
             if kisayol, let komut = [Komut.kod, .uyari].first(where: { $0.kisayollar.contains(sorgu.lowercased()) }) {
@@ -323,7 +332,7 @@ private final class LinuxDuzenlemeAraclari {
                 menuSeciminiPlanla(kisayol: true)
                 return true
             }
-            guard slash.location != kapatilanSlash else { menuKapat(); return false }
+            guard slash != kapatilanSlash else { menuKapat(); return false }
             guard sorgu.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else { menuKapat(); return false }
             let sade = aramaIcinSadelestir(sorgu)
             let yeni = Komut.allCases.filter { sade.isEmpty || aramaIcinSadelestir($0.ad).contains(sade) || $0.kisayollar.contains { $0.hasPrefix(sade) } }

@@ -25,6 +25,8 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
     var govde = "<header><h1>\(htmlKacir(baslik))</h1></header>"
     let ns = NSString(string: metin.string)
     var konum = 0
+    // Aynı uyarı kimliğini taşıyan ardışık satırlar tek kutuda toplanır.
+    var acikUyari: String?
     while konum < metin.length {
         var aralik = ns.paragraphRange(for: NSRange(location: konum, length: 0))
         let o = metin.attributes(at: konum, effectiveRange: nil)
@@ -65,7 +67,10 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
             icerik += yazi
         }
         if let hata { throw hata }
-        if o[kKodBloguAnahtari] != nil { govde += "<pre><code>\(icerik)</code></pre>" }
+        let uyariKimligi = MetinBlogu(oznitelik: o[kMetinBloguAnahtari]).flatMap { $0.tur == .uyari ? $0.uyariKimligi : nil }
+        if acikUyari != nil, uyariKimligi != acikUyari { govde += "</div>"; acikUyari = nil }
+        if acikUyari != nil { govde += icerik }
+        else if o[kKodBloguAnahtari] != nil { govde += "<pre><code>\(icerik)</code></pre>" }
         else if let blok = MetinBlogu(oznitelik: o[kMetinBloguAnahtari]) {
             let girinti = "style=\"margin-left:\(blok.seviye * 24)px\""
             switch blok.tur {
@@ -77,7 +82,8 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
             case .ayirici: govde += "<hr>"
             case .uyari:
                 let renk = ["gri": "128,128,128", "mavi": "40,120,220", "sarı": "230,180,20", "kırmızı": "220,60,60", "yeşil": "40,160,80"][blok.renk] ?? "128,128,128"
-                govde += "<div class=uyari style=\"--renk:\(renk);margin-left:\(blok.seviye * 24)px\">\(blok.devam ? "" : htmlKacir(blok.emoji) + " ")\(icerik)</div>"
+                govde += "<div class=uyari style=\"--renk:\(renk);margin-left:\(blok.seviye * 24)px\">\(blok.devam ? "" : htmlKacir(blok.emoji) + " ")\(icerik)\(blok.uyariKimligi.isEmpty ? "</div>" : "")"
+                if !blok.uyariKimligi.isEmpty { acikUyari = blok.uyariKimligi }
             }
         } else if let seviye = o[kBaslikSeviyesiAnahtari] as? Int {
             let h = min(6, max(1, seviye))
@@ -85,6 +91,7 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
         } else { govde += "<p>\(icerik.isEmpty ? "<br>" : icerik)</p>" }
         konum = NSMaxRange(aralik)
     }
+    if acikUyari != nil { govde += "</div>" }
     return """
     <!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>\(htmlKacir(baslik))</title><style>

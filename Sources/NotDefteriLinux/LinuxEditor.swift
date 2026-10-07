@@ -85,6 +85,23 @@ enum KayitSonucu: Equatable {
     case hata(String)
 }
 
+/// Yok olabilecek bir GTK penceresini sarkan işaretçi olmadan tutar (GObject zayıf işaretçisi).
+private final class ZayifUst {
+    private let hucre = UnsafeMutablePointer<gpointer?>.allocate(capacity: 1)
+
+    init(_ ust: LinuxDiyalog.Ust) {
+        hucre.initialize(to: UnsafeMutableRawPointer(ust))
+        g_object_add_weak_pointer(UnsafeMutableRawPointer(ust).assumingMemoryBound(to: GObject.self), hucre)
+    }
+
+    var ust: LinuxDiyalog.Ust? { hucre.pointee?.assumingMemoryBound(to: GtkWidget.self) }
+
+    deinit {
+        if let canli = hucre.pointee { g_object_remove_weak_pointer(canli.assumingMemoryBound(to: GObject.self), hucre) }
+        hucre.deallocate()
+    }
+}
+
 /// macOS NotMetinGorunumu + NotPenceresi kayıt akışının B1 dilimi: açma, yazma, satır başı
 /// biçimleri, liste devamı, girinti, yapılacak kutusu, Ctrl+S/B/I/Z ve otomatik kayıt.
 final class LinuxEditor {
@@ -102,8 +119,9 @@ final class LinuxEditor {
     private var yazimOnceligi: Oznitelikler?
     private var imlecIzlenmiyor = false
     private var kaydiAtla = false
-    private typealias BekleyenIslem = (devam: () -> Void, iptal: () -> Void, ust: LinuxDiyalog.Ust?)
-    /// Diyalog açıkken gelen işlemler düşmez; diyalog kapanınca sırayla yeniden denenir.
+    /// `nesil` ve `url` kuyruğa girildiği andaki editör durumudur; değiştiyse işlem bayattır.
+    private typealias BekleyenIslem = (devam: () -> Void, iptal: () -> Void, ust: ZayifUst?, nesil: UInt, url: URL?)
+    /// Diyalog açıkken gelen işlemler düşmez; diyalog kapanınca sırayla yeniden denenir (bayatlamadıysa).
     private var bekleyenIslemler: [BekleyenIslem] = []
     private var sonKayitHatasi: String?
     private var bekleyenKayitHatasi: (url: URL, neden: String)?
@@ -330,7 +348,10 @@ final class LinuxEditor {
         let beklenen = nesil, kaydiAtla = kaydiAtla
         Platform.anaIsParcaciginda { [weak self] in
             guard let self, self.nesil == beklenen else { iptal(); return }
-            guard !self.diyalogAcik else { self.bekleyenIslemler.append((devam, iptal, ust)); return }
+            guard !self.diyalogAcik else {
+                self.bekleyenIslemler.append((devam, iptal, ust.map(ZayifUst.init), beklenen, self.mevcutURL))
+                return
+            }
             if kaydiAtla || self.simdiKaydet() { devam() }
             else { self.kaydetmedenDevam(devam, iptal: iptal, ust: ust) }
         }
@@ -340,7 +361,11 @@ final class LinuxEditor {
         guard !diyalogAcik, !bekleyenIslemler.isEmpty else { return }
         let islemler = bekleyenIslemler
         bekleyenIslemler = []
-        for islem in islemler { islemOncesi(islem.devam, iptal: islem.iptal, ust: islem.ust) }
+        for islem in islemler {
+            guard nesil == islem.nesil, mevcutURL == islem.url else { islem.iptal(); continue }
+            // Üst pencere kuyrukta beklerken yok olduysa ust nil olur ve ana pencere kullanılır.
+            islemOncesi(islem.devam, iptal: islem.iptal, ust: islem.ust?.ust)
+        }
     }
 
     @discardableResult

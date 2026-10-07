@@ -27,13 +27,13 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
 
     var mevcutDosyaURL: URL? {
         didSet {
-            UserDefaults.standard.set(mevcutDosyaURL?.path, forKey: "sonNotYolu")
+            gAyarlar.set(mevcutDosyaURL?.path, forKey: "sonNotYolu")
             if oldValue != mevcutDosyaURL { sayfaDosyalariniTazele() }
         }
     }
     /// Kayıt mantığı ve otomatik kayıt zamanlayıcısı burada.
     let kaydedici = NotKaydedici()
-    var kenarPanelGizli = UserDefaults.standard.bool(forKey: "kenarPanelGizli")
+    var kenarPanelGizli = gAyarlar.bool(forKey: "kenarPanelGizli")
     var kenarPanelGecisNesli: UInt = 0
     var kenarPanelGecisiSuruyor = false
     /// Diske en son yazılan metin; aynı içeriği tekrar yazmamak için karşılaştırılır.
@@ -204,7 +204,7 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
     }
 
     private func onceki_notu_ac_gerekirse() {
-        if let yol = UserDefaults.standard.string(forKey: "sonNotYolu") {
+        if let yol = gAyarlar.string(forKey: "sonNotYolu") {
             let url = URL(fileURLWithPath: yol)
             if FileManager.default.fileExists(atPath: url.path) {
                 notuAc(url)

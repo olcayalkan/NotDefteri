@@ -26,8 +26,15 @@ extension NotMetinGorunumu: NSTextStorageDelegate {
         defer { baglarGuncelleniyor = false }
         let sinirli = NSIntersectionRange(editedRange, NSRange(location: 0, length: textStorage.length))
         let paragraf = textStorage.mutableString.paragraphRange(for: sinirli)
+        // Yalnızca değişen bağ aralığı yazılır. Değişmeyen öznitelik yazımı bile düzenlenen
+        // aralığı paragrafa genişletir; yerleşim yöneticisi de imleci bu aralığın sonuna,
+        // yani sonraki paragrafın başına taşır (her tuşta imleç atlıyordu).
+        var eskiler: [NSRange: String] = [:]
+        textStorage.enumerateAttribute(kSayfaBagiAnahtari, in: paragraf) { deger, alt, _ in
+            if let hedef = deger as? String { eskiler[alt] = hedef }
+        }
+        var yeniler: [NSRange: String] = [:]
         // Depo kopyalanmaz; yalnızca düzenlenen paragraf/çoklu yapıştırma aralığı okunur.
-        textStorage.removeAttribute(kSayfaBagiAnahtari, range: paragraf)
         let metin = textStorage.mutableString.substring(with: paragraf)
         for bag in sayfaBaglariniBul(metin) {
             let aralik = NSRange(location: paragraf.location + bag.aralik.location, length: bag.aralik.length)
@@ -37,7 +44,17 @@ extension NotMetinGorunumu: NSTextStorageDelegate {
                     kodVeyaBag = true; durdur.pointee = true
                 }
             }
-            if !kodVeyaBag { textStorage.addAttribute(kSayfaBagiAnahtari, value: bag.hedef, range: aralik) }
+            if !kodVeyaBag { yeniler[aralik] = bag.hedef }
+        }
+        let yazilacak = eskiler.contains { yeniler[$0.key] != $0.value } || yeniler.contains { eskiler[$0.key] != $0.value }
+        // Bağ adı değişince bağın tamamı yeniden yazılır ve yerleşim yöneticisi imleci bağ
+        // sonuna taşır. Seçim burada değiştirilemez; konum not edilir, didChangeText geri koyar.
+        if yazilacak, kullaniciYazimi { bagSonrasiImlec = NSMaxRange(editedRange) }
+        for (aralik, hedef) in eskiler where yeniler[aralik] != hedef {
+            textStorage.removeAttribute(kSayfaBagiAnahtari, range: aralik)
+        }
+        for (aralik, hedef) in yeniler where eskiler[aralik] != hedef {
+            textStorage.addAttribute(kSayfaBagiAnahtari, value: hedef, range: aralik)
         }
     }
 

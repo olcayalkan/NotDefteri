@@ -32,7 +32,7 @@ final class LinuxPencere {
     private var yolSayfalari: [URL] = []
     private let kisayollar = gtk_shortcut_controller_new()!
     private let tema: LinuxTema
-    private var kenarPanelGizli = UserDefaults.standard.bool(forKey: "kenarPanelGizli")
+    private var kenarPanelGizli = gAyarlar.bool(forKey: "kenarPanelGizli")
     private var genislikAyarlaniyor = false
 
     init(uygulama: UnsafeMutablePointer<GtkApplication>) {
@@ -214,7 +214,7 @@ final class LinuxPencere {
 
     func kenarPaneliniAcKapa() {
         kenarPanelGizli.toggle()
-        UserDefaults.standard.set(kenarPanelGizli, forKey: "kenarPanelGizli")
+        gAyarlar.set(kenarPanelGizli, forKey: "kenarPanelGizli")
         if kenarPanelGizli, let odak = gtk_window_get_focus(nd_window(pencere)),
            odak == kenarPanelYuvasi || gtk_widget_is_ancestor(odak, kenarPanelYuvasi) != 0 {
             gtk_widget_child_focus(editorYuvasi, GTK_DIR_TAB_FORWARD)
@@ -307,6 +307,6 @@ final class LinuxPencere {
         if Int32(genislik) != konum { gtk_paned_set_position(nd_paned(bolme), Int32(genislik)) }
         genislikAyarlaniyor = false
         gKenarPanelGenislik = genislik
-        UserDefaults.standard.set(Double(genislik), forKey: "kenarPanelGenislik")
+        gAyarlar.set(Double(genislik), forKey: "kenarPanelGenislik")
     }
 }

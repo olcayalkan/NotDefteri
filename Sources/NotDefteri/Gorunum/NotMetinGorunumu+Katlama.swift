@@ -67,7 +67,7 @@ final class KatlamaDurumu {
         let anahtarlar = anahtarlar(basliklar.map(\.girdi))
         let katlilar = basliklar.indices.filter { basliklar[$0].katli }.map { anahtarlar[$0] }
         Self.sayfalar[yol] = katlilar
-        UserDefaults.standard.set(katlilar, forKey: "baslikKatlama." + yol)
+        gAyarlar.set(katlilar, forKey: "baslikKatlama." + yol)
     }
 }
 
@@ -100,7 +100,7 @@ extension NotMetinGorunumu {
             return yol.hasPrefix(onek) ? String(yol.dropFirst(onek.count)) : nil
         }
         katlama.yuklenecek = Set(katlama.yol.map {
-            KatlamaDurumu.sayfalar[$0] ?? UserDefaults.standard.stringArray(forKey: "baslikKatlama." + $0) ?? []
+            KatlamaDurumu.sayfalar[$0] ?? gAyarlar.stringArray(forKey: "baslikKatlama." + $0) ?? []
         } ?? [])
         katlamaYerlesiminiGuncelle()
     }
@@ -116,7 +116,7 @@ extension NotMetinGorunumu {
         katlama.sakla()
         if let eski, eski != katlama.yol {
             KatlamaDurumu.sayfalar.removeValue(forKey: eski)
-            UserDefaults.standard.removeObject(forKey: "baslikKatlama." + eski)
+            gAyarlar.removeObject(forKey: "baslikKatlama." + eski)
         }
     }
 

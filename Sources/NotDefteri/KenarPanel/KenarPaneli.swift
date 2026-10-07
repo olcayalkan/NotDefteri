@@ -79,7 +79,7 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     var duzenlenenDugum: AgacDugumu?
     var adDuzenlemesiIptal = false
     /// Açık bırakılan klasörler oturumlar arasında hatırlanır.
-    var acikKlasorYollari: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "acikKlasorler") ?? [])
+    var acikKlasorYollari: Set<String> = Set(gAyarlar.stringArray(forKey: "acikKlasorler") ?? [])
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)

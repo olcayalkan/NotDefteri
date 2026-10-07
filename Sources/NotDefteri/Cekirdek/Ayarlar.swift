@@ -5,12 +5,19 @@ import Foundation
 // Bu dosyadaki değerler çalışma anında değişir ve `UserDefaults`ta saklanır.
 // Değişmeyen ölçüler için `Sabitler.swift`e bakın.
 
+/// Tek ayar deposu. NOTDEFTERI_KOK varken ayrı bir alan kullanılır; tema/son açılanlar gerçek ayarlara yazılmaz.
+package let gAyarlar: UserDefaults = {
+    if ProcessInfo.processInfo.environment["NOTDEFTERI_KOK"]?.hasPrefix("/") == true,
+       let test = UserDefaults(suiteName: "NotDefteri.test") { return test }
+    return .standard
+}()
+
 /// Seçili temanın kayıtlı indeksi; geçerliliğini platformun görünümü denetler.
-package var gTemaIndex: Int = UserDefaults.standard.integer(forKey: "temaIndex")
+package var gTemaIndex: Int = gAyarlar.integer(forKey: "temaIndex")
 
 /// Kenar panelin genişliği; sürükle tutamacıyla değiştirilir.
 package var gKenarPanelGenislik: CGFloat = {
-    let kayitli = UserDefaults.standard.double(forKey: "kenarPanelGenislik")
+    let kayitli = gAyarlar.double(forKey: "kenarPanelGenislik")
     return kayitli > 0 ? CGFloat(kayitli) : 190
 }()
 
@@ -20,6 +27,6 @@ package var gYaziBoyutu: CGFloat = kTabanPunto
 
 /// Kayıt yokken Ana Sayfa açılır; kapatıldığında eski son-not davranışı korunur.
 package var gAcilistaAnaSayfa: Bool {
-    get { UserDefaults.standard.object(forKey: "acilistaAnaSayfa") as? Bool ?? true }
-    set { UserDefaults.standard.set(newValue, forKey: "acilistaAnaSayfa") }
+    get { gAyarlar.object(forKey: "acilistaAnaSayfa") as? Bool ?? true }
+    set { gAyarlar.set(newValue, forKey: "acilistaAnaSayfa") }
 }
