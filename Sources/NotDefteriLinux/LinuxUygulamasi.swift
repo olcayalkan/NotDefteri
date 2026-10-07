@@ -16,6 +16,7 @@ package enum LinuxUygulamasi {
                 gtk_window_present(nd_window(mevcut.pencere))
                 return
             }
+            if let ayarlar = gtk_settings_get_default() { nd_temayi_adwaitaya_cek(ayarlar) }
             let yeni = LinuxPencere(uygulama: uygulama)
             pencere = yeni
             let editor = LinuxEditor(pencere: yeni)
