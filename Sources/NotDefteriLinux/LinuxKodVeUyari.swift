@@ -579,8 +579,13 @@ private final class KodVeUyariAraclari {
                 gorunenCerceveleriOlc(belge, aralik: aralik, alan: alan)
             }
         }
-        gtk_widget_set_size_request(cerceveAlani, max(1, alan.width), max(1, alan.height))
-        gtk_text_view_move_overlay(gorunum, cerceveAlani, alan.x, alan.y)
+        // Katman yalnızca kenar boşlukları arasını kaplar. GTK4 overlay genişliğini kenar boşluklarına
+        // ekleyerek editörün en küçük genişliğine katar; tam görünen genişlik istenince her güncellemede
+        // editör ve pencere büyüyordu (kenar boşlukları da pencere genişliğinden hesaplanır).
+        let solKenar = gtk_text_view_get_left_margin(gorunum)
+        let katmanEni = alan.width - solKenar - gtk_text_view_get_right_margin(gorunum)
+        gtk_widget_set_size_request(cerceveAlani, max(1, katmanEni), max(1, alan.height))
+        gtk_text_view_move_overlay(gorunum, cerceveAlani, alan.x + solKenar, alan.y)
         gtk_widget_queue_draw(cerceveAlani)
     }
 
@@ -600,7 +605,7 @@ private final class KodVeUyariAraclari {
                 let renkAdi = kod ? (nd_settings_dark(ayarlar) != 0 ? "#eeeeec" : "#292929") : renkler[uyari?.renk ?? "gri"] ?? "#8e8e93"
                 gdk_rgba_parse(&renk, renkAdi)
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
-                let x = gtk_text_view_get_left_margin(gorunum) + seviye
+                let x = seviye // Katman sol kenar boşluğundan başlar.
                 let en = alan.width - gtk_text_view_get_left_margin(gorunum) - gtk_text_view_get_right_margin(gorunum) - seviye
                 cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: en, alan: alan), renk: renk))
             }
@@ -614,7 +619,7 @@ private final class KodVeUyariAraclari {
         var ust: Int32 = 0, alt: Int32 = 0, boy: Int32 = 0
         gtk_text_view_get_line_yrange(gorunum, &bas, &ust, nil)
         gtk_text_view_get_line_yrange(gorunum, &son, &alt, &boy)
-        return GdkRectangle(x: x - alan.x, y: ust - alan.y - 3, width: max(1, en), height: max(1, alt + boy - ust + 6))
+        return GdkRectangle(x: x, y: ust - alan.y - 3, width: max(1, en), height: max(1, alt + boy - ust + 6))
     }
 
     private func cerceveleriCiz(_ cr: OpaquePointer) {
