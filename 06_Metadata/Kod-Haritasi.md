@@ -57,7 +57,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `CopKutusuPaneli.swift` | 149 | Çöp popover’ı: önbellekte ad arama, sayfa/klasör simgesi ve göreli tarih, geri yükleme, kalıcı silme/boşaltma onayı |
 | `HizliBulucu.swift` | 203 | ⌘P ve [[ için ortak AppKit arama/listesi, üst yol ve klavye gezinmesi |
 | `NotMetinGorunumu+UyariKutusu.swift` | 171 | Görünür callout çizimi, yerel sınır düzeltme, renk menüsü ve sistem emoji paleti |
-| `NotMetinGorunumu.swift` | 750 | `NSTextView` alt sınıfı: görsel/pano işlemleri, slash tuşları, yüzen görünümler, bağlantı tıklaması ve satır içi sayfa bulucu |
+| `NotMetinGorunumu.swift` | 759 | `NSTextView` alt sınıfı: görsel/pano işlemleri, slash tuşları, yüzen görünümler, bağlantı tıklaması ve satır içi sayfa bulucu |
 | `BlokMenusu.swift` | 166 | Türkçe filtreli blok ve uyarı rengi seçenekleri, klavye gezinmesi ve odağı koruyan çocuk panel |
 | `SecimCubugu.swift` | 33 | Seçim üzerinde altı biçim düğmesi; pencerenin biçim komutlarını çağırır |
 | `Tema.swift` | 53 | `Tema`, `temaListesi`, `aktifTema`, renk türetme |
@@ -104,7 +104,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-`Tests/NotDefteriTests/` — 110 test (`CeviriciTestleri` 23, `YenidenAdlandirmaTestleri` 15, `KaydediciTestleri` 13, `YapistirmaTestleri` 12, `TasimaTestleri` 12, `DosyaAdiTestleri` 10, `IcindekilerTestleri` 8, `OnbellekTestleri` 6, `KopyalamaTestleri` 6, `GorselBagiTestleri` 5).
+`Tests/NotDefteriTests/` — 112 test (`CeviriciTestleri` 23, `YenidenAdlandirmaTestleri` 15, `KaydediciTestleri` 13, `YapistirmaTestleri` 12, `TasimaTestleri` 12, `DosyaAdiTestleri` 10, `IcindekilerTestleri` 8, `OnbellekTestleri` 6, `KopyalamaTestleri` 6, `GorselBagiTestleri` 5, `YapistirmaDonmaTestleri` 2).
 Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama, otomatik başlık,
 Türkçe arama, font yardımcıları, dış içeriğin nota uydurulması, sayfa taşıma. `swift test` ile çalıştır.
 

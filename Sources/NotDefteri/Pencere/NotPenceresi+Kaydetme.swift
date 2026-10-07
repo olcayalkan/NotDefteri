@@ -110,7 +110,7 @@ extension NotPenceresi {
         // Adı otomatik üretilmiş bir notun ilk satırı değiştiyse dosya adı da takip etsin.
         if otomatikAdlandirildiMi {
             let istenenAd = otomatikBaslikUret(icerik: metinGorunumu.string)
-            if istenenAd != sayfaAdi(mevcutURL) {
+            if otomatikAdDegismeli(mevcut: sayfaAdi(mevcutURL), istenen: istenenAd) {
                 // Sayfa taşınırken alt sayfalarını tutan klasör de birlikte taşınır.
                 guard kaydetURLe(mevcutURL, hazirMetin: metin, panelYenile: false) else { return }
                 kenarPaneli.baglantiOnbelleginiHazirla()

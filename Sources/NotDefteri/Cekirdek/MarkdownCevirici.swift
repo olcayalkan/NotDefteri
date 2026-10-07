@@ -37,6 +37,19 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
     var tamponOznitelikleri: [NSAttributedString.Key: Any] = [:]
     var yazilanBagSonu = 0
     let riskli = satirKacisRiskleri(attr)
+    // Parçalar arasında açık kalan vurgu işaretleri (dıştan içe). Her parça ayrı sarılınca bitişik
+    // iki italik "*a**b*" olup kalın okunuyordu; yalnızca değişen işaretler kapanıp açılır.
+    var acikIsaretler: [String] = []
+
+    /// Kapanış işareti sondaki boşluktan önce yazılır; boşluktan sonra gelen işaret kapanış sayılmaz.
+    func isaretleriKapat(_ kalan: Int = 0) {
+        guard acikIsaretler.count > kalan else { return }
+        var bosluk = ""
+        while let son = sonuc.last, son == " " || son == "\t" { bosluk.insert(son, at: bosluk.startIndex); sonuc.removeLast() }
+        for isaret in acikIsaretler[kalan...].reversed() { sonuc += isaret }
+        acikIsaretler.removeSubrange(kalan...)
+        sonuc += bosluk
+    }
 
     // Blok rengi/girintisi aynı inline font kapsamını ayrı Markdown etiketlerine bölmesin.
     func tamponuYaz() {
@@ -53,19 +66,42 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
                 (parca.hasPrefix(" ") && parca.hasSuffix(" ") && !parca.trimmingCharacters(in: .whitespaces).isEmpty) ? " " : ""
             parca = ayirac + bosluk + parca + bosluk + ayirac
         }
-        if tamponOznitelikleri[kItalikAnahtari] as? Bool == true { parca = "*\(parca)*" }
-        if tamponOznitelikleri[kUstuCiziliAnahtari] as? Bool == true { parca = "~~\(parca)~~" }
-        if tamponOznitelikleri[kVurguAnahtari] as? Bool == true { parca = "==\(parca)==" }
-        if tamponOznitelikleri[kKalinAnahtari] as? Bool == true, baslik == nil { parca = "**\(parca)**" }
+        // Dıştan içe: kalın, vurgu, üstü çizili, italik (eski tek parça sarma sırasıyla aynı).
+        var istenen: [String] = []
+        if tamponOznitelikleri[kKalinAnahtari] as? Bool == true, baslik == nil { istenen.append("**") }
+        if tamponOznitelikleri[kVurguAnahtari] as? Bool == true { istenen.append("==") }
+        if tamponOznitelikleri[kUstuCiziliAnahtari] as? Bool == true { istenen.append("~~") }
+        if tamponOznitelikleri[kItalikAnahtari] as? Bool == true { istenen.append("*") }
         let kayitBoyutu = kTabanPunto * CGFloat((tamponOznitelikleri[kPuntoOlcegiAnahtari] as? Double) ?? 1)
-        if baslik == nil, abs(kayitBoyutu - kTabanPunto) > 0.01 {
-            parca = "<punto=\(boyutMetni(kayitBoyutu))>\(parca)</punto>"
-        }
-        if let bag = tamponOznitelikleri[kBaglantiAnahtari], tamponOznitelikleri[kCiplakBagAnahtari] as? Bool != true {
-            parca = "[\(parca)](\(bag))"
-        }
-        sonuc += parca
+        let puntoVar = baslik == nil && abs(kayitBoyutu - kTabanPunto) > 0.01
+        let bag = etiketMi ? tamponOznitelikleri[kBaglantiAnahtari] : nil
         tampon = ""
+        // Punto etiketi ve bağlantı parçanın tamamını sarar; okuyucu bunları eskisi gibi kendi içinde bekler.
+        if puntoVar || bag != nil {
+            isaretleriKapat()
+            for isaret in istenen.reversed() { parca = isaret + parca + isaret }
+            if puntoVar { parca = "<punto=\(boyutMetni(kayitBoyutu))>\(parca)</punto>" }
+            if let bag { parca = "[\(parca)](\(bag))" }
+            sonuc += parca
+            return
+        }
+        // Kod içindeki boşluk koda aittir; diğer parçalarda işaretler boşlukların dışında kalır.
+        let kod = tamponOznitelikleri[kSatirIciKodAnahtari] as? Bool == true
+        let bas = kod ? "" : String(parca.prefix { $0 == " " || $0 == "\t" })
+        let govde = parca.dropFirst(bas.count)
+        let son = kod ? "" : String(govde.reversed().prefix { $0 == " " || $0 == "\t" }.reversed())
+        let oz = govde.dropLast(son.count)
+        // Yalnız boşluktan oluşan parça görünmez; açık işaretler değişmez.
+        guard !oz.isEmpty else { sonuc += parca; return }
+        // Hâlâ istenen açık işaretler dışta kalır; yenileri içe açılır.
+        let korunan = acikIsaretler.filter { istenen.contains($0) }
+        istenen = korunan + istenen.filter { !korunan.contains($0) }
+        var ortak = 0
+        while ortak < min(acikIsaretler.count, istenen.count), acikIsaretler[ortak] == istenen[ortak] { ortak += 1 }
+        isaretleriKapat(ortak)
+        sonuc += bas
+        for isaret in istenen[ortak...] { sonuc += isaret; acikIsaretler.append(isaret) }
+        sonuc += oz + son
     }
     func onEkiYaz(_ onEk: String) {
         if tampon.isEmpty { sonuc += onEk } else { tampon += onEk }
@@ -87,6 +123,7 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
         // Görselin yolu ve isteğe bağlı boyutu platformdan bağımsızdır.
         if let gorsel = oznitelikler[kGorselAnahtari] as? [String: Any], let yol = gorsel["yol"] as? String {
             tamponuYaz()
+            isaretleriKapat()
             if satirBasi, let seviye = oznitelikler[kBaslikSeviyesiAnahtari] as? Int {
                 sonuc += String(repeating: "#", count: seviye) + " "
             }
@@ -119,10 +156,11 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
         tamponBicimi = bicim
         tamponOznitelikleri = oznitelikler
         tampon += parca
-        if satirSonu { tamponuYaz(); sonuc += "\n" }
+        if satirSonu { tamponuYaz(); isaretleriKapat(); sonuc += "\n" }
         satirBasi = satirSonu
     }
     tamponuYaz()
+    isaretleriKapat()
     return sonuc
 }
 
@@ -140,6 +178,15 @@ package func otomatikBaslikUret(icerik: String) -> String {
     // Temizlenmiş ad ayrılmışsa otomatik kayıt uyarı açmadan devam etsin.
     if !sayfaAdiGecerliMi(baslik) { baslik += " 2" }
     return baslik
+}
+
+/// Otomatik adlı sayfanın yeniden adlandırılması gerekiyor mu? Aynı adlı kardeş varken taşıma
+/// "Ad (2)" üretir; bu, istenen adın eşi sayılır. Sayılmasaydı her kayıtta (3), (4)… diye artıyordu.
+package func otomatikAdDegismeli(mevcut: String, istenen: String) -> Bool {
+    guard mevcut != istenen else { return false }
+    guard mevcut.hasPrefix(istenen + " ("), mevcut.hasSuffix(")"),
+          let sayac = Int(mevcut.dropFirst(istenen.count + 2).dropLast()) else { return true }
+    return sayac < 2
 }
 
 // Yol taraması önceki 1024 karakter sınırını korur; iç içe adaylar da sınırlı maliyetle işlenir.

@@ -132,7 +132,8 @@ private final class KodVeUyariAraclari {
 
     private func arayuzuKur() {
         gtk_widget_set_can_target(cerceveAlani, 0)
-        gtk_text_view_add_overlay(gorunum, cerceveAlani, 0, 0)
+        // Görünür alanı kaplar ama editörün boyutuna katılmaz (bkz. LinuxEditor.ustKatman).
+        if let editor { gtk_overlay_add_overlay(OpaquePointer(editor.ustKatman), cerceveAlani) }
         let veri = Unmanaged.passRetained(KodUyariEylemi { [weak self] (cr: OpaquePointer) -> Void in self?.cerceveleriCiz(cr) }).toOpaque()
         gtk_drawing_area_set_draw_func(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(cerceveAlani)), kodCerceveC, veri, { veri in
             if let veri { Unmanaged<AnyObject>.fromOpaque(veri).release() }
@@ -579,13 +580,6 @@ private final class KodVeUyariAraclari {
                 gorunenCerceveleriOlc(belge, aralik: aralik, alan: alan)
             }
         }
-        // Katman yalnızca kenar boşlukları arasını kaplar. GTK4 overlay genişliğini kenar boşluklarına
-        // ekleyerek editörün en küçük genişliğine katar; tam görünen genişlik istenince her güncellemede
-        // editör ve pencere büyüyordu (kenar boşlukları da pencere genişliğinden hesaplanır).
-        let solKenar = gtk_text_view_get_left_margin(gorunum)
-        let katmanEni = alan.width - solKenar - gtk_text_view_get_right_margin(gorunum)
-        gtk_widget_set_size_request(cerceveAlani, max(1, katmanEni), max(1, alan.height))
-        gtk_text_view_move_overlay(gorunum, cerceveAlani, alan.x + solKenar, alan.y)
         gtk_widget_queue_draw(cerceveAlani)
     }
 
@@ -593,6 +587,7 @@ private final class KodVeUyariAraclari {
         guard let editor else { return }
         let tumu = NSRange(location: 0, length: belge.length)
         let kapsam = NSIntersectionRange(aralik, tumu)
+        let icEn = alan.width - gtk_text_view_get_left_margin(gorunum) - gtk_text_view_get_right_margin(gorunum)
         for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari] {
             belge.enumerateAttribute(anahtar, in: kapsam) { deger, alt, _ in
                 guard deger != nil, !gizliMi(GtkKoprusu.iter(editor.tampon, utf16: alt.location)) else { return }
@@ -605,9 +600,8 @@ private final class KodVeUyariAraclari {
                 let renkAdi = kod ? (nd_settings_dark(ayarlar) != 0 ? "#eeeeec" : "#292929") : renkler[uyari?.renk ?? "gri"] ?? "#8e8e93"
                 gdk_rgba_parse(&renk, renkAdi)
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
-                let x = seviye // Katman sol kenar boşluğundan başlar.
-                let en = alan.width - gtk_text_view_get_left_margin(gorunum) - gtk_text_view_get_right_margin(gorunum) - seviye
-                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: en, alan: alan), renk: renk))
+                let x = gtk_text_view_get_left_margin(gorunum) + seviye
+                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: icEn - seviye, alan: alan), renk: renk))
             }
         }
     }
@@ -619,7 +613,8 @@ private final class KodVeUyariAraclari {
         var ust: Int32 = 0, alt: Int32 = 0, boy: Int32 = 0
         gtk_text_view_get_line_yrange(gorunum, &bas, &ust, nil)
         gtk_text_view_get_line_yrange(gorunum, &son, &alt, &boy)
-        return GdkRectangle(x: x, y: ust - alan.y - 3, width: max(1, en), height: max(1, alt + boy - ust + 6))
+        // Katman görünür alanın köşesinden başlar: tampon koordinatı görünür alana göre çevrilir.
+        return GdkRectangle(x: x - alan.x, y: ust - alan.y - 3, width: max(1, en), height: max(1, alt + boy - ust + 6))
     }
 
     private func cerceveleriCiz(_ cr: OpaquePointer) {

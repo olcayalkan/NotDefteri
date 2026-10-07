@@ -86,6 +86,50 @@ final class CeviriciTestleri: XCTestCase {
         gidisDonusKontrol("<punto=16>açık kaldı\n")
     }
 
+    // MARK: Vurgu sınırları
+
+    /// Biçimli karakterlerin kümesi; boşluklar görünmez olduğundan sayılmaz.
+    private func bicimliKarakterler(_ attr: NSAttributedString, _ anahtar: NSAttributedString.Key) -> [Int] {
+        let ns = attr.string as NSString
+        return (0..<attr.length).filter {
+            attr.attribute(anahtar, at: $0, effectiveRange: nil) as? Bool == true
+                && ns.character(at: $0) != 32
+        }
+    }
+
+    /// Editörde seçilip biçimlendirilen metin kaydedilip yeniden açılınca aynı biçimi taşımalı.
+    private func biciminKorundugunuDogrula(_ s: NSAttributedString, dosya: StaticString = #filePath, satir: UInt = #line) {
+        let md = markdownMetniUret(s)
+        let geri = markdowndenAttributedStringUret(md)
+        XCTAssertEqual(geri.string, s.string, "metin: \(md)", file: dosya, line: satir)
+        for anahtar in [kKalinAnahtari, kItalikAnahtari, kUstuCiziliAnahtari, kVurguAnahtari] {
+            XCTAssertEqual(bicimliKarakterler(geri, anahtar), bicimliKarakterler(s, anahtar),
+                           "\(anahtar.rawValue) — Markdown: \(md)", file: dosya, line: satir)
+        }
+    }
+
+    func testBoslukIcerenVurguGecerliMarkdownUretir() {
+        let s = NSMutableAttributedString(string: "x yy z")
+        s.addAttribute(kKalinAnahtari, value: true, range: NSRange(location: 1, length: 4))
+        XCTAssertEqual(markdownMetniUret(s), "x **yy** z")
+        biciminKorundugunuDogrula(s)
+    }
+
+    func testIcIceVurguBozulmaz() {
+        let s = NSMutableAttributedString(string: "Bu bir kalın ve italik deneme.")
+        s.addAttribute(kKalinAnahtari, value: true, range: NSRange(location: 7, length: 5))
+        s.addAttribute(kItalikAnahtari, value: true, range: NSRange(location: 2, length: 26))
+        biciminKorundugunuDogrula(s)
+    }
+
+    func testBitisikVurgularBirbirineKarismaz() {
+        let s = NSMutableAttributedString(string: "a bc de f")
+        s.addAttribute(kItalikAnahtari, value: true, range: NSRange(location: 2, length: 5))
+        s.addAttribute(kVurguAnahtari, value: true, range: NSRange(location: 3, length: 3))
+        s.addAttribute(kUstuCiziliAnahtari, value: true, range: NSRange(location: 5, length: 3))
+        biciminKorundugunuDogrula(s)
+    }
+
     /// Gidiş-dönüş kararlı olmalı: ikinci tur birinciyle aynı sonucu vermeli.
     func testGidisDonusKararli() {
         for metin in ["2 ** 3 = 8\n", "<punto=16>açık\n", "**kalın**", "# Başlık\n"] {
@@ -124,6 +168,17 @@ final class CeviriciTestleri: XCTestCase {
         XCTAssertEqual(otomatikBaslikUret(icerik: "Alışveriş\nsüt"), "Alışveriş")
         XCTAssertEqual(otomatikBaslikUret(icerik: "# Başlıklı\nmetin"), "Başlıklı")
         XCTAssertEqual(otomatikBaslikUret(icerik: "**kalın**"), "kalın")
+    }
+
+    func testOtomatikAdSayacliEsiYenidenAdlandirmaz() {
+        XCTAssertFalse(otomatikAdDegismeli(mevcut: "Plan", istenen: "Plan"))
+        // Aynı adlı kardeş varken taşıma "Plan (2)" üretir; her kayıtta (3), (4)… diye artmamalı.
+        XCTAssertFalse(otomatikAdDegismeli(mevcut: "Plan (2)", istenen: "Plan"))
+        XCTAssertFalse(otomatikAdDegismeli(mevcut: "Plan (12)", istenen: "Plan"))
+        XCTAssertTrue(otomatikAdDegismeli(mevcut: "Yeni Sayfa", istenen: "Plan"))
+        XCTAssertTrue(otomatikAdDegismeli(mevcut: "Plan (x)", istenen: "Plan"))
+        XCTAssertTrue(otomatikAdDegismeli(mevcut: "Plan (1)", istenen: "Plan"))
+        XCTAssertTrue(otomatikAdDegismeli(mevcut: "Plan (2)", istenen: "Plan B"))
     }
 
     func testOtomatikBaslikYolAyraciniTemizler() {

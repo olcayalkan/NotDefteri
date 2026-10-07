@@ -362,8 +362,9 @@ private final class LinuxDuzenlemeAraclari {
 
     private func menuVurgula() {
         for (sira, dugme) in menuDugmeleri.enumerated() {
-            if sira == secili { gtk_widget_add_css_class(dugme, "suggested-action") }
-            else { gtk_widget_remove_css_class(dugme, "suggested-action") }
+            // suggested-action temanın mavi vurgusudur; kağıt temasıyla uyumlu kendi sınıfımız kullanılır.
+            if sira == secili { gtk_widget_add_css_class(dugme, "nd-etkin") }
+            else { gtk_widget_remove_css_class(dugme, "nd-etkin") }
         }
     }
 
@@ -543,7 +544,7 @@ private final class LinuxDuzenlemeAraclari {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try "".write(to: url, atomically: true, encoding: .utf8)
             (pencere?.kenarPaneli as? LinuxKenarPaneli)?.yenile()
-            editor.notuAc(url)
+            editor.yeniSayfayiAc(url)
         } catch { hataGoster("Sayfa oluşturulamadı: " + error.localizedDescription) }
     }
 

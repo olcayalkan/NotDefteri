@@ -50,21 +50,12 @@ static inline gboolean nd_settings_dark(GtkSettings *settings) {
     return dark;
 }
 
-/* XFCE gibi masaüstlerinin GTK3 temaları GTK4'te renk değişkenlerini tanımlamıyor; uygulama
- * renkleri bozuk görünüyordu. GTK_THEME verilmediyse Adwaita kullanılır, koyu tercih korunur. */
-static inline void nd_temayi_adwaitaya_cek(GtkSettings *settings) {
-    if (g_getenv("GTK_THEME") != NULL) return;
-    gchar *theme = NULL;
-    g_object_get(settings, "gtk-theme-name", &theme, NULL);
-    if (theme && !g_str_has_prefix(theme, "Adwaita")) {
-        gchar *lower = g_ascii_strdown(theme, -1);
-        if (g_strrstr(lower, "dark") != NULL) {
-            g_object_set(settings, "gtk-application-prefer-dark-theme", TRUE, NULL);
-        }
-        g_free(lower);
-        g_object_set(settings, "gtk-theme-name", "Adwaita", NULL);
-    }
-    g_free(theme);
+/* GTK_THEME varken GTK koyu tercihe bakmaz; masaüstü koyu temadaysa varyant ortama yazılır ve
+ * GtkSettings temayı yeniden yükler (notify, GTK_THEME'i yeniden okur). */
+static inline void nd_koyu_adwaita_uygula(GtkSettings *settings) {
+    if (!nd_settings_dark(settings)) return;
+    g_setenv("GTK_THEME", "Adwaita:dark", TRUE);
+    g_object_notify(G_OBJECT(settings), "gtk-theme-name");
 }
 
 static inline GApplication *nd_application(GtkApplication *app) { return G_APPLICATION(app); }

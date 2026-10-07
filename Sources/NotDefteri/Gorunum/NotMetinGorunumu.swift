@@ -12,6 +12,11 @@ import NotDefteriCekirdek
 /// panoya koyuyoruz; yapıştırmada görsel dosyaları hedef sayfaya kopyalanıyor.
 let kNotPanoTipi = NSPasteboard.PasteboardType("tr.notdefteri.icerik")
 
+/// HTML içe aktarıcı uzak görselleri ana thread'de indirir; bu süreden sonra vazgeçilir.
+private let kHtmlIceAktarmaSuresi: TimeInterval = 3
+/// AppKit HTML pano türünü eski adıyla da verebiliyor.
+private let kEskiHtmlPanoTuru = NSPasteboard.PasteboardType("Apple HTML pasteboard type")
+
 // MARK: - Görsel yapıştırma/sürükleme kabul eden metin görünümü
 
 final class NotMetinGorunumu: NSTextView {
@@ -495,11 +500,7 @@ final class NotMetinGorunumu: NSTextView {
                 }
                 return true
             }
-            // HTML süre sınırına takıldıysa super onu süresiz yeniden indirmesin; düz metne düşülür.
-            // AppKit türü eski adıyla da ("Apple HTML pasteboard type") verebiliyor.
-            let htmlMi = type == .html || type.rawValue == "Apple HTML pasteboard type"
-            let duzMetneDus = htmlMi && pboard.string(forType: .string) != nil
-            return super.readSelection(from: pboard, type: duzMetneDus ? .string : type)
+            return varsayilanOkuma(pboard, tur: type)
         }
         // Önce kendi tipimiz: görseller ve başlıklar eksiksiz taşınsın.
         if let bilgi = pboard.propertyList(forType: kNotPanoTipi) as? [String: Any], bilgi["markdown"] is String {
@@ -527,7 +528,15 @@ final class NotMetinGorunumu: NSTextView {
             icerigiEkle(icerik)
             return true
         }
-        return super.readSelection(from: pboard, type: type)
+        return varsayilanOkuma(pboard, tur: type)
+    }
+
+    /// HTML süre sınırına takıldıysa (bkz. `panodanZenginMetin`) AppKit onu süresiz yeniden
+    /// indirmesin: düz metin varsa o okunur, yoksa yapıştırma donmak yerine yapılmaz.
+    private func varsayilanOkuma(_ pano: NSPasteboard, tur: NSPasteboard.PasteboardType) -> Bool {
+        guard tur == .html || tur == kEskiHtmlPanoTuru else { return super.readSelection(from: pano, type: tur) }
+        guard pano.string(forType: .string) != nil else { return false }
+        return super.readSelection(from: pano, type: .string)
     }
 
     /// Panodaki içeriği notun biçimine uydurmadan, kaynağındaki hâliyle yapıştırır.
@@ -559,7 +568,7 @@ final class NotMetinGorunumu: NSTextView {
                data: veri,
                options: [.documentType: NSAttributedString.DocumentType.html,
                          .characterEncoding: String.Encoding.utf8.rawValue,
-                         .timeout: 3.0],
+                         .timeout: kHtmlIceAktarmaSuresi],
                documentAttributes: nil) { return icerik }
         return nil
     }
