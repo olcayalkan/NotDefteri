@@ -395,14 +395,18 @@ final class LinuxAnaSayfa {
     private func yeniSayfa() {
         sayfaOlustur(url: { [weak self] in
             benzersizSayfaURLSonucu(taban: "Yeni Sayfa", klasor: self?.panel?.hedefKlasor() ?? notlarKlasoru()).url
-        }, metin: "")
+        }, metin: "", otomatikAd: true)
     }
 
     private func gunlukNotuAc() {
         let tarih = Date()
         do {
             let url = try gunlukNotURL(tarih)
-            if dosyaYoluVarMi(url) { editor?.notuAc(url) }
+            if dosyaYoluVarMi(url), let editor {
+                editor.notuAc(url) { tamam in
+                    if tamam, editor.editorEtkin { gtk_widget_grab_focus(editor.metinGorunumu) }
+                }
+            }
             else { sayfaOlustur(url: { url }, metin: SayfaSablonu.gunluk.markdown(tarih: tarih)) }
         } catch { hata("Günlük not açılamadı", error.localizedDescription) }
     }
@@ -422,7 +426,8 @@ final class LinuxAnaSayfa {
     }
 
     /// Önce açık not kaydedilir (islemOncesi); dosya aynı klasörde yayımlanır, mevcut notun üzerine yazılmaz.
-    private func sayfaOlustur(url olusturURL: @escaping () -> URL, metin: String) {
+    /// `otomatikAd`: boş "Yeni Sayfa"nın adı ilk satırı izler (macOS yeniNotOlustur); şablon ve günlükte izlemez.
+    private func sayfaOlustur(url olusturURL: @escaping () -> URL, metin: String, otomatikAd: Bool = false) {
         editor?.islemOncesi { [weak self] in
             guard let self, let editor = self.editor else { return }
             let url = olusturURL()
@@ -432,6 +437,7 @@ final class LinuxAnaSayfa {
                 return
             }
             self.panel?.yenile()
+            if otomatikAd { editor.yeniSayfayiAc(url); return }
             editor.notuAc(url) { tamam in
                 if tamam, editor.editorEtkin { gtk_widget_grab_focus(editor.metinGorunumu) }
             }

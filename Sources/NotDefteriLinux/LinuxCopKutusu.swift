@@ -25,7 +25,7 @@ final class LinuxCopKutusu {
 
     static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
         let cop = LinuxCopKutusu(ust: pencere.pencere, editor: editor, panel: panel)
-        let dugme = gtk_button_new_with_label("🗑 Çöp kutusu")!
+        let dugme = GtkKoprusu.simgeliDugme("user-trash-symbolic", "Çöp kutusu")
         gtk_widget_set_margin_top(dugme, 4)
         gtk_widget_set_margin_bottom(dugme, 8)
         gtk_widget_set_margin_start(dugme, 8)
@@ -137,11 +137,15 @@ final class LinuxCopKutusu {
         gtk_widget_set_margin_bottom(kutu, 4)
         let bilgi = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2)!
         gtk_widget_set_hexpand(bilgi, 1)
-        let ad = gtk_label_new("\(oge.bilgi.icerikDosyasi == nil ? "📁" : "📄") \(oge.ad)")!
+        // Emoji (📁/📄) yerine simge temasından simge: emoji yazı tipi olmayan sistemlerde kutu görünüyordu.
+        let baslik = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6)!
+        gtk_box_append(nd_box(baslik), gtk_image_new_from_icon_name(oge.bilgi.icerikDosyasi == nil ? "folder-symbolic" : "text-x-generic-symbolic"))
+        let ad = gtk_label_new(oge.ad)!
         gtk_label_set_xalign(nd_label(ad), 0)
         gtk_label_set_ellipsize(nd_label(ad), PANGO_ELLIPSIZE_END)
         gtk_widget_set_tooltip_text(ad, oge.bilgi.ozgunYol)
-        gtk_box_append(nd_box(bilgi), ad)
+        gtk_box_append(nd_box(baslik), ad)
+        gtk_box_append(nd_box(bilgi), baslik)
         let zaman = gtk_label_new(Self.zamanMetni(oge.bilgi.silinmeTarihi))!
         gtk_label_set_xalign(nd_label(zaman), 0)
         gtk_widget_add_css_class(zaman, "dim-label")

@@ -107,6 +107,10 @@ private final class ZayifUst {
 final class LinuxEditor {
     private weak var pencere: LinuxPencere?
     private let kaydirma = gtk_scrolled_window_new()!
+    /// Kaydırma alanını saran katman. GtkOverlay yalnızca ana çocuğunu ölçer; metin görünümünün
+    /// overlay'leri ise görünümün en küçük genişliğine katılıp pencereyi büyütüyor/küçültmüyordu.
+    /// Görünür alanı kaplaması gereken çizimler buraya eklenir.
+    let ustKatman = gtk_overlay_new()!
     let metinGorunumu = gtk_text_view_new()!
     private let gorunum: UnsafeMutablePointer<GtkTextView>
     let tampon: UnsafeMutablePointer<GtkTextBuffer>
@@ -130,6 +134,8 @@ final class LinuxEditor {
     /// GdkClipboard, C köprüsünde opaque türdür. true = pano eklenti tarafından işlendi.
     var yapistirmaOncesi: [(OpaquePointer) -> Bool] = []
     var degisiklikSonrasi: [() -> Void] = []
+    /// Editör alanının genişliği değişti (pencere boyutu, panel aç/kapa, sayfanın ilk gösterilişi).
+    var boyutDegisti: [() -> Void] = []
     /// İkinci değer editörün diskte olduğuna inandığı metindir; kancalar diski yeniden okumasın (TOCTOU).
     var notAcildi: [(URL, String?) -> Void] = []
     var acikURL: URL? { mevcutURL }
@@ -146,6 +152,12 @@ final class LinuxEditor {
     /// Tek geri alma geçmişi LinuxGorseller'dadır (metin, görsel ve üstbilgi adımları); tuş, menü ve düğmeler buradan geçer.
     var geriAlYolu: ((_ ileri: Bool) -> Void)?
     var kayitSonrasi: [(URL, String) -> Void] = []
+    /// macOS otomatikAdlandirildiMi: "Yeni sayfa" ile açılan sayfanın adı ilk satırı izler. Başka not
+    /// açılınca ya da sayfa elle adlandırılınca/taşınınca kapanır.
+    private var otomatikAdlandir = false
+    private var otomatikAdlandiriliyor = false
+    /// Panelin adlandırma yolu (sıra kaydı, bağlar, açık dal); nil dönerse otomatik adlandırma bırakılır.
+    var otomatikAdIstendi: ((URL, String) -> URL?)?
     private var anaSayfaAcik = false
     private var kayitHatasiBildirildi = false
     private var diyalogAcik = false
@@ -191,9 +203,10 @@ final class LinuxEditor {
         let kaydirici = OpaquePointer(kaydirma)
         gtk_scrolled_window_set_policy(kaydirici, GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC)
         gtk_scrolled_window_set_child(kaydirici, metinGorunumu)
-        gtk_widget_set_vexpand(kaydirma, 1)
-        gtk_widget_set_hexpand(kaydirma, 1)
-        gtk_box_append(nd_box(pencere.editorYuvasi), kaydirma)
+        gtk_overlay_set_child(OpaquePointer(ustKatman), kaydirma)
+        gtk_widget_set_vexpand(ustKatman, 1)
+        gtk_widget_set_hexpand(ustKatman, 1)
+        gtk_box_append(nd_box(pencere.editorYuvasi), ustKatman)
     }
 
     private func sinyalleriBagla(_ pencere: LinuxPencere) {
@@ -224,7 +237,10 @@ final class LinuxEditor {
         let yatay = gtk_scrolled_window_get_hadjustment(OpaquePointer(kaydirma))!
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(yatay), "changed") { [weak self] in
             // Boyut dağıtımı sırasında kenar değiştirmek yeniden boyut kuyruğu uyarısı verir.
-            Platform.anaIsParcaciginda { self?.kenarlariAyarla() }
+            Platform.anaIsParcaciginda {
+                self?.kenarlariAyarla()
+                self?.boyutDegisti.forEach { $0() }
+            }
         }
 
         let tuslar = gtk_event_controller_key_new()!
@@ -390,6 +406,7 @@ final class LinuxEditor {
         imlecIzlenmiyor = false
         yazimOnceligi = nil
         mevcutURL = url
+        otomatikAdlandir = false
         kaydedici.sifirla(sonYazilan: icerik)
         kayitHatasiBildirildi = false
         bekleyenKayitHatasi = nil
@@ -540,6 +557,7 @@ final class LinuxEditor {
 
     func yolDegisti(eski: URL, yeni: URL) {
         guard mevcutURL == eski else { return }
+        if !otomatikAdlandiriliyor { otomatikAdlandir = false } // Adı artık kullanıcı belirledi.
         kaydedici.bekleyeniIptalEt()
         mevcutURL = yeni
         nesil &+= 1
@@ -562,6 +580,7 @@ final class LinuxEditor {
     private func tamponuBosalt() {
         kaydedici.sifirla(sonYazilan: nil)
         mevcutURL = nil
+        otomatikAdlandir = false
         editorEtkin = false
         nesil &+= 1
         ustbilgi = SayfaUstbilgisi()
@@ -589,13 +608,34 @@ final class LinuxEditor {
         guard kenar != gtk_text_view_get_left_margin(gorunum) else { return }
         gtk_text_view_set_left_margin(gorunum, kenar)
         gtk_text_view_set_right_margin(gorunum, kenar)
+        adaptor.sayfaKenariniAyarla(kenar)
     }
 
     // MARK: Kayıt
 
+    /// Yeni oluşturulan boş sayfayı açar (macOS yeniSayfaOlustur): adı ilk satırı izler, odak editöre
+    /// geçer. Odak düğmede kalınca yazılan her boşluk/Enter düğmeye basıp yeni sayfa açıyordu.
+    func yeniSayfayiAc(_ url: URL) {
+        notuAc(url) { [weak self] tamam in
+            guard let self, tamam, self.editorEtkin else { return }
+            self.otomatikAdlandir = true
+            gtk_widget_grab_focus(self.metinGorunumu)
+        }
+    }
+
     private func kaydetKomutu() {
         guard let url = mevcutURL else { return }
-        kaydet(url, bildir: true)
+        if kaydet(url, bildir: true) == nil { otomatikAdiUygula() }
+    }
+
+    /// Kayıttan sonra: ilk satır değiştiyse dosya adı onu izler (macOS otomatikKaydet).
+    private func otomatikAdiUygula() {
+        guard otomatikAdlandir, let url = mevcutURL else { return }
+        let istenen = otomatikBaslikUret(icerik: anlamsalBelge.string.replacingOccurrences(of: "\u{200B}", with: ""))
+        guard otomatikAdDegismeli(mevcut: sayfaAdi(url), istenen: istenen) else { return }
+        otomatikAdlandiriliyor = true
+        defer { otomatikAdlandiriliyor = false }
+        if otomatikAdIstendi?(url, istenen) == nil { otomatikAdlandir = false }
     }
 
     /// Başarıda nil, başarısızlıkta neden döner.
@@ -669,7 +709,7 @@ final class LinuxEditor {
 
     private func otomatikKaydet() {
         guard kaydedici.duzenlendiMi, let url = mevcutURL else { return }
-        kaydet(url, bildir: true)
+        if kaydet(url, bildir: true) == nil { otomatikAdiUygula() }
     }
 
     /// Kapanışta son kayıt; başarısızsa "Kaydetmeden Çık / Vazgeç" sorulur.

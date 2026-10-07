@@ -5,6 +5,11 @@ import NotDefteriCekirdek
 package enum LinuxUygulamasi {
     package static func calistir() -> Int32 {
         GtkKoprusu.platformuKur()
+        // XFCE gibi masaüstlerinin GTK3 temaları GTK4'te renk değişkenlerini tanımlamıyor: açılışta
+        // "Theme parser error" basılıyor ve renkler bozuluyordu. Tema GTK açılmadan seçilmeli;
+        // kullanıcı GTK_THEME verdiyse dokunulmaz.
+        let temaUygulamadan = g_getenv("GTK_THEME") == nil
+        if temaUygulamadan { g_setenv("GTK_THEME", "Adwaita", 1) }
         guard let uygulama = gtk_application_new("com.notdefteri.uygulama", GApplicationFlags(rawValue: 0)) else {
             FileHandle.standardError.write(Data("GTK uygulaması oluşturulamadı.\n".utf8))
             return 1
@@ -16,7 +21,7 @@ package enum LinuxUygulamasi {
                 gtk_window_present(nd_window(mevcut.pencere))
                 return
             }
-            if let ayarlar = gtk_settings_get_default() { nd_temayi_adwaitaya_cek(ayarlar) }
+            if temaUygulamadan, let ayarlar = gtk_settings_get_default() { nd_koyu_adwaita_uygula(ayarlar) }
             let yeni = LinuxPencere(uygulama: uygulama)
             pencere = yeni
             let editor = LinuxEditor(pencere: yeni)
@@ -26,6 +31,7 @@ package enum LinuxUygulamasi {
             panel.islemOncesi = { [weak editor] devam in editor?.islemOncesi(devam) }
             panel.notSilindi = { [weak editor] silinen in editor?.bosalt(silinen: silinen) }
             panel.notYenidenAdlandirildi = { [weak editor] eski, yeni in editor?.yolDegisti(eski: eski, yeni: yeni) }
+            editor.otomatikAdIstendi = { [weak panel] url, ad in panel?.otomatikAdlandir(url, yeniAd: ad) }
             editor.notSecimiBildir = { [weak panel] in panel?.acikNotuBildir($0) }
             panel.baglarYenidenYazildi = { [weak editor] in editor?.baglariYenidenYaz($0) }
             panel.anaSayfaIstendi = { [weak yeni] in yeni?.icerigiGoster(anaSayfa: true) }

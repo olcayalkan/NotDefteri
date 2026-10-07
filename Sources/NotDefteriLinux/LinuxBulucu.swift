@@ -263,9 +263,15 @@ private final class SayfaBulucusu {
         while let cocuk = gtk_widget_get_first_child(liste) { gtk_list_box_remove(listeKutusu, cocuk) }
         for sayfa in sonuclar {
             let satir = gtk_list_box_row_new()!
-            let metin = gtk_label_new("📄  \(sayfa.ad)\n     \(sayfa.ustYol.isEmpty ? "Ana sayfalar" : sayfa.ustYol)")!
-            gtk_label_set_xalign(nd_label(metin), 0)
-            gtk_label_set_ellipsize(nd_label(metin), PANGO_ELLIPSIZE_END)
+            // Emoji (📄) yerine simge temasından simge: emoji yazı tipi olmayan sistemlerde kutu görünüyordu.
+            let metin = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8)!
+            let simge = gtk_image_new_from_icon_name("text-x-generic-symbolic")!
+            gtk_widget_set_valign(simge, GTK_ALIGN_START)
+            let yazi = gtk_label_new("\(sayfa.ad)\n\(sayfa.ustYol.isEmpty ? "Ana sayfalar" : sayfa.ustYol)")!
+            gtk_label_set_xalign(nd_label(yazi), 0)
+            gtk_label_set_ellipsize(nd_label(yazi), PANGO_ELLIPSIZE_END)
+            gtk_box_append(nd_box(metin), simge)
+            gtk_box_append(nd_box(metin), yazi)
             gtk_widget_set_margin_start(metin, 8)
             gtk_widget_set_margin_end(metin, 8)
             gtk_widget_set_size_request(satir, -1, 44)

@@ -34,6 +34,10 @@ final class LinuxBelgeAdaptoru {
     private let tampon: UnsafeMutablePointer<GtkTextBuffer>
     private let tablo: OpaquePointer
     private var etiketler: [String: UnsafeMutablePointer<GtkTextTag>] = [:]
+    /// Etiketin `left-margin`'i görünümün kenar boşluğuna eklenmez, onun yerine geçer; ortalanan
+    /// sayfada listeler/kod/uyarı sola kayıyordu. Taban girinti saklanır, sayfa kenarı üstüne eklenir.
+    private var solTabanlar: [String: Int32] = [:]
+    private var sayfaKenari: Int32 = 0
     private var bekleyen: NSRange?
 
     init(tampon: UnsafeMutablePointer<GtkTextBuffer>) {
@@ -231,10 +235,26 @@ final class LinuxBelgeAdaptoru {
 
     private func etiket(_ ad: String, _ ozellikler: [(String, GDeger)]) {
         let yeni = gtk_text_tag_new(ad)!
-        for (ozellik, deger) in ozellikler { gNesneOzelligi(UnsafeMutableRawPointer(yeni), ozellik, deger) }
+        for (ozellik, deger) in ozellikler {
+            if ozellik == "left-margin", case .tam(let taban) = deger {
+                solTabanlar[ad] = taban
+                gNesneOzelligi(UnsafeMutableRawPointer(yeni), ozellik, .tam(taban + sayfaKenari))
+            } else {
+                gNesneOzelligi(UnsafeMutableRawPointer(yeni), ozellik, deger)
+            }
+        }
         gtk_text_tag_table_add(tablo, yeni)
         g_object_unref(UnsafeMutableRawPointer(yeni)) // Tablo sahiplendi.
         etiketler[ad] = yeni
+    }
+
+    /// Editör sayfayı ortalarken görünümün sol kenar boşluğuyla birlikte çağırır.
+    func sayfaKenariniAyarla(_ kenar: Int32) {
+        guard kenar != sayfaKenari else { return }
+        sayfaKenari = kenar
+        for (ad, taban) in solTabanlar {
+            if let etiket = etiketler[ad] { gNesneOzelligi(UnsafeMutableRawPointer(etiket), "left-margin", .tam(taban + kenar)) }
+        }
     }
 
     // MARK: Görseller

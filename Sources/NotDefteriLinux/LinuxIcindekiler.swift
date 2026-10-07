@@ -27,6 +27,9 @@ final class LinuxIcindekiler {
     private var bagOnbellegi: [URL: OnbellekGirdisi] = [:]
     private var sayfaOnbellegi: [URL: SayfaSecenegi] = [:]
     private var baglantiVerenler: [SayfaSecenegi] = []
+    /// Panel (180) ile editörün okunur en küçük genişliği; daha dar alanda panel gösterilmez.
+    /// Gösterilseydi GTK en küçük genişliği karşılamak için pencereyi büyütüyordu.
+    private static let gerekenGenislik: Int32 = 180 + 420
 
     static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
         let icindekiler = LinuxIcindekiler(pencere: pencere, editor: editor)
@@ -76,6 +79,9 @@ final class LinuxIcindekiler {
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(editor.tampon), "notify::cursor-position") {
             [weak self] (_: gpointer?) in self?.etkinBasligiGuncelle()
         }
+        // Alan değişince panelin sığıp sığmadığı yeniden değerlendirilir. Sayfa ana sayfadan ilk
+        // gösterildiğinde genişlik henüz 0'dır; ilk boyut dağıtımı da bu kancayı tetikler.
+        editor.boyutDegisti.append { [weak self] in self?.gorunurluguGuncelle() }
         // macOS hover ile açılır; Linux'ta kalıcı panel ve gizleme kısayolu kullanılır.
         pencere.menuEkle(["Görünüm", "İçindekiler paneli"], kisayol: "<Control><Shift>backslash") { [weak self] in
             guard let self else { return }
@@ -180,13 +186,14 @@ final class LinuxIcindekiler {
 
     private func etkinligiAyarla(_ yeni: Int?) {
         if let etkinSira {
-            gtk_widget_remove_css_class(satirlar[etkinSira], "suggested-action")
+            gtk_widget_remove_css_class(satirlar[etkinSira], "nd-etkin")
             gtk_widget_add_css_class(satirlar[etkinSira], "flat")
         }
         etkinSira = yeni
         if let yeni {
             gtk_widget_remove_css_class(satirlar[yeni], "flat")
-            gtk_widget_add_css_class(satirlar[yeni], "suggested-action")
+            // suggested-action temanın mavi vurgusudur; kağıt temasıyla uyumlu kendi sınıfımız kullanılır.
+            gtk_widget_add_css_class(satirlar[yeni], "nd-etkin")
         }
     }
 
@@ -295,7 +302,9 @@ final class LinuxIcindekiler {
 
     private func gorunurluguGuncelle() {
         guard let pencere else { return }
-        let gorunur = !gizli && !girdiler.isEmpty && editor?.editorEtkin == true
+        // Editör ve panel aynı kutudadır; kutunun genişliği panelin görünürlüğüyle değişmez.
+        let alan = gtk_widget_get_parent(pencere.sagPanelYuvasi).map { gtk_widget_get_width($0) } ?? 0
+        let gorunur = !gizli && !girdiler.isEmpty && editor?.editorEtkin == true && alan >= Self.gerekenGenislik
         if !gorunur, let odak = gtk_window_get_focus(nd_window(pencere.pencere)),
            odak == pencere.sagPanelYuvasi || gtk_widget_is_ancestor(odak, pencere.sagPanelYuvasi) != 0,
            let editor { gtk_widget_grab_focus(editor.metinGorunumu) }

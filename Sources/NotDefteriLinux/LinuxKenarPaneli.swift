@@ -212,7 +212,7 @@ final class LinuxKenarPaneli {
 
     private func arayuzuKur() {
         // macOS'taki "Ana Sayfa" düğmesi: kenar panelin en üstünde.
-        let anaSayfa = gtk_button_new_with_label("🏠 Ana Sayfa")!
+        let anaSayfa = GtkKoprusu.simgeliDugme("user-home-symbolic", "Ana Sayfa")
         gtk_widget_set_margin_top(anaSayfa, 8)
         gtk_widget_set_margin_start(anaSayfa, 8)
         gtk_widget_set_margin_end(anaSayfa, 8)
@@ -312,7 +312,8 @@ final class LinuxKenarPaneli {
         gtk_label_set_xalign(nd_label(etiket), 0)
         gtk_label_set_ellipsize(nd_label(etiket), PANGO_ELLIPSIZE_END)
         gtk_widget_set_hexpand(etiket, 1)
-        let raptiye = gtk_label_new("")!
+        // Emoji (📌) renkli emoji yazı tipi olmayan sistemlerde kutu görünüyordu; simge temasından gelir.
+        let raptiye = gtk_image_new_from_icon_name("view-pin-symbolic")!
         gtk_widget_set_opacity(raptiye, 0.5)
         let kutu = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5)!
         gtk_box_append(nd_box(kutu), ikon)
@@ -356,7 +357,7 @@ final class LinuxKenarPaneli {
             gtk_label_set_text(nd_label(etiket), dugum.ad)
             gtk_widget_set_tooltip_text(etiket, dugum.ad)
             // Süzülmüş ağaçta düğümler kopyadır; sabit durumu güvenilir değil, ama eşleşen düğümde korunur.
-            gtk_label_set_text(nd_label(raptiye), dugum.sabit ? "📌" : "")
+            gtk_widget_set_visible(raptiye, dugum.sabit ? 1 : 0)
         }
         genislemeBaglari[oge] = GtkKoprusu.sinyalBagla(satirNesnesi, "notify::expanded") { [weak self] (_: gpointer?) in
             self?.genislemeDegisti(satir)
@@ -383,8 +384,12 @@ final class LinuxKenarPaneli {
             acikNotuSec()
             return
         }
-        pencere?.notSecildi(url)
-        acikNotuSec()
+        // Not açmak ağacı yeniden kurabilir; tıklama hareketi sürerken satır widget'ları yok
+        // edilince GTK "Broken accounting of active state" uyarısı veriyordu. Hareket bitince açılır.
+        Platform.anaIsParcaciginda { [weak self] in
+            self?.pencere?.notSecildi(url)
+            self?.acikNotuSec()
+        }
     }
 
     private func dugumu(_ satir: OpaquePointer) -> AgacDugumu? {
@@ -586,7 +591,7 @@ final class LinuxKenarPaneli {
         g_menu_append(model, "Yeniden adlandır", "kenar.adlandir")
         // Süzülmüş ağaçta sıra kaydı güvenilmez; macOS'taki gibi arama sırasında sabitleme yok.
         if !aramaFiltresiEtkin, !kisaYol {
-            g_menu_append(model, dugum.sabit ? "Sabitlemeyi kaldır" : "📌 Sabitle", "kenar.sabitle")
+            g_menu_append(model, dugum.sabit ? "Sabitlemeyi kaldır" : "Sabitle", "kenar.sabitle")
         }
         // macOS gibi: dönüştürme yalnızca eski düzendeki ("Ad.md") düz notlarda sunulur.
         if let icerik = dugum.icerikURL, icerik.lastPathComponent != kIcerikDosyaAdi {
@@ -595,21 +600,27 @@ final class LinuxKenarPaneli {
         g_menu_append(model, "Sil", "kenar.sil")
         let menu = gtk_popover_menu_new_from_model(GtkKoprusu.gtkIsaretci(ham(model)))!
         g_object_unref(ham(model))
-        gtk_widget_set_parent(menu, hedef)
+        // GtkListBoxRow'a bağlanan menü "kenar" eylemlerini bulamıyor, tüm öğeler devre dışı
+        // görünüyordu; menü eylem grubunun kurulduğu kenar panele bağlanır, konum ona çevrilir.
+        var px = x, py = y
+        gtk_widget_translate_coordinates(hedef, kok, x, y, &px, &py)
+        gtk_widget_set_parent(menu, kok)
         let popover: UnsafeMutablePointer<GtkPopover> = GtkKoprusu.gtkIsaretci(ham(menu))
         gtk_popover_set_has_arrow(popover, 0)
-        var dikdortgen = GdkRectangle(x: Int32(x), y: Int32(y), width: 1, height: 1)
+        var dikdortgen = GdkRectangle(x: Int32(px), y: Int32(py), width: 1, height: 1)
         gtk_popover_set_pointing_to(popover, &dikdortgen)
         acikMenu = menu
         GtkKoprusu.sinyalBagla(ham(menu), "closed") { [weak self] in
-            // Üst widget yok edilmeden popover ayrılmalı; kapanış sinyali içinde ayırmak GTK'nin önerdiği yoldur.
-            self?.menuyuKapat()
+            // Öğeye tıklanınca GTK önce menüyü kapatır, eylemi sonra çalıştırır. Menü burada hemen
+            // ayrılırsa eylem "kenar" grubunu bulamıyor ve hiçbir öğe çalışmıyordu; ayırma ertelenir.
+            Platform.anaIsParcaciginda { [weak self] in self?.menuyuKapat(menu) }
         }
         gtk_popover_popup(popover)
     }
 
-    private func menuyuKapat() {
-        guard let menu = acikMenu else { return }
+    /// `yalnizca` verilirse yalnızca o menü kapatılır; ertelenen kapanış sonradan açılan menüye dokunmaz.
+    private func menuyuKapat(_ yalnizca: UnsafeMutablePointer<GtkWidget>? = nil) {
+        guard let menu = acikMenu, yalnizca == nil || yalnizca == menu else { return }
         acikMenu = nil
         gtk_widget_unparent(menu)
     }
@@ -928,7 +939,20 @@ final class LinuxKenarPaneli {
             return
         }
         yenile()
-        pencere?.notSecildi(url)
+        pencere?.editor?.yeniSayfayiAc(url)
+    }
+
+    /// Editörün otomatik adlandırması: kayıttan hemen sonra çağrılır, soru ve uyarı göstermez
+    /// (her otomatik kayıtta tekrarlanırdı). nil dönerse editör otomatik adlandırmayı bırakır.
+    func otomatikAdlandir(_ icerik: URL, yeniAd: String) -> URL? {
+        guard let yeni = try? sayfayiYenidenAdlandirmaSonucu(icerik, yeniAd: yeniAd) else { return nil }
+        guard yeni != icerik else { return yeni }
+        let eskiKlasor = sayfaKlasoru(icerik), yeniKlasor = sayfaKlasoru(yeni)
+        siraAdiniDegistir(klasor: eskiKlasor.deletingLastPathComponent(), eski: eskiKlasor.lastPathComponent,
+                          yeni: yeniKlasor.lastPathComponent)
+        dalTasindi(eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor, eskiIcerik: icerik, yeniIcerik: yeni)
+        yenile()
+        return yeni
     }
 
     private func adlandirmaSor(_ dugum: AgacDugumu) {
