@@ -1110,6 +1110,8 @@ final class LinuxKenarPaneli {
     private func iletisimKutusu(ust: Parca, baslik: String, mesaj: String, giris: String? = nil, onay: String,
                                 tehlikeli: Bool = false, iptalVar: Bool = true, tamam: @escaping (String) -> Void) {
         let diyalog = gtk_window_new()!
+        // Ana pencereyle aynı kağıt teması (LinuxTema yalnızca .notdefteri altını boyar).
+        gtk_widget_add_css_class(diyalog, "notdefteri")
         gtk_window_set_title(nd_window(diyalog), baslik)
         gtk_window_set_modal(nd_window(diyalog), 1)
         gtk_window_set_transient_for(nd_window(diyalog), nd_window(ust))

@@ -140,3 +140,19 @@ package enum SayfaDosyalari {
         return (false, dosyalar)
     }
 }
+
+/// Dosya boyutu metni ("6 bayt", "1,5 KB"). Linux Foundation ByteCountFormatter'ı yerelleştirmediği
+/// için Linux'ta "6 bytes" görünüyordu; biçim macOS'un Türkçe ByteCountFormatter çıktısına uyar (1000 tabanı).
+package func dosyaBoyutuMetni(_ bayt: Int64) -> String {
+    guard bayt >= 1000 else { return "\(bayt) bayt" }
+    let birimler = ["KB", "MB", "GB", "TB"]
+    var deger = Double(bayt) / 1000
+    var sira = 0
+    while deger >= 1000, sira < birimler.count - 1 { deger /= 1000; sira += 1 }
+    // 10'un altında tek ondalık, yuvarlanınca tam sayıysa ondalıksız (macOS ile aynı).
+    let ondalikli = (deger * 10).rounded() / 10
+    let metin = deger < 10 && ondalikli != ondalikli.rounded()
+        ? String(format: "%.1f", ondalikli).replacingOccurrences(of: ".", with: ",")
+        : String(Int(deger.rounded()))
+    return metin + " " + birimler[sira]
+}

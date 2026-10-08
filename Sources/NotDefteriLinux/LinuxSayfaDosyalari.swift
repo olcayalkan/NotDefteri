@@ -128,7 +128,7 @@ private final class SayfaDosyalariAlani {
         let resim = gtk_image_new_from_icon_name(simge)!
         gtk_widget_set_tooltip_text(resim, ad)
         gtk_widget_set_tooltip_text(etiket, dosya.goreliYol)
-        let boyut = gtk_label_new(ByteCountFormatter.string(fromByteCount: dosya.boyut, countStyle: .file))!
+        let boyut = gtk_label_new(dosyaBoyutuMetni(dosya.boyut))!
         gtk_widget_add_css_class(boyut, "dim-label")
         gtk_box_append(nd_box(kutu), resim)
         gtk_box_append(nd_box(kutu), etiket)

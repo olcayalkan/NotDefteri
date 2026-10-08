@@ -59,6 +59,8 @@ private final class LinuxGecmisPenceresi {
 
     private func goster() {
         guard let anaPencere else { return }
+        // Ana pencereyle aynı kağıt teması (LinuxTema yalnızca .notdefteri altını boyar).
+        gtk_widget_add_css_class(pencere, "notdefteri")
         gtk_window_set_title(nd_window(pencere), "Sayfa geçmişi")
         gtk_window_set_transient_for(nd_window(pencere), nd_window(anaPencere.pencere))
         gtk_window_set_modal(nd_window(pencere), 1)

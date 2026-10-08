@@ -51,8 +51,9 @@ final class LinuxTema {
         .notdefteri .nd-editor, .notdefteri .nd-editor textview, .notdefteri .nd-editor textview text { background-color: \(koyu ? "shade(@nd-zemin, 0.28)" : "@nd-zemin"); color: \(renk); caret-color: \(renk); }
         .notdefteri list row:selected { background-color: \(koyu ? "shade(@nd-zemin, 0.45)" : "shade(@nd-zemin, 0.82)"); color: \(renk); }
         .notdefteri .nd-kenar-panel row:selected { background-color: \(koyu ? "shade(@nd-panel, 0.45)" : "shade(@nd-panel, 0.82)"); }
-        .notdefteri .nd-kenar-panel list { background-color: transparent; color: \(renk); }
+        .notdefteri list { background-color: transparent; color: \(renk); }
         .notdefteri .nd-kenar-panel button:not(.flat) { background-image: none; background-color: \(koyu ? "shade(@nd-panel, 0.36)" : "shade(@nd-panel, 1.08)"); color: \(renk); }
+        .notdefteri .nd-kod-araci { background-color: \(koyu ? "shade(@nd-zemin, 0.36)" : "shade(@nd-zemin, 0.94)"); border-radius: 6px; }
         .notdefteri .nd-etkin { background-image: none; background-color: \(koyu ? "shade(@nd-zemin, 0.45)" : "shade(@nd-zemin, 0.85)"); color: \(renk); font-weight: bold; }
         """
         gtk_css_provider_load_from_data(saglayici, css, -1)
