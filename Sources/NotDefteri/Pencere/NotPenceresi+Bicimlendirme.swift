@@ -153,10 +153,15 @@ extension NotPenceresi {
         let gorunur = metinGorunumu.visibleRect
         let sonda = gorunur.maxY >= metinGorunumu.bounds.maxY - 1
         let y = sonda ? gorunur.maxY - 1 : gorunur.minY + min(80, gorunur.height * 0.25)
-        let nokta = NSPoint(x: gorunur.minX - metinGorunumu.textContainerOrigin.x,
-                            y: y - metinGorunumu.textContainerOrigin.y)
-        let konum = yerlesim.characterIndex(for: nokta, in: kap, fractionOfDistanceBetweenInsertionPoints: nil)
-        icindekiler.etkinBasligiGuncelle(imlecKonumu: konum)
+        // Noktadan dizin sorguları (characterIndex/glyphIndex(for:)) satırdaki glifleri tek tek
+        // ölçüyor, kaydırmanın %80'i oradaydı. Yalnızca hangi satırda olduğumuz gerekiyor:
+        // ince bir şeridin kestiği glif aralığı satır ağacından gelir. Bildirim çizimden önce
+        // geldiği için yerleşimi gerekirse bu sorgu yaptırır (nasılsa hemen çizilecek alan).
+        let serit = NSRect(x: 0, y: y - metinGorunumu.textContainerOrigin.y, width: kap.size.width, height: 1)
+        let glifler = yerlesim.glyphRange(forBoundingRect: serit, in: kap)
+        // Paragraf aralığına denk gelen şerit glif kesmez; etkin başlık bir sonraki adıma kalır.
+        guard glifler.length > 0 else { return }
+        icindekiler.etkinBasligiGuncelle(imlecKonumu: yerlesim.characterIndexForGlyph(at: glifler.location))
     }
 
     // MARK: Tema (Görünüm menüsü)

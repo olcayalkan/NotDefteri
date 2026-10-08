@@ -11,9 +11,10 @@ extension NotMetinGorunumu: NSTextStorageDelegate {
             baglarGuncelleniyor = false
             kelimeSayisiniGuncelle(textStorage, aralik: editedRange, fark: delta)
         }
-        // Yükleme dahil her düzenlemede görünüm anlamsaldan türetilir. Uyarı sınırı
-        // komşu paragrafı da değiştirebildiği için bir sonraki paragraf da kapsanır.
-        if !yaziOlcegiUygulaniyor, textStorage.length > 0 {
+        // Her düzenlemede görünüm anlamsaldan türetilir. Uyarı sınırı komşu paragrafı da
+        // değiştirebildiği için bir sonraki paragraf da kapsanır. Sayfa yüklenirken belge
+        // zaten editörün ölçeğiyle görünümlü gelir (bkz. markdownuAc(olcek:)).
+        if !yaziOlcegiUygulaniyor, !sayfaYukleniyor, textStorage.length > 0 {
             let ns = textStorage.mutableString
             var paragraf = ns.paragraphRange(for: NSIntersectionRange(editedRange, NSRange(location: 0, length: ns.length)))
             if NSMaxRange(paragraf) < ns.length {

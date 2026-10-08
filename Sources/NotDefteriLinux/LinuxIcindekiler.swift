@@ -122,8 +122,10 @@ final class LinuxIcindekiler {
     private func kancalariBagla(_ pencere: LinuxPencere, _ editor: LinuxEditor) {
         editor.degisiklikSonrasi.append { [weak self] in self?.basliklariPlanla() }
         LinuxEklentiler.yasamDongusunuIzle(editor) { [weak self] in self?.notAcildi() }
-        editor.kayitSonrasi.append { [weak self] url, metin in
-            self?.bagOnbellegi[url] = onbellekGirdisiUret(metin, tarih: degistirilmeTarihi(URL(fileURLWithPath: url.path)))
+        editor.kayitSonrasi.append { [weak self] url, _ in
+            // Girdi arka plandaki taramada diskten yeniden üretilir; ana döngüde büyük notta
+            // ~250 ms sürüyordu.
+            self?.bagOnbellegi[url] = nil
             self?.geriBaglantilariTazele()
         }
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(editor.tampon), "changed") { [weak self] in

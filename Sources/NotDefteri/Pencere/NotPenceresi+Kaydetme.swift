@@ -36,7 +36,7 @@ extension NotPenceresi {
             SayfaGecmisi.kaydet(metin: metin, icerikURL: url)
             mevcutDosyaURL = url
             baslikEtiketiniGuncelle()
-            kenarPaneli.notIceriginiGuncelle(url, metin: metin)
+            kenarPaneli.notIceriginiArkaPlandaGuncelle(url, metin: metin)
             if panelYenile { kenarPaneli.yenile(secili: url) }
             return true
         }

@@ -98,7 +98,11 @@ final class LinuxAnaSayfa {
         let basa = !kaydirmaKorunsun
         kaydirmaKorunsun = false
         // Önbellek ve ağaç, dışarıdan değişmiş notları da yakalasın (macOS icerikOnbelleginiIste).
-        Platform.anaIsParcaciginda { [weak self] in self?.panel?.yenile() }
+        // Açılışta panel az önce taradıysa (1000 sayfada ~300 ms) tekrarlanmaz.
+        Platform.anaIsParcaciginda { [weak self] in
+            guard let panel = self?.panel, Date().timeIntervalSince(panel.sonYenileme) > 2 else { return }
+            panel.yenile()
+        }
         cizimiPlanla(basaDon: basa)
     }
 

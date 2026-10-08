@@ -28,12 +28,12 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `YapistirmaBicimlendirme.swift` | 159 | **Dış içeriği nota uydurma** — `disIcerigiNotBicimineCevir()` (RTF/HTML biçimini notun diline indirger), `disMetniNotBicimineCevir()`, `yapistirmaMetniniSadelestir()` |
 | `MetinBlogu.swift` | 222 | Blok türü, uyarı kutusu başlığı/kimliği, girinti, kaynak öneki, paragraf öznitelikleri ve yerel liste numaralama |
 | `HtmlCevirici.swift` | 109 | Dışa aktarımda mevcut Markdown okuyucusundan kaçırılmış HTML, izinli href, gömülü PNG ve açık/koyu inline CSS üretimi |
-| `MarkdownCevirici.swift` | 772 | **Çift yönlü çevirici**: başlık/bloklar, satır içi biçimler, bağlantı/kod/wikilink, paragraf kaynak yazılışı; `sayfaMarkdownunuUret()` üstbilgiyle kaydeder; font yardımcıları |
-| `SayfaBaglantilari.swift` | 295 | Sayfa hedefi indeksi, Türkçe bulanık arama, ortak son açılanlar/açılma tarihleri ve değişim geri çağrısı, olmayan yolları düşürme, bağlantı çözümleme ve yeniden yazma |
+| `MarkdownCevirici.swift` | 847 | **Çift yönlü çevirici**: başlık/bloklar, satır içi biçimler, bağlantı/kod/wikilink, paragraf kaynak yazılışı; `sayfaMarkdownunuUret()` üstbilgiyle kaydeder; font yardımcıları; satır parçaları tek seferde birleşir (Linux'ta append karesel), bağ algılayıcı ön elemesi `bagIcerebilir()` |
+| `SayfaBaglantilari.swift` | 322 | Sayfa hedefi indeksi, Türkçe bulanık arama, ortak son açılanlar/açılma tarihleri ve değişim geri çağrısı, olmayan yolları düşürme, bağlantı çözümleme ve yeniden yazma; `kodBloguKapanisi()` düzenli ifade yerine satır taraması (kopya yok) |
 | `AnaSayfaVerisi.swift` | 143 | UI içermeyen arama önbelleği girdisi (özgün Markdown ve girdiyle bir kez taranan yapılacak satırları dahil), `onbellekGirdisiUret()`; Ana Sayfa için sıralı bekleyen yapılacaklar |
 | `Sablonlar.swift` | 26 | Toplantı, günlük ve proje Markdown şablonları; yerel tarihli günlük sayfa adı |
 | `Favoriler.swift` | 66 | AppKit’siz sıralı favoriler: göreli yol kaydı, ekle/çıkar/taşı/yolGuncelle ve olmayan dosyaları düşürme |
-| `SayfaAgaci.swift` | 421 | `AgacDugumu`, `agaciYukle()`, sayfa taşıma/adlandırma; kardeş sırası `siraUygula()` ile; `SayfaUstbilgisi`, `sayfaUstbilgisiniAyir()`, `ikon:`/`kapak:` satırları bilinmeyen anahtar olarak korunur, `sayfaYolu()` |
+| `SayfaAgaci.swift` | 445 | `AgacDugumu`, `agaciYukle()`, sayfa taşıma/adlandırma; kardeş sırası `siraUygula()` ile; `SayfaUstbilgisi`, `sayfaUstbilgisiniAyir()`, `ikon:`/`kapak:` satırları bilinmeyen anahtar olarak korunur, `sayfaYolu()`; `klasoruTara()` klasör başına tek listeleme (sayfa mı, tarih, .sira.json aynı listeden) |
 | `SayfaSirasi.swift` | 87 | Klasör başına gizli `.sira.json` (`sabitler`/`sira` ad listeleri): okuma, `siraUygula()`, doğrulamalı atomik yazma, yeniden adlandırma/taşıma/silmede ad güncelleme |
 | `NotKaydedici.swift` | 111 | **Kayıt mantığı** — yazma kararı, disk yazımı, otomatik kayıt zamanlayıcısı. AppKit'siz, test edilebilir |
 | `CopKutusu.swift` | 203 | Uygulama içi `.cop` deposu: metadata, iki düzen için geri alınabilir taşıma, çakışmada köke geri yükleme, yol doğrulamalı kalıcı silme ve 30 günlük temizlik |
@@ -53,7 +53,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `SayfaSecenekAlani.swift` | 38 | Editör üstündeki ince şerit; hover'da "•••" sayfa seçenekleri düğmesi |
 | `NotMetinGorunumu+Bloklar.swift` | 404 | Blok kısayolları, Enter/Tab/Backspace, kutu/çizim; menü aynı paragraf/undo yolunu kullanır |
 | `NotMetinGorunumu+Sayfa.swift` | 62 | Artımlı kelime sayımı, kaynak puntoyu koruyan küçük yazı ölçeği |
-| `NotMetinGorunumu+SayfaBaglantilari.swift` | 197 | Değişen paragrafta bağlantı işaretleme, geçici renk, [[ tamamlayıcı, tıklama ve undo ile yeniden yazma |
+| `NotMetinGorunumu+SayfaBaglantilari.swift` | 198 | Değişen paragrafta bağlantı işaretleme, geçici renk, [[ tamamlayıcı, tıklama ve undo ile yeniden yazma |
 | `CopKutusuPaneli.swift` | 146 | Çöp popover’ı: önbellekte ad arama, sayfa/klasör simgesi ve göreli tarih, geri yükleme, kalıcı silme/boşaltma onayı |
 | `HizliBulucu.swift` | 204 | ⌘P ve [[ için ortak AppKit arama/listesi, üst yol ve klavye gezinmesi |
 | `NotMetinGorunumu+UyariKutusu.swift` | 181 | Görünür callout çizimi, yerel sınır düzeltme, renk menüsü ve sistem emoji paleti |
@@ -77,7 +77,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `KenarPaneli+SurukleBirak.swift` | 182 | **Sürükle-bırak** — üstüne bırak: alt sayfa/köke taşıma; araya bırak: sıra değiştirme (`.sira.json`, sabit bölge sınırı) (`kSayfaSurukleTipi`) |
 | `KenarPaneli+Baglantilar.swift` | 27 | Taşınan dal için hedef eşleme; etkilenen dosyaları atomik yazma ve hataları bildirme |
 | `KenarPaneli+KisaYollar.swift` | 85 | Katlanabilir Favoriler/Son açılanlar bölümleri, ortak listeden en fazla beş son açılan, açık sayfa vurgusu, ertelenen görünüm güncellemesi, favori menüsü ve çöp popover’ını açma |
-| `KenarPaneli+Arama.swift` | 294 | `yenile()`, `suzulmusAgac()`, `filtreUygula()`; içerik önbelleği seri arka plan kuyruğunda nesil kontrolüyle (okuma yolları beklemez, `baglantiOnbelleginiHazirla()` yazma yolları için bekler); artımlı sayfa indeksi |
+| `KenarPaneli+Arama.swift` | 319 | `yenile()`, `suzulmusAgac()`, `filtreUygula()`; içerik önbelleği seri arka plan kuyruğunda nesil kontrolüyle (okuma yolları beklemez, `baglantiOnbelleginiHazirla()` yazma yolları için bekler); artımlı sayfa indeksi; kayıt/açılışta girdi arka planda (`notIceriginiArkaPlandaGuncelle`), ağaçtaki notu taramadan gösterme (`acikNotuGoster`) |
 
 ## Pencere/
 
@@ -87,10 +87,10 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `NotPenceresi.swift` | 223 | Sınıf gövdesi, `init`, sayfa üstbilgisi, bul çubuğu, alt bilgi ve görünüm bağlantıları, kenar panel, pencere boyutu izleyicisi |
 | `NotPenceresi+Kaydetme.swift` | 184 | `kaydetURLe()`, `otomatikKaydet()` üstbilgiyi korur; timer yönetimi, isim sorma |
 | `NotPenceresi+Pencere.swift` | 177 | Notlar arası gezinme; panel/editör için ortak yerleşim, 0,2 sn geçiş ve nesil kontrolü; `performKeyEquivalent`, kapatma |
-| `NotPenceresi+Bicimlendirme.swift` | 182 | Kalın/italik/çizili/kod/vurgu/bağlantı, punto, tema, seçim çubuğu; kaydırmada etkin içindekiler başlığı |
+| `NotPenceresi+Bicimlendirme.swift` | 187 | Kalın/italik/çizili/kod/vurgu/bağlantı, punto, tema, seçim çubuğu; kaydırmada etkin içindekiler başlığı |
 | `NotPenceresi+Baglantilar.swift` | 80 | Bulucuyu açma, olmayan hedefi oluşturma onayı, önbellekten geri bağlantı debounce ve açık editörü güncelleme |
 | `NotPenceresi+AnaSayfa.swift` | 199 | Kayıtla Ana Sayfa geçişi; kaynak konumundan editöre gitme; atomik yapılacak tamamlama, günlük ve şablondan oluşturma |
-| `NotPenceresi+Not.swift` | 235 | `notuAc()`, `yeniSayfaOlustur()`; üstbilgiyi gövdeden ayırma, sayfa seçenekleri undo ve sayfa yolu |
+| `NotPenceresi+Not.swift` | 238 | `notuAc()`, `yeniSayfaOlustur()`; üstbilgiyi gövdeden ayırma, sayfa seçenekleri undo ve sayfa yolu |
 | `NotPenceresi+SayfaSecenekleri.swift` | 148 | Görünüm seçenekleri, ••• menüsü ve dışa aktarım komutları, frontmatter/undo bağlantısı, alt bilgi debounce |
 | `NotPenceresi+DisaAktar.swift` | 133 | NSPrintOperation ile A4 PDF, tek dosya HTML, kaynak Markdown ve görsel kopyalama, Markdown panosu; kayıt ve aktarım hataları |
 | `NotPenceresi+Yapistirma.swift` | 14 | `hamYapistirKomutu()` — ⇧⌘V, kaynak biçimini koruyan yapıştırma |
@@ -105,7 +105,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-`Tests/NotDefteriTests/` — 117 test (`CeviriciTestleri` 24, `YenidenAdlandirmaTestleri` 15, `KaydediciTestleri` 13, `YapistirmaTestleri` 12, `TasimaTestleri` 12, `DosyaAdiTestleri` 11, `IcindekilerTestleri` 8, `OnbellekTestleri` 6, `KopyalamaTestleri` 6, `GorselBagiTestleri` 5, `YapistirmaDonmaTestleri` 2).
+`Tests/NotDefteriTests/` — 121 test (`PerformansTestleri` 4, `CeviriciTestleri` 24, `YenidenAdlandirmaTestleri` 15, `KaydediciTestleri` 13, `YapistirmaTestleri` 12, `TasimaTestleri` 12, `DosyaAdiTestleri` 11, `IcindekilerTestleri` 8, `OnbellekTestleri` 6, `KopyalamaTestleri` 6, `GorselBagiTestleri` 5, `YapistirmaDonmaTestleri` 2).
 Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama, otomatik başlık,
 Türkçe arama, font yardımcıları, dış içeriğin nota uydurulması, sayfa taşıma. `swift test` ile çalıştır.
 

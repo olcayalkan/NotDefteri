@@ -37,7 +37,7 @@ extension NotPenceresi {
         sayfaUstbilgisi = sayfa.bilgi
         metinGorunumu.katlamaSayfasiniAc(url)
         metinGorunumu.sayfaYukleniyor = true
-        metinGorunumu.textStorage?.setAttributedString(MacBelgeAdaptoru.markdownuAc(sayfa.govde, taban: sayfaKlasoru(url)))
+        metinGorunumu.textStorage?.setAttributedString(MacBelgeAdaptoru.markdownuAc(sayfa.govde, taban: sayfaKlasoru(url), olcek: metinGorunumu.belgeAdaptoru.olcek))
         metinGorunumu.sayfaYukleniyor = false
         metinGorunumu.setSelectedRange(NSRange(location: 0, length: 0))
         if metinGorunumu.string.isEmpty { metinGorunumu.typingAttributes = [:] }
@@ -54,10 +54,13 @@ extension NotPenceresi {
         baslikEtiketiniGuncelle()
         icindekileriTazele()
         // Panelden seçilerek açıldıysa ağaç zaten güncel; yeniden kurmak
-        // hem gereksiz disk okuması hem de iç içe reloadData kaynağı.
-        if panelYenile { kenarPaneli.yenile(secili: url) } else { kenarPaneli.acikNotuBildir(url) }
+        // hem gereksiz disk okuması hem de iç içe reloadData kaynağı. Bulucu, bağ ya da
+        // Ana Sayfa'dan açılan not da ağaçta varsa tarama gerekmez (1000 sayfada ~140 ms).
+        if !panelYenile { kenarPaneli.acikNotuBildir(url) }
+        else if kenarPaneli.tumNotlar.contains(url) { kenarPaneli.acikNotuGoster(url) }
+        else { kenarPaneli.yenile(secili: url) }
         kenarPaneli.icerikOnbelleginiIste()
-        kenarPaneli.notIceriginiGuncelle(url, metin: icerik)
+        kenarPaneli.notIceriginiArkaPlandaGuncelle(url, metin: icerik)
         kenarPaneli.sayfaBaglantilari.acildi(url)
         metinGorunumu.sayfaBaglariniBoya()
         geriBaglantilariTazele()

@@ -137,6 +137,7 @@ final class LinuxKenarPaneli {
     private var aramaIptal: ZamanlayiciIptal?
     private(set) var icerikOnbellek: [URL: OnbellekGirdisi] = [:]
     private var onbellekNesli = 0
+    private let girdiKuyrugu = DispatchQueue(label: "NotDefteri.kayitGirdisi", qos: .userInitiated)
     /// Tek örnek: açılış temizliği ve çöp penceresi (LinuxCopKutusu) aynı kilidi paylaşır.
     let copKutusu = CopKutusu()
     private var menuDugumu: AgacDugumu?
@@ -182,9 +183,29 @@ final class LinuxKenarPaneli {
         veriyiBildir()
     }
 
+    /// Kayıt yolu: girdi seri kuyrukta üretilir. Büyük notta üretim her otomatik kayıtta ana
+    /// döngüyü ~250 ms donduruyordu. Daha yeni tarihli girdi ezilmez (bkz. onbellegiTazele).
+    func notIceriginiArkaPlandaGuncelle(_ url: URL, metin: String) {
+        let tarih = degistirilmeTarihi(url)
+        girdiKuyrugu.async { [weak self] in
+            let girdi = onbellekGirdisiUret(metin, tarih: tarih)
+            Platform.anaIsParcaciginda {
+                guard let self, self.tumNotlar.contains(url) else { return }
+                if let simdiki = self.icerikOnbellek[url], simdiki.tarih > girdi.tarih { return }
+                self.icerikOnbellek[url] = girdi
+                if self.aramaFiltresiEtkin { self.filtreUygula() }
+                self.veriyiBildir()
+            }
+        }
+    }
+
     /// Ağacı diskten yeniden kurar.
+    /// Son tam taramanın zamanı; Ana Sayfa açılışta hemen ardından ikinci kez taramasın.
+    private(set) var sonYenileme = Date.distantPast
+
     func yenile(secili: URL? = nil) {
         if let secili { acikNotURL = secili }
+        sonYenileme = Date()
         tumKokDugumler = agaciYukle()
         tumNotlar = notlariDuzlestir(tumKokDugumler)
         // Yol çözümü pahalı (3.5k notta ~250 ms); değişmeyen sayfa yeniden kurulmaz (macOS sayfaIndeksiniGuncelle).
@@ -561,6 +582,11 @@ final class LinuxKenarPaneli {
             }
             Platform.anaIsParcaciginda {
                 guard let self, nesil == self.onbellekNesli else { return }
+                // Tarama sürerken kayıtla gelen daha yeni girdi eski okumayla ezilmez.
+                var yeni = yeni
+                for (url, girdi) in self.icerikOnbellek where (yeni[url]?.tarih).map({ $0 < girdi.tarih }) ?? false {
+                    yeni[url] = girdi
+                }
                 self.icerikOnbellek = yeni
                 self.veriyiBildir()
                 if self.aramaFiltresiEtkin { self.filtreUygula() }
