@@ -58,37 +58,46 @@ Ya da yardımcı betikle:
 
 Girişte kendiliğinden açılması için: **Not Defteri menüsü → Girişte Otomatik Başlat**.
 
-### Linux (Ubuntu 22.04)
+### Terminal kısayolu: `not`
 
-**İlk kurulum (bir kez):** GTK 4 geliştirme paketlerini ve Swift'i kurar, sonra derler.
-
-```bash
-git clone <depo-adresi> NotDefteri
-cd NotDefteri
-./scripts/linux-kur.sh
-```
-
-**Uygulamayı açmak:**
+Linux'ta `linux-kur.sh` bunu kendisi kurar. macOS'ta bir kez kurduktan sonra terminalde
+yalnızca `not` yazınca uygulama açılır (gerekiyorsa önce derlenir):
 
 ```bash
-cd ~/NotDefteri
-./scripts/linux-calistir.sh
+./scripts/kisayol-kur.sh
 ```
-
-Betik kod değiştiyse önce derler (debug; artımlı olduğu için tek dosyada ~1,5 sn), sonra
-uygulamayı arka planda açar. İlk çalıştırmadaki tam derleme birkaç dakika sürebilir.
 
 | Komut | Ne yapar |
 |---|---|
-| `./scripts/linux-calistir.sh` | Derle ve aç (macOS'taki `swift run` gibi) |
-| `./scripts/linux-calistir.sh --release` | Optimize derleme ile aç. Değişiklikten sonra tüm modül yeniden derlendiği için yavaş |
-| `./scripts/linux-calistir.sh --menuye-ekle` | Uygulama menüsüne **Office → Not Defteri** kısayolu ekler (bir kez yeterli) |
+| `not` | Derle (gerekiyorsa) ve aç |
+| `not -r` | Optimize (release) derlemeyle aç |
+| `not -t` | Önce testleri çalıştır, geçerse aç |
+| `not -d` | Baştan temiz derle ve aç |
 
-Güncellemek için:
+Kısayol `~/.local/bin/not` dosyasıdır ve bu klasördeki `calistir.sh`'yi çağırır.
+`~/.local/bin` PATH'te değilse `~/.zshrc` (macOS) ya da `~/.bashrc` (Linux) dosyasına bir satır eklenir.
+Linux'ta `calistir.sh` kendiliğinden `scripts/linux-calistir.sh`'ye geçer.
+
+### Linux (Ubuntu 22.04)
+
+Tek komut. Her şeyi o kurar: GTK 4 paketleri, Swift, derleme, `not` komutu, uygulama menüsü girdisi.
+Sonunda uygulamayı açar.
 
 ```bash
-cd ~/NotDefteri && git pull && ./scripts/linux-calistir.sh
+git clone <depo-adresi> ~/NotDefteri
+~/NotDefteri/scripts/linux-kur.sh
 ```
+
+Bundan sonra terminalde yalnızca:
+
+```bash
+not
+```
+
+Uygulama menüsünde de **Office → Not Defteri** olarak durur.
+
+Güncellemek için `git pull` yapıp yine `not` yazman yeterli; kod değiştiyse kendisi derler
+(ilk kurulumdaki tam derleme birkaç dakika sürer, sonrakiler birkaç saniye).
 
 > **Not:** Pencereyi üstte tutma (📌) X11'de çalışır; Wayland bunu desteklemez.
 
@@ -189,7 +198,7 @@ Tüm notlar **`~/Documents/NotDefteri/`** klasöründedir. Her sayfa bir klasör
 
 | Sorun | Çözüm |
 |---|---|
-| Linux: "Swift bulunamadı" | Önce `./scripts/linux-kur.sh` çalıştır. Yeni terminal açtıysan `source ~/.local/share/swiftly/env.sh` |
+| Linux: `not` bulunamadı ya da "Swift bulunamadı" | `~/NotDefteri/scripts/linux-kur.sh` komutunu (yeniden) çalıştır |
 | Linux: uygulama açılmıyor ya da çöküyor | Günlüğe bak: `~/.local/state/NotDefteri/` altındaki en yeni `.log` dosyası |
 | Linux: ilk açılış çok uzun sürdü | İlk derleme tam derlemedir (birkaç dakika). Sonraki açılışlar ~1,5 sn |
 | Uygulama ikinci kez açılmıyor | Tek pencereli çalışır; açıkken tekrar başlatınca mevcut pencere öne gelir |
