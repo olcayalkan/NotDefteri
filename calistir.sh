@@ -6,9 +6,23 @@
 #   ./calistir.sh -r       release derle ve başlat
 #   ./calistir.sh -t       önce testleri çalıştır, geçerse başlat
 #   ./calistir.sh -d       baştan derle (temiz)
+#
+# Linux'ta da aynı komut çalışır (GTK başlatıcısı scripts/linux-calistir.sh'ye geçer).
+# Terminalde yalnızca `not` yazarak açmak için bir kez: ./scripts/kisayol-kur.sh
 
 set -e
 cd "$(dirname "$0")"
+
+if [[ "$(uname -s)" == Linux ]]; then
+    case "${1:-}" in
+      -r) set -- --release ;;
+      -d) echo "Temiz derleme..."; rm -rf .build; set -- ;;
+      -t) echo "Testler çalışıyor..."
+          swift test > /dev/null 2>&1 || { echo "Testler başarısız, açılmıyor."; exit 1; }
+          set -- ;;
+    esac
+    exec ./scripts/linux-calistir.sh "$@"
+fi
 
 IKILI=".build/debug/NotDefteri"
 DERLEME="swift build"

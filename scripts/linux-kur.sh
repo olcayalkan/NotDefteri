@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Ubuntu 22.04 masaüstünde GTK bağımlılıklarını kurar, derler ve pencereyi açar.
+# Ubuntu 22.04 masaüstünde her şeyi tek seferde kurar: GTK bağımlılıkları, Swift, derleme,
+# terminal kısayolu (`not`), uygulama menüsü girdisi; sonunda pencereyi açar.
+# Tekrar çalıştırmak güvenlidir (güncellemeden sonra da kullanılabilir).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -37,5 +39,24 @@ fi
 
 swift --version
 pkg-config --modversion gtk4
-swift build
-swift run
+echo "Derleniyor (ilk derleme birkaç dakika sürebilir)..."
+swift build --product NotDefteri
+
+# Terminalde `not` yazınca açılsın. /usr/local/bin her kabukta PATH'te; source gerekmez.
+KOK="$(pwd)"
+KISAYOL=/usr/local/bin/not
+if [[ -e "$KISAYOL" ]] && ! grep -qs "kur.sh üretti" "$KISAYOL"; then
+    echo "Uyarı: $KISAYOL başka bir programa ait; üzerine yazılmadı." >&2
+else
+    printf '#!/usr/bin/env bash\n# Not Defteri kısayolu; scripts/linux-kur.sh üretti.\nexec "%s/calistir.sh" "$@"\n' "$KOK" \
+        | sudo tee "$KISAYOL" >/dev/null
+    sudo chmod 755 "$KISAYOL"
+fi
+
+# Uygulama menüsü: Office > Not Defteri
+./scripts/linux-calistir.sh --menuye-ekle
+
+echo
+echo "Kurulum tamam. Bundan sonra terminalde yalnızca: not"
+echo
+./calistir.sh
