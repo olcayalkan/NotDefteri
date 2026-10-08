@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Linux'ta NotDefteri'yi başlatır. Kod değiştiyse önce derler (release).
+# Linux'ta NotDefteri'yi başlatır. Kod değiştiyse önce derler.
 #
 # Kullanım:
-#   ./scripts/linux-calistir.sh                derle (gerekiyorsa) ve başlat
+#   ./scripts/linux-calistir.sh                derle (gerekiyorsa, debug) ve başlat — macOS'taki `swift run` gibi
+#   ./scripts/linux-calistir.sh --release      optimize derleme; değişiklikten sonra tüm modül yeniden derlenir (yavaş)
 #   ./scripts/linux-calistir.sh --menuye-ekle  uygulama menüsüne "Not Defteri" kısayolu ekle (bir kez)
 #
 # İlk kurulum için önce ./scripts/linux-kur.sh çalıştırılır.
@@ -39,8 +40,14 @@ if ! command -v swift >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "Derleniyor..."
-if ! DERLEME_CIKTISI=$(swift build -c release 2>&1); then
+# Debug artımlı derlenir (tek dosya ~1,5 sn). Release tüm modülü yeniden optimize eder:
+# 2 çekirdekli sunucuda tek değişiklikte ~17 sn, git pull sonrası dakikalar. Not açma/kayıt
+# süresine etkisi küçük; asıl maliyet Foundation (corelibs) tarafında.
+YAPILANDIRMA=debug
+[[ "${1:-}" == "--release" ]] && YAPILANDIRMA=release
+
+echo "Derleniyor ($YAPILANDIRMA)..."
+if ! DERLEME_CIKTISI=$(swift build -c "$YAPILANDIRMA" --product NotDefteri 2>&1); then
     printf '%s\n' "$DERLEME_CIKTISI" | tail -20 >&2
     echo "Derleme başarısız, açılmıyor." >&2
     exit 1
@@ -52,7 +59,7 @@ GUNLUK_DIZINI="${XDG_STATE_HOME:-$HOME/.local/state}/NotDefteri"
 mkdir -p "$GUNLUK_DIZINI"
 GUNLUK="$GUNLUK_DIZINI/$(date +%Y-%m-%d_%H-%M-%S).log"
 # Çökmede etkileşimli hata ayıklayıcı tuş bekleyip süreci açık tutmasın; yığın izi günlüğe yazılsın.
-SWIFT_BACKTRACE="enable=yes,interactive=no,preset=full" nohup "$KOK/.build/release/NotDefteri" \
+SWIFT_BACKTRACE="enable=yes,interactive=no,preset=full" nohup "$KOK/.build/$YAPILANDIRMA/NotDefteri" \
     </dev/null >>"$GUNLUK" 2>&1 &
 echo "Açıldı (pid $!). Notlar: ~/Documents/NotDefteri/"
 echo "Günlük: $GUNLUK"
