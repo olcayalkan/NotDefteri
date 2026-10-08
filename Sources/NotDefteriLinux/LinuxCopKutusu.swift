@@ -25,7 +25,7 @@ final class LinuxCopKutusu {
 
     static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
         let cop = LinuxCopKutusu(ust: pencere.pencere, editor: editor, panel: panel)
-        let dugme = GtkKoprusu.simgeliDugme("user-trash-symbolic", "Çöp kutusu")
+        let dugme = GtkKoprusu.simgeliDugme("user-trash-symbolic", "Çöp kutusu", duz: true)
         gtk_widget_set_margin_top(dugme, 4)
         gtk_widget_set_margin_bottom(dugme, 8)
         gtk_widget_set_margin_start(dugme, 8)

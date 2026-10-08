@@ -146,6 +146,19 @@ extension NotPenceresi {
         icindekiler.etkinBasligiGuncelle(imlecKonumu: metinGorunumu.selectedRange().location)
     }
 
+    /// Kaydırırken etkin başlık imleci değil okunan bölümü izler: görünür alanın üst çeyreğindeki
+    /// satırın başlığı. Sona gelindiyse son satır alınır ki son bölümün başlığı da etkin olabilsin.
+    @objc func editorKaydirildi(_ bildirim: Notification) {
+        guard let yerlesim = metinGorunumu.layoutManager, let kap = metinGorunumu.textContainer else { return }
+        let gorunur = metinGorunumu.visibleRect
+        let sonda = gorunur.maxY >= metinGorunumu.bounds.maxY - 1
+        let y = sonda ? gorunur.maxY - 1 : gorunur.minY + min(80, gorunur.height * 0.25)
+        let nokta = NSPoint(x: gorunur.minX - metinGorunumu.textContainerOrigin.x,
+                            y: y - metinGorunumu.textContainerOrigin.y)
+        let konum = yerlesim.characterIndex(for: nokta, in: kap, fractionOfDistanceBetweenInsertionPoints: nil)
+        icindekiler.etkinBasligiGuncelle(imlecKonumu: konum)
+    }
+
     // MARK: Tema (Görünüm menüsü)
 
     @objc func temaSecKomutu(_ sender: NSMenuItem) {

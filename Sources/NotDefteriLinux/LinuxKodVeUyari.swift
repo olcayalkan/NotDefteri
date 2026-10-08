@@ -91,8 +91,6 @@ private final class KodVeUyariAraclari {
     private var kopyalaDugmesi: UnsafeMutablePointer<GtkButton> { GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(kopyala)) }
     private let cerceveAlani = gtk_drawing_area_new()!
     private let renkMenusu = gtk_popover_new()!
-    private let ayarlar: OpaquePointer
-    private var ayarSinyalleri: [gulong] = []
     private var kodEtiketleri: [KodTokenTuru: UnsafeMutablePointer<GtkTextTag>] = [:]
     private var kirli: [Kirli] = []
     private var nesil = 0
@@ -104,9 +102,11 @@ private final class KodVeUyariAraclari {
     private var aracKaresi = GdkRectangle()
     private var aracBlogu: (aralik: NSRange, kimlik: String)?
     private var uyariHedefi: UyariHedefi?
+    /// macOS ile aynı: kod bloğu siyah %30 çizgi; uyarı kutusu kendi renginde %70 çizgi, %3 dolgu.
     private struct Cerceve {
         let kare: GdkRectangle
         let renk: GdkRGBA
+        let dolgulu: Bool
     }
     private var cerceveler: [Cerceve] = []
     private var sonAlan = GdkRectangle()
@@ -115,7 +115,6 @@ private final class KodVeUyariAraclari {
 
     init(pencere: LinuxPencere, editor: LinuxEditor) {
         self.editor = editor
-        ayarlar = gtk_settings_get_for_display(gtk_widget_get_display(editor.metinGorunumu))!
         for widget in [arac, cerceveAlani, renkMenusu] { g_object_ref_sink(UnsafeMutableRawPointer(widget)) }
         arayuzuKur()
         etiketleriKur()
@@ -126,7 +125,6 @@ private final class KodVeUyariAraclari {
     deinit {
         debounce?()
         bildirim?()
-        for kimlik in ayarSinyalleri { g_signal_handler_disconnect(UnsafeMutableRawPointer(ayarlar), kimlik) }
         for widget in [arac, cerceveAlani, renkMenusu] { g_object_unref(UnsafeMutableRawPointer(widget)) }
     }
 
@@ -209,11 +207,6 @@ private final class KodVeUyariAraclari {
                 GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(ayar), ad) { [weak self] in self?.yerlesimiPlanla() }
             }
         }
-        for ad in ["notify::gtk-application-prefer-dark-theme", "notify::gtk-theme-name"] {
-            ayarSinyalleri.append(GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(ayarlar), ad) { [weak self] (_: gpointer?) in
-                self?.renkleriGuncelle()
-            })
-        }
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(editor.metinGorunumu), "notify::visible") { [weak self] (_: gpointer?) in
             self?.panelleriKapat(); self?.yerlesimiPlanla()
         }
@@ -239,12 +232,9 @@ private final class KodVeUyariAraclari {
 
     private func renkleriGuncelle() {
         guard !kapandi else { return }
-        let koyu = nd_settings_dark(ayarlar) != 0
-        // KodRenkleri.swift: açıkta mor/kırmızı/mavi, koyuda pembe/yeşil/turuncu.
-        let renkler: [KodTokenTuru: String] = [.anahtarKelime: koyu ? "#ef91b6" : "#9342ae",
-            .metin: koyu ? "#8edb9b" : "#b93931", .sayi: koyu ? "#f4b76b" : "#2869ad",
-            .yorum: koyu ? "#c2c2c2" : "#565656", .tur: koyu ? "#8ad8df" : "#32868c",
-            .fonksiyon: koyu ? "#81b4f1" : "#2869ad", .operator: koyu ? "#eeeeec" : "#292929"]
+        // KodRenkleri.swift'in açık kağıt değerleri; kağıt temaları macOS'taki gibi hep açıktır.
+        let renkler: [KodTokenTuru: String] = [.anahtarKelime: "#9342ae", .metin: "#b93931", .sayi: "#2869ad",
+            .yorum: "#565656", .tur: "#32868c", .fonksiyon: "#2869ad", .operator: "#292929"]
         for (tur, tag) in kodEtiketleri { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(renkler[tur]!)) }
         cerceveKirli = true
         yerlesimiPlanla()
@@ -604,11 +594,12 @@ private final class KodVeUyariAraclari {
                 let uyari = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: alt.location, effectiveRange: nil))
                 var renk = GdkRGBA()
                 let renkler = ["gri": "#8e8e93", "mavi": "#007aff", "sarı": "#ffcc00", "kırmızı": "#ff3b30", "yeşil": "#34c759"]
-                let renkAdi = kod ? (nd_settings_dark(ayarlar) != 0 ? "#eeeeec" : "#292929") : renkler[uyari?.renk ?? "gri"] ?? "#8e8e93"
+                let renkAdi = kod ? "#000000" : renkler[uyari?.renk ?? "gri"] ?? "#8e8e93"
                 gdk_rgba_parse(&renk, renkAdi)
+                renk.alpha = kod ? 0.3 : 0.7
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
                 let x = gtk_text_view_get_left_margin(gorunum) + seviye
-                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: icEn - seviye, alan: alan), renk: renk))
+                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: icEn - seviye, alan: alan), renk: renk, dolgulu: !kod))
             }
         }
     }
@@ -636,7 +627,11 @@ private final class KodVeUyariAraclari {
             cairo_arc(cr, x + r, y + boy - r, r, .pi / 2, .pi)
             cairo_arc(cr, x + r, y + r, r, .pi, .pi * 1.5)
             cairo_close_path(cr)
-            cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), 0.7)
+            if cerceve.dolgulu {
+                cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), 0.03)
+                cairo_fill_preserve(cr)
+            }
+            cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), Double(renk.alpha))
             cairo_set_line_width(cr, 1)
             cairo_stroke(cr)
         }

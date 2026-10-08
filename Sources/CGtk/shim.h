@@ -38,29 +38,6 @@ static inline gulong nd_signal_connect_int(gpointer instance, const gchar *signa
                                  destroy_data, (GConnectFlags)0);
 }
 
-/* Swift'ten variadic g_object_get/set çağrılmaz. */
-static inline gboolean nd_settings_dark(GtkSettings *settings) {
-    gboolean dark = FALSE;
-    gchar *theme = NULL;
-    g_object_get(settings, "gtk-application-prefer-dark-theme", &dark,
-                 "gtk-theme-name", &theme, NULL);
-    if (theme) {
-        gchar *lower = g_ascii_strdown(theme, -1);
-        dark = dark || g_str_has_suffix(lower, "-dark") || g_str_has_suffix(lower, ":dark");
-        g_free(lower);
-        g_free(theme);
-    }
-    return dark;
-}
-
-/* GTK_THEME varken GTK koyu tercihe bakmaz; masaüstü koyu temadaysa varyant ortama yazılır ve
- * GtkSettings temayı yeniden yükler (notify, GTK_THEME'i yeniden okur). */
-static inline void nd_koyu_adwaita_uygula(GtkSettings *settings) {
-    if (!nd_settings_dark(settings)) return;
-    g_setenv("GTK_THEME", "Adwaita:dark", TRUE);
-    g_object_notify(G_OBJECT(settings), "gtk-theme-name");
-}
-
 /* macOS "Sabitle (her zaman üstte)". GTK4 keep-above API'sini kaldırdı; X11 pencere yöneticisine
  * _NET_WM_STATE_ABOVE istemi gönderilir. X11 dışı oturumda (Wayland) FALSE döner. */
 static inline gboolean nd_ustte_tut(GtkWindow *window, gboolean ustte) {

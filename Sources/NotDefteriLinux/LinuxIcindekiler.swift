@@ -2,7 +2,21 @@ import CGtk
 import Foundation
 import NotDefteriCekirdek
 
-/// Sağ panelin sahipliği GTK yuvasında; editör ve pencereye geri bağlar zayıftır.
+private final class GirisEylemi {
+    let eylem: () -> Void
+    init(_ eylem: @escaping () -> Void) { self.eylem = eylem }
+}
+
+/// GtkEventControllerMotion::enter (controller, x, y, veri): koordinatlar double'dır; tek işaretçili
+/// köprüyle bağlanınca veri yanlış yazmaçtan okunup çöküyordu.
+private let girisC: @convention(c) (gpointer?, Double, Double, gpointer?) -> Void = { _, _, _, veri in
+    guard let veri else { return }
+    Unmanaged<GirisEylemi>.fromOpaque(veri).takeUnretainedValue().eylem()
+}
+
+/// macOS IcindekilerPaneli: editörün sağ üstünde yüzer, yer kaplamaz. Kapalıyken başlıklar
+/// düzeye göre kısalan çizgilerdir; fareyle üzerine gelince adlarıyla açılır. Sahiplik panelin
+/// GTK kabındadır; editör ve pencereye geri bağlar zayıftır.
 final class LinuxIcindekiler {
     private struct Girdi: Equatable {
         let metin: String
@@ -12,12 +26,16 @@ final class LinuxIcindekiler {
 
     private weak var pencere: LinuxPencere?
     private weak var editor: LinuxEditor?
+    private let cerceve = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
     private let kaydirma = gtk_scrolled_window_new()!
     private let icerik = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2)!
     private let baslikKutusu = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
     private let bagKutusu = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
     private var girdiler: [Girdi] = []
     private var satirlar: [UnsafeMutablePointer<GtkWidget>] = []
+    /// Satır başına (çizgi, ad): kapalıyken çizgi, açıkken ad görünür.
+    private var satirParcalari: [(cizgi: UnsafeMutablePointer<GtkWidget>, ad: UnsafeMutablePointer<GtkWidget>)] = []
+    private var acik = false
     private var etkinSira: Int?
     private var gizli = false
     private var konumlarGecersiz = false
@@ -27,15 +45,12 @@ final class LinuxIcindekiler {
     private var bagOnbellegi: [URL: OnbellekGirdisi] = [:]
     private var sayfaOnbellegi: [URL: SayfaSecenegi] = [:]
     private var baglantiVerenler: [SayfaSecenegi] = []
-    /// Panel (180) ile editörün okunur en küçük genişliği; daha dar alanda panel gösterilmez.
-    /// Gösterilseydi GTK en küçük genişliği karşılamak için pencereyi büyütüyordu.
-    private static let gerekenGenislik: Int32 = 180 + 420
 
     static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
         let icindekiler = LinuxIcindekiler(pencere: pencere, editor: editor)
         panel.veriDegisti.append { [weak icindekiler] in icindekiler?.geriBaglantilariTazele() }
         let veri = Unmanaged.passRetained(icindekiler).toOpaque()
-        let yuva: UnsafeMutablePointer<GObject> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(pencere.sagPanelYuvasi))
+        let yuva: UnsafeMutablePointer<GObject> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(icindekiler.cerceve))
         g_object_set_data_full(yuva, "nd-icindekiler", veri, { veri in
             if let veri { Unmanaged<LinuxIcindekiler>.fromOpaque(veri).release() }
         })
@@ -44,25 +59,64 @@ final class LinuxIcindekiler {
     private init(pencere: LinuxPencere, editor: LinuxEditor) {
         self.pencere = pencere
         self.editor = editor
-        gorunumuKur(pencere)
+        gorunumuKur(editor)
         kancalariBagla(pencere, editor)
         if editor.editorEtkin { notAcildi() }
     }
 
     deinit { baslikIptal?() }
 
-    private func gorunumuKur(_ pencere: LinuxPencere) {
-        gtk_widget_set_size_request(kaydirma, 180, -1)
-        gtk_widget_set_vexpand(kaydirma, 1)
-        gtk_scrolled_window_set_policy(OpaquePointer(kaydirma), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC)
-        gtk_widget_set_margin_top(icerik, 10)
-        gtk_widget_set_margin_bottom(icerik, 10)
-        gtk_widget_set_margin_start(icerik, 8)
-        gtk_widget_set_margin_end(icerik, 8)
+    private func gorunumuKur(_ editor: LinuxEditor) {
+        gtk_widget_add_css_class(cerceve, "nd-icindekiler")
+        gtk_widget_set_halign(cerceve, GTK_ALIGN_END)
+        gtk_widget_set_valign(cerceve, GTK_ALIGN_START)
+        gtk_widget_set_margin_top(cerceve, 10)
+        gtk_widget_set_margin_end(cerceve, 10)
+        let kaydirici = OpaquePointer(kaydirma)
+        gtk_scrolled_window_set_policy(kaydirici, GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC)
+        gtk_scrolled_window_set_propagate_natural_height(kaydirici, 1)
+        gtk_scrolled_window_set_propagate_natural_width(kaydirici, 1)
+        gtk_widget_set_margin_top(icerik, 6)
+        gtk_widget_set_margin_bottom(icerik, 6)
+        gtk_widget_set_margin_start(icerik, 4)
+        gtk_widget_set_margin_end(icerik, 4)
         gtk_box_append(nd_box(icerik), baslikKutusu)
         gtk_box_append(nd_box(icerik), bagKutusu)
-        gtk_scrolled_window_set_child(OpaquePointer(kaydirma), icerik)
-        gtk_box_append(nd_box(pencere.sagPanelYuvasi), kaydirma)
+        gtk_widget_set_visible(bagKutusu, 0)
+        gtk_scrolled_window_set_child(kaydirici, icerik)
+        gtk_box_append(nd_box(cerceve), kaydirma)
+        // GtkOverlay yalnızca ana çocuğunu ölçer: panel editörün genişliğine katılmaz, pencereyi büyütmez.
+        gtk_overlay_add_overlay(OpaquePointer(editor.ustKatman), cerceve)
+        let hareket = gtk_event_controller_motion_new()!
+        let giris = Unmanaged.passRetained(GirisEylemi { [weak self] in self?.acikligiAyarla(true) }).toOpaque()
+        g_signal_connect_data(UnsafeMutableRawPointer(hareket), "enter", unsafeBitCast(girisC, to: GCallback.self), giris, { veri, _ in
+            if let veri { Unmanaged<GirisEylemi>.fromOpaque(veri).release() }
+        }, GConnectFlags(rawValue: 0))
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(hareket), "leave") { [weak self] in
+            self?.acikligiAyarla(false)
+        }
+        gtk_widget_add_controller(cerceve, hareket)
+    }
+
+    /// macOS hover davranışı: açıkken başlık adları ve bağlantı verenler, kapalıyken yalnız çizgiler.
+    private func acikligiAyarla(_ yeni: Bool) {
+        guard acik != yeni else { return }
+        acik = yeni
+        if yeni { gtk_widget_add_css_class(cerceve, "acik") } else { gtk_widget_remove_css_class(cerceve, "acik") }
+        for parca in satirParcalari {
+            gtk_widget_set_visible(parca.cizgi, yeni ? 0 : 1)
+            gtk_widget_set_visible(parca.ad, yeni ? 1 : 0)
+        }
+        gtk_widget_set_visible(bagKutusu, yeni && !baglantiVerenler.isEmpty ? 1 : 0)
+        Platform.anaIsParcaciginda { [weak self] in self?.etkinSatiriGoster() }
+    }
+
+    /// Panel editörün yüksekliğini aşmaz; aşan başlıklar panelin içinde kayar.
+    private func yuksekligiSinirla() {
+        guard let editor else { return }
+        let yukseklik = gtk_widget_get_height(editor.ustKatman)
+        guard yukseklik > 0 else { return }
+        gtk_scrolled_window_set_max_content_height(OpaquePointer(kaydirma), max(60, yukseklik - 40))
     }
 
     private func kancalariBagla(_ pencere: LinuxPencere, _ editor: LinuxEditor) {
@@ -77,12 +131,19 @@ final class LinuxIcindekiler {
             self?.konumlariGecersizKil()
         }
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(editor.tampon), "notify::cursor-position") {
-            [weak self] (_: gpointer?) in self?.etkinBasligiGuncelle()
+            [weak self] (_: gpointer?) in
+            guard let self, let editor = self.editor else { return }
+            var iter = GtkTextIter()
+            gtk_text_buffer_get_iter_at_mark(editor.tampon, &iter, gtk_text_buffer_get_insert(editor.tampon))
+            self.etkinBasligiGuncelle(LinuxMetinDonusumu.konum(iter))
         }
-        // Alan değişince panelin sığıp sığmadığı yeniden değerlendirilir. Sayfa ana sayfadan ilk
-        // gösterildiğinde genişlik henüz 0'dır; ilk boyut dağıtımı da bu kancayı tetikler.
-        editor.boyutDegisti.append { [weak self] in self?.gorunurluguGuncelle() }
-        // macOS hover ile açılır; Linux'ta kalıcı panel ve gizleme kısayolu kullanılır.
+        // Kaydırırken etkin başlık imleci değil okunan bölümü izler (macOS ile aynı).
+        editor.kaydirildi.append { [weak self] in
+            guard let self, let editor = self.editor else { return }
+            self.etkinBasligiGuncelle(editor.okunanKonum())
+        }
+        editor.boyutDegisti.append { [weak self] in self?.yuksekligiSinirla() }
+        // Panel yer kaplamaz; yine de istenirse gizlenebilir.
         pencere.menuEkle(["Görünüm", "İçindekiler paneli"], kisayol: "<Control><Shift>backslash") { [weak self] in
             guard let self else { return }
             self.gizli.toggle()
@@ -132,9 +193,10 @@ final class LinuxIcindekiler {
             etkinligiAyarla(nil)
             girdiler = yeni
             kutuyuBosalt(baslikKutusu)
+            satirParcalari = []
             satirlar = yeni.map { girdi in
-                let dugme = dugmeUret(girdi.metin, kutu: baslikKutusu)
-                gtk_widget_set_margin_start(dugme, Int32((girdi.seviye - 1) * 12))
+                let (dugme, cizgi, ad) = basliksatiriUret(girdi)
+                satirParcalari.append((cizgi, ad))
                 GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(dugme), "clicked") { [weak self] in
                     self?.basligaGit(girdi.konum)
                 }
@@ -143,7 +205,11 @@ final class LinuxIcindekiler {
         }
         konumlarGecersiz = false
         gorunurluguGuncelle()
-        etkinBasligiGuncelle()
+        if let editor {
+            var iter = GtkTextIter()
+            gtk_text_buffer_get_iter_at_mark(editor.tampon, &iter, gtk_text_buffer_get_insert(editor.tampon))
+            etkinBasligiGuncelle(LinuxMetinDonusumu.konum(iter))
+        }
     }
 
     /// macOS gibi yalnızca paragraf başındaki düzey geçerli; boş başlıklar atlanır.
@@ -168,11 +234,39 @@ final class LinuxIcindekiler {
         return sonuc
     }
 
-    private func etkinBasligiGuncelle() {
+    /// Kapalıyken çizgi (düzeye göre kısalır, sağa yaslı), açıkken girintili ad (macOS ile aynı).
+    private func basliksatiriUret(_ girdi: Girdi) -> (UnsafeMutablePointer<GtkWidget>, UnsafeMutablePointer<GtkWidget>, UnsafeMutablePointer<GtkWidget>) {
+        let dugme = gtk_button_new()!
+        gtk_widget_add_css_class(dugme, "flat")
+        gtk_widget_set_focus_on_click(dugme, 0)
+        gtk_widget_set_tooltip_text(dugme, girdi.metin)
+        let kutu = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)!
+        // GtkButton çocuğunu ortalar; satır tam genişlik olmalı ki ad sola, çizgi sağa yaslansın.
+        gtk_widget_set_hexpand(kutu, 1)
+        gtk_widget_set_halign(kutu, GTK_ALIGN_FILL)
+        let ad = gtk_label_new(girdi.metin)!
+        gtk_label_set_xalign(nd_label(ad), 0)
+        gtk_label_set_ellipsize(nd_label(ad), PANGO_ELLIPSIZE_END)
+        gtk_label_set_max_width_chars(nd_label(ad), 24)
+        gtk_widget_set_hexpand(ad, 1)
+        gtk_widget_set_margin_start(ad, Int32((girdi.seviye - 1) * 12))
+        gtk_widget_set_visible(ad, acik ? 1 : 0)
+        let cizgi = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)!
+        gtk_widget_add_css_class(cizgi, "nd-cizgi")
+        gtk_widget_set_size_request(cizgi, [18, 12, 8][min(2, max(0, girdi.seviye - 1))], 2)
+        gtk_widget_set_halign(cizgi, GTK_ALIGN_END)
+        gtk_widget_set_valign(cizgi, GTK_ALIGN_CENTER)
+        gtk_widget_set_hexpand(cizgi, 1)
+        gtk_widget_set_visible(cizgi, acik ? 0 : 1)
+        gtk_box_append(nd_box(kutu), ad)
+        gtk_box_append(nd_box(kutu), cizgi)
+        gtk_button_set_child(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(dugme)), kutu)
+        gtk_box_append(nd_box(baslikKutusu), dugme)
+        return (dugme, cizgi, ad)
+    }
+
+    private func etkinBasligiGuncelle(_ konum: Int) {
         guard !konumlarGecersiz, let editor, editor.editorEtkin else { return }
-        var iter = GtkTextIter()
-        gtk_text_buffer_get_iter_at_mark(editor.tampon, &iter, gtk_text_buffer_get_insert(editor.tampon))
-        let konum = LinuxMetinDonusumu.konum(iter)
         var alt = 0, ust = girdiler.count
         while alt < ust {
             let orta = alt + (ust - alt) / 2
@@ -197,15 +291,16 @@ final class LinuxIcindekiler {
         }
     }
 
+    /// Etkin başlık listenin ortasında durur (macOS etkinSatiriOrtala).
     private func etkinSatiriGoster() {
-        guard !gizli, !konumlarGecersiz, let etkinSira else { return }
+        guard !gizli, !konumlarGecersiz, let etkinSira, satirlar.indices.contains(etkinSira) else { return }
         var kare = graphene_rect_t()
         guard gtk_widget_compute_bounds(satirlar[etkinSira], icerik, &kare) != 0 else { return }
         let ayar = gtk_scrolled_window_get_vadjustment(OpaquePointer(kaydirma))!
-        let bas = Double(kare.origin.y), son = bas + Double(kare.size.height)
-        let ust = gtk_adjustment_get_value(ayar), boy = gtk_adjustment_get_page_size(ayar)
-        if bas < ust { gtk_adjustment_set_value(ayar, bas) }
-        else if son > ust + boy { gtk_adjustment_set_value(ayar, max(0, son - boy)) }
+        let boy = gtk_adjustment_get_page_size(ayar)
+        let enFazla = max(0, gtk_adjustment_get_upper(ayar) - boy)
+        let orta = Double(kare.origin.y) + Double(kare.size.height) / 2
+        gtk_adjustment_set_value(ayar, min(max(0, orta - boy / 2), enFazla))
     }
 
     private func basligaGit(_ konum: Int) {
@@ -215,7 +310,7 @@ final class LinuxIcindekiler {
         let gorunum: UnsafeMutablePointer<GtkTextView> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(editor.metinGorunumu))
         gtk_text_view_scroll_to_iter(gorunum, &iter, 0.1, 0, 0, 0)
         gtk_widget_grab_focus(editor.metinGorunumu)
-        etkinBasligiGuncelle()
+        etkinBasligiGuncelle(konum)
     }
 
     /// Disk taraması yalnızca açılış/kayıtta; eski işler not değişiminde uygulanmaz.
@@ -267,6 +362,7 @@ final class LinuxIcindekiler {
         guard sayfalar != baglantiVerenler else { return }
         baglantiVerenler = sayfalar
         kutuyuBosalt(bagKutusu)
+        gtk_widget_set_visible(bagKutusu, acik && !sayfalar.isEmpty ? 1 : 0)
         guard !sayfalar.isEmpty else { return }
         let baslik = gtk_label_new("Bağlantı verenler")!
         gtk_label_set_xalign(nd_label(baslik), 0)
@@ -300,14 +396,11 @@ final class LinuxIcindekiler {
         while let cocuk = gtk_widget_get_first_child(kutu) { gtk_box_remove(nd_box(kutu), cocuk) }
     }
 
+    /// Panel yer kaplamadığı için pencere genişliğinden bağımsızdır; başlık yoksa ya da gizlendiyse görünmez.
     private func gorunurluguGuncelle() {
-        guard let pencere else { return }
-        // Editör ve panel aynı kutudadır; kutunun genişliği panelin görünürlüğüyle değişmez.
-        let alan = gtk_widget_get_parent(pencere.sagPanelYuvasi).map { gtk_widget_get_width($0) } ?? 0
-        let gorunur = !gizli && !girdiler.isEmpty && editor?.editorEtkin == true && alan >= Self.gerekenGenislik
-        if !gorunur, let odak = gtk_window_get_focus(nd_window(pencere.pencere)),
-           odak == pencere.sagPanelYuvasi || gtk_widget_is_ancestor(odak, pencere.sagPanelYuvasi) != 0,
-           let editor { gtk_widget_grab_focus(editor.metinGorunumu) }
-        gtk_widget_set_visible(pencere.sagPanelYuvasi, gorunur ? 1 : 0)
+        let gorunur = !gizli && !girdiler.isEmpty && editor?.editorEtkin == true
+        if !gorunur { acikligiAyarla(false) }
+        gtk_widget_set_visible(cerceve, gorunur ? 1 : 0)
+        yuksekligiSinirla()
     }
 }

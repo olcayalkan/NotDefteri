@@ -197,13 +197,15 @@ enum GtkKoprusu {
 
     /// Simge temasından simge + metin. Emoji (🏠, 🗑) renkli emoji yazı tipi olmayan
     /// sistemlerde kutu olarak görünüyordu; simgesel simgeler GTK ile birlikte gelir.
-    static func simgeliDugme(_ simge: String, _ metin: String) -> UnsafeMutablePointer<GtkWidget> {
+    /// `duz`: macOS kenar panelindeki gibi zeminsiz ve sola yaslı (Ana Sayfa, Çöp kutusu).
+    static func simgeliDugme(_ simge: String, _ metin: String, duz: Bool = false) -> UnsafeMutablePointer<GtkWidget> {
         let kutu = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6)!
-        gtk_widget_set_halign(kutu, GTK_ALIGN_CENTER)
+        gtk_widget_set_halign(kutu, duz ? GTK_ALIGN_START : GTK_ALIGN_CENTER)
         gtk_box_append(nd_box(kutu), gtk_image_new_from_icon_name(simge))
         gtk_box_append(nd_box(kutu), gtk_label_new(metin))
         let dugme = gtk_button_new()!
         gtk_button_set_child(gtkIsaretci(UnsafeMutableRawPointer(dugme)), kutu)
+        if duz { gtk_widget_add_css_class(dugme, "nd-duz-dugme") }
         return dugme
     }
 

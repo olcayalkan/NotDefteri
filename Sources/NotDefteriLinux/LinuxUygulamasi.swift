@@ -8,8 +8,8 @@ package enum LinuxUygulamasi {
         // XFCE gibi masaüstlerinin GTK3 temaları GTK4'te renk değişkenlerini tanımlamıyor: açılışta
         // "Theme parser error" basılıyor ve renkler bozuluyordu. Tema GTK açılmadan seçilmeli;
         // kullanıcı GTK_THEME verdiyse dokunulmaz.
-        let temaUygulamadan = g_getenv("GTK_THEME") == nil
-        if temaUygulamadan { g_setenv("GTK_THEME", "Adwaita", 1) }
+        // Kağıt temaları macOS'taki gibi hep açıktır; masaüstü koyu olsa da açık Adwaita kullanılır.
+        if g_getenv("GTK_THEME") == nil { g_setenv("GTK_THEME", "Adwaita", 1) }
         guard let uygulama = gtk_application_new("com.notdefteri.uygulama", GApplicationFlags(rawValue: 0)) else {
             FileHandle.standardError.write(Data("GTK uygulaması oluşturulamadı.\n".utf8))
             return 1
@@ -21,7 +21,6 @@ package enum LinuxUygulamasi {
                 gtk_window_present(nd_window(mevcut.pencere))
                 return
             }
-            if temaUygulamadan, let ayarlar = gtk_settings_get_default() { nd_koyu_adwaita_uygula(ayarlar) }
             let yeni = LinuxPencere(uygulama: uygulama)
             pencere = yeni
             let editor = LinuxEditor(pencere: yeni)

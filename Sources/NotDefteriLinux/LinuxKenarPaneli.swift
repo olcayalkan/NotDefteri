@@ -209,7 +209,8 @@ final class LinuxKenarPaneli {
 
     private func arayuzuKur() {
         // macOS'taki "Ana Sayfa" düğmesi: kenar panelin en üstünde.
-        let anaSayfa = GtkKoprusu.simgeliDugme("user-home-symbolic", "Ana Sayfa")
+        let anaSayfa = GtkKoprusu.simgeliDugme("user-home-symbolic", "Ana Sayfa", duz: true)
+        gtk_widget_add_css_class(anaSayfa, "nd-ana-sayfa")
         gtk_widget_set_margin_top(anaSayfa, 8)
         gtk_widget_set_margin_start(anaSayfa, 8)
         gtk_widget_set_margin_end(anaSayfa, 8)
@@ -217,12 +218,7 @@ final class LinuxKenarPaneli {
         GtkKoprusu.sinyalBagla(ham(anaSayfa), "clicked") { [weak self] in self?.anaSayfaIstendi?() }
         gtk_box_append(nd_box(kok), anaSayfa)
 
-        let yeniSayfa = gtk_button_new_with_label("+ Yeni sayfa")!
-        gtk_widget_set_margin_top(yeniSayfa, 8)
-        gtk_widget_set_margin_start(yeniSayfa, 8)
-        gtk_widget_set_margin_end(yeniSayfa, 8)
-        GtkKoprusu.sinyalBagla(ham(yeniSayfa), "clicked") { [weak self] in self?.ustSeviyeSayfaEkle() }
-        gtk_box_append(nd_box(kok), yeniSayfa)
+        // macOS'ta kenar panelinde "Yeni sayfa" düğmesi yoktur; yeni not başlık çubuğundaki düğmedir.
 
         gtk_widget_set_margin_top(aramaAlani, 8)
         gtk_widget_set_margin_bottom(aramaAlani, 8)

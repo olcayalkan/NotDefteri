@@ -64,7 +64,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `Tema.swift` | 57 | `Tema`, `temaListesi`, `aktifTema`, renk türetme |
 | `NotSatirGorunumu.swift` | 59 | Kenar panel satır vurgusu + sürükle-bırak hedefi vurgusu |
 | `KenarPaneliSurukleTutamaci.swift` | 38 | Panel genişliği tutamacı |
-| `IcindekilerPaneli.swift` | 413 | **Sağ kenar içindekiler** — başlıklardan üretilir, hover'da açılır, tıklayınca kaydırır; altında bağlantı veren sayfalar |
+| `IcindekilerPaneli.swift` | 423 | **Sağ kenar içindekiler** — başlıklardan üretilir, hover'da açılır, tıklayınca kaydırır; kaydırılan bölümün başlığı etkin ve ortada; altında bağlantı veren sayfalar |
 | `SembolBoyama.swift` | 22 | `renklendirilmisSembol()` |
 
 ## KenarPanel/
@@ -84,10 +84,10 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | Dosya | Satır | İçerik |
 |---|---|---|
 | `NotPenceresi+Komutlar.swift` | 161 | Blok menüsü komutlarını mevcut biçim/sayfa/görsel işlemlerine bağlama, /0, bağlantı açma, undo/redo |
-| `NotPenceresi.swift` | 219 | Sınıf gövdesi, `init`, sayfa üstbilgisi, bul çubuğu, alt bilgi ve görünüm bağlantıları, kenar panel, pencere boyutu izleyicisi |
+| `NotPenceresi.swift` | 223 | Sınıf gövdesi, `init`, sayfa üstbilgisi, bul çubuğu, alt bilgi ve görünüm bağlantıları, kenar panel, pencere boyutu izleyicisi |
 | `NotPenceresi+Kaydetme.swift` | 184 | `kaydetURLe()`, `otomatikKaydet()` üstbilgiyi korur; timer yönetimi, isim sorma |
 | `NotPenceresi+Pencere.swift` | 177 | Notlar arası gezinme; panel/editör için ortak yerleşim, 0,2 sn geçiş ve nesil kontrolü; `performKeyEquivalent`, kapatma |
-| `NotPenceresi+Bicimlendirme.swift` | 169 | Kalın/italik/çizili/kod/vurgu/bağlantı, punto, tema ve seçim çubuğu |
+| `NotPenceresi+Bicimlendirme.swift` | 182 | Kalın/italik/çizili/kod/vurgu/bağlantı, punto, tema, seçim çubuğu; kaydırmada etkin içindekiler başlığı |
 | `NotPenceresi+Baglantilar.swift` | 80 | Bulucuyu açma, olmayan hedefi oluşturma onayı, önbellekten geri bağlantı debounce ve açık editörü güncelleme |
 | `NotPenceresi+AnaSayfa.swift` | 199 | Kayıtla Ana Sayfa geçişi; kaynak konumundan editöre gitme; atomik yapılacak tamamlama, günlük ve şablondan oluşturma |
 | `NotPenceresi+Not.swift` | 235 | `notuAc()`, `yeniSayfaOlustur()`; üstbilgiyi gövdeden ayırma, sayfa seçenekleri undo ve sayfa yolu |

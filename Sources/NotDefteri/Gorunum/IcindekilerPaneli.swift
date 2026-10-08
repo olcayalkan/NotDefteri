@@ -195,7 +195,7 @@ final class IcindekilerPaneli: NSView {
         return sonuc
     }
 
-    /// İmlecin bulunduğu başlığı vurgular ve gerekirse görünür alana kaydırır.
+    /// Verilen konumun (imleç ya da okunan bölüm) başlığını vurgular ve listede ortalar.
     func etkinBasligiGuncelle(imlecKonumu: Int) {
         self.imlecKonumu = imlecKonumu
         guard guncellemeZamanlayicisi == nil else { return }
@@ -210,9 +210,18 @@ final class IcindekilerPaneli: NSView {
         if let etkinSira { satirlar[etkinSira].etkin = false }
         etkinSira = yeni
         if let yeni { satirlar[yeni].etkin = true }
-        if acik, let yeni, satirlar.indices.contains(yeni) {
-            icerik.scrollToVisible(satirlar[yeni].frame)
-        }
+        etkinSatiriOrtala()
+    }
+
+    /// Etkin başlık listenin ortasında durur; uzun içindekilerde bölüm değiştikçe liste onu izler.
+    /// Yalnızca görünür alana getirmek etkin satırı kenarda bırakıyordu.
+    private func etkinSatiriOrtala() {
+        guard let etkinSira, satirlar.indices.contains(etkinSira) else { return }
+        let gorunurYukseklik = kaydirma.contentView.bounds.height
+        let enFazla = max(0, icerik.bounds.height - gorunurYukseklik)
+        let hedef = min(max(0, satirlar[etkinSira].frame.midY - gorunurYukseklik / 2), enFazla)
+        kaydirma.contentView.scroll(to: NSPoint(x: 0, y: hedef))
+        kaydirma.reflectScrolledClipView(kaydirma.contentView)
     }
 
     private func satirlariKur() {
@@ -258,9 +267,10 @@ final class IcindekilerPaneli: NSView {
                 : NSColor.clear.cgColor
             for satir in satirlar { satir.acikGoster(yeniDurum) }
         }
-        // Kapanınca başa dön; açılınca hep aynı yerden başlasın.
-        if !yeniDurum { icerik.scroll(NSPoint(x: 0, y: 0)) }
         needsLayout = true
+        // Açılıp kapanınca da etkin başlık ortada kalır (eskiden kapanınca listenin başına dönüyordu).
+        layoutSubtreeIfNeeded()
+        etkinSatiriOrtala()
     }
 
     /// Sağ ÜSTE yaslı çerçeve. Yükseklik içeriğe göre; sığmazsa kırpılır
