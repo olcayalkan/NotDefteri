@@ -31,9 +31,11 @@ final class LinuxTema {
         g_object_unref(UnsafeMutableRawPointer(saglayici))
     }
 
-    /// macOS NSColor.koyulastir: her bileşenden `miktar` çıkarılır.
+    /// macOS NSColor.koyulastir: her bileşenden `miktar` çıkarılır. Tamsayı 0–255 yazılır:
+    /// GTK açılışta sistem yerel ayarını devreye alır, String(format:) Türkçe sistemde "84,0%"
+    /// üretiyordu; geçersiz CSS rengi arka planı şeffaf bırakıyordu (Zorin OS).
     private static func css(_ c: RGB, koyulastir miktar: Double = 0) -> String {
-        func y(_ d: Double) -> String { String(format: "%.1f%%", max(d - miktar, 0) * 100) }
+        func y(_ d: Double) -> Int { Int((min(max(d - miktar, 0), 1) * 255).rounded()) }
         return "rgb(\(y(c.r)),\(y(c.g)),\(y(c.b)))"
     }
 

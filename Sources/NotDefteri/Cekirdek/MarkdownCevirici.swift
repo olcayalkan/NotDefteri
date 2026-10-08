@@ -9,7 +9,8 @@ package func boyutSinirla(_ boyut: CGFloat) -> CGFloat {
 /// Punto değerini dosyaya yazarken kısa gösterir (14.0 -> "14").
 package func boyutMetni(_ boyut: CGFloat) -> String {
     // Görünüm ölçeğini geri alırken oluşan kayan nokta farkı "16"yı "16.0"a çevirmesin.
-    abs(boyut - boyut.rounded()) < 0.0001 ? String(Int(boyut.rounded())) : String(format: "%.1f", Double(boyut))
+    // String(format:) Linux'ta yerel ayara uyar ("16,5"); Swift'in Double yazımı hep noktalıdır.
+    abs(boyut - boyut.rounded()) < 0.0001 ? String(Int(boyut.rounded())) : String((Double(boyut) * 10).rounded() / 10)
 }
 
 /// Metinden biçimlendirme işaretlerini ("**", "<punto=..>") temizler.
