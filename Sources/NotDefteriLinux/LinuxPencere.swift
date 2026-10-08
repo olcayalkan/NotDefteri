@@ -225,6 +225,21 @@ final class LinuxPencere {
         genislikAyarlaniyor = false
     }
 
+    private let tamEkranDugmesi = gtk_button_new_from_icon_name("view-fullscreen-symbolic")!
+
+    /// F11, Görünüm menüsü ve başlık çubuğu düğmesi aynı yoldan geçer.
+    func tamEkraniAcKapa() {
+        if gtk_window_is_fullscreen(nd_window(pencere)) != 0 { gtk_window_unfullscreen(nd_window(pencere)) }
+        else { gtk_window_fullscreen(nd_window(pencere)) }
+    }
+
+    private func tamEkranSimgesiniGuncelle() {
+        let tam = gtk_window_is_fullscreen(nd_window(pencere)) != 0
+        gtk_button_set_icon_name(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(tamEkranDugmesi)),
+                                 tam ? "view-restore-symbolic" : "view-fullscreen-symbolic")
+        gtk_widget_set_tooltip_text(tamEkranDugmesi, tam ? "Tam Ekrandan Çık (F11)" : "Tam Ekran (F11)")
+    }
+
     private func baslikCubugunuKur() {
         let cubuk = gtk_header_bar_new()!
         gtk_widget_add_css_class(cubuk, "nd-baslik")
@@ -241,6 +256,13 @@ final class LinuxPencere {
             self?.kenarPaneliniAcKapa()
         }
         gtk_header_bar_pack_start(nd_header_bar(cubuk), panelButonu)
+        let yeniNot = gtk_button_new_from_icon_name("document-new-symbolic")!
+        gtk_widget_set_tooltip_text(yeniNot, "Yeni Not")
+        gtk_widget_set_focus_on_click(yeniNot, 0)
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(yeniNot), "clicked") { [weak self] in
+            (self?.kenarPaneli as? LinuxKenarPaneli)?.yeniSayfaIstendi()
+        }
+        gtk_header_bar_pack_start(nd_header_bar(cubuk), yeniNot)
         // macOS BaslikCubugu: Geri Al / Yinele düğmeleri.
         for (ikon, ipucu, ileri) in [("edit-undo-symbolic", "Geri Al (Ctrl+Z)", false), ("edit-redo-symbolic", "Yinele (Ctrl+Y)", true)] {
             let dugme = gtk_button_new_from_icon_name(ikon)!
@@ -251,10 +273,24 @@ final class LinuxPencere {
             }
             gtk_header_bar_pack_start(nd_header_bar(cubuk), dugme)
         }
+        // Sistem düğmelerinden yalnızca kapat kalır; küçült/büyüt yerine aşağıdaki macOS eşi düğmeler
+        // gelir (büyüt simgesi tam ekran yapmıyor, küçült de "Arka plana at" ile çift duruyordu).
+        gtk_header_bar_set_decoration_layout(nd_header_bar(cubuk), ":close")
+        // pack_end sağdan sola dizer: kapat | menü | tam ekran | arka plana at | sabitle.
         let menuDugmesi = gtk_menu_button_new()!
         gtk_menu_button_set_icon_name(OpaquePointer(menuDugmesi), "open-menu-symbolic")
         gtk_menu_button_set_menu_model(OpaquePointer(menuDugmesi), GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(menuModeli)))
         gtk_header_bar_pack_end(nd_header_bar(cubuk), menuDugmesi)
+        gtk_header_bar_pack_end(nd_header_bar(cubuk), tamEkranDugmesi)
+        gtk_widget_set_tooltip_text(tamEkranDugmesi, "Tam Ekran (F11)")
+        gtk_widget_set_focus_on_click(tamEkranDugmesi, 0)
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(tamEkranDugmesi), "clicked") { [weak self] in
+            self?.tamEkraniAcKapa()
+        }
+        // Simge pencerenin gerçek durumunu izler (F11, pencere yöneticisi ya da düğme).
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(pencere), "notify::fullscreened") { [weak self] (_: gpointer?) in
+            self?.tamEkranSimgesiniGuncelle()
+        }
         // macOS "Arka plana at": GNOME başlık çubuğu simge durumuna küçültme düğmesini varsayılan göstermez.
         let kucult = gtk_button_new_from_icon_name("window-minimize-symbolic")!
         gtk_widget_set_tooltip_text(kucult, "Arka plana at")
@@ -263,6 +299,21 @@ final class LinuxPencere {
             if let pencere = self?.pencere { gtk_window_minimize(nd_window(pencere)) }
         }
         gtk_header_bar_pack_end(nd_header_bar(cubuk), kucult)
+        let sabitle = gtk_toggle_button_new()!
+        gtk_button_set_icon_name(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(sabitle)), "view-pin-symbolic")
+        gtk_widget_set_tooltip_text(sabitle, "Sabitle (her zaman üstte)")
+        gtk_widget_set_focus_on_click(sabitle, 0)
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(sabitle), "toggled") { [weak self] in
+            guard let self else { return }
+            let dugme: UnsafeMutablePointer<GtkToggleButton> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(sabitle))
+            let istenen = gtk_toggle_button_get_active(dugme) != 0
+            // X11 dışı oturumda (Wayland) pencere yöneticisine istem gönderilemez; düğme geri alınır.
+            if nd_ustte_tut(nd_window(self.pencere), istenen ? 1 : 0) == 0, istenen {
+                gtk_toggle_button_set_active(dugme, 0)
+                gtk_widget_set_tooltip_text(sabitle, "Sabitleme bu masaüstü oturumunda desteklenmiyor")
+            }
+        }
+        gtk_header_bar_pack_end(nd_header_bar(cubuk), sabitle)
         gtk_window_set_titlebar(nd_window(pencere), cubuk)
     }
 

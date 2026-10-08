@@ -26,12 +26,8 @@ extension KenarPaneli {
     /// Sürüklemeyi başlatan düğümün yolları panoya yazılır.
     func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
         guard let dugum = item as? AgacDugumu else { return nil }
-        let oge = NSPasteboardItem()
-        if favoriBolumu.sayfalar.contains(where: { $0 === dugum }), let url = dugum.icerikURL {
-            oge.setString(url.path, forType: kFavoriSurukleTipi)
-            return oge
-        }
         guard !kisaYolMu(dugum) else { return nil }
+        let oge = NSPasteboardItem()
         oge.setPropertyList(["klasor": dugum.klasorURL.path,
                              "icerik": dugum.icerikURL?.path ?? ""],
                             forType: kSayfaSurukleTipi)
@@ -40,11 +36,6 @@ extension KenarPaneli {
 
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo,
                      proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
-        if info.draggingPasteboard.string(forType: kFavoriSurukleTipi) != nil {
-            guard info.draggingSource as? NSOutlineView === outlineView,
-                  item as? KenarBolumu === favoriBolumu, index >= 0 else { return [] }
-            return .move
-        }
         guard !(item is KenarBolumu),
               !((item as? AgacDugumu).map { kisaYolMu($0) } ?? false),
               let surukleneN = suruklenenYollar(info) else { return [] }
@@ -70,13 +61,6 @@ extension KenarPaneli {
 
     func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo,
                      item: Any?, childIndex index: Int) -> Bool {
-        if let yol = info.draggingPasteboard.string(forType: kFavoriSurukleTipi) {
-            guard info.draggingSource as? NSOutlineView === outlineView,
-                  item as? KenarBolumu === favoriBolumu, index >= 0 else { return false }
-            favoriler.tasi(URL(fileURLWithPath: yol), hedef: index)
-            kisaYollariPlanla()
-            return true
-        }
         sonTasimaDogrulamasi = nil
         guard !(item is KenarBolumu),
               !((item as? AgacDugumu).map { kisaYolMu($0) } ?? false),
@@ -148,7 +132,7 @@ extension KenarPaneli {
     // MARK: Yardımcılar
 
     /// Araya bırakmada üst düğümün çocukları ve çocuk dizinindeki kayma
-    /// (kökte Favoriler/Son açılanlar bölümleri önce gelir).
+    /// (kökte Son açılanlar bölümü önce gelir).
     private func kardesListesi(_ item: Any?) -> (liste: [AgacDugumu], kayma: Int) {
         if let dugum = item as? AgacDugumu { return (dugum.cocuklar, 0) }
         return (kokDugumler, kenarBolumleri.count)

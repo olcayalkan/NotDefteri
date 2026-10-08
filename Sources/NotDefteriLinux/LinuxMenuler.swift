@@ -65,11 +65,7 @@ enum LinuxMenuler {
     // MARK: Görünüm
 
     private static func gorunumMenusu(_ pencere: LinuxPencere, _ editor: LinuxEditor) {
-        pencere.menuEkle(["Görünüm", "Tam Ekran"], kisayol: "F11") { [weak pencere] in
-            guard let ust = pencere?.pencere else { return }
-            if gtk_window_is_fullscreen(nd_window(ust)) != 0 { gtk_window_unfullscreen(nd_window(ust)) }
-            else { gtk_window_fullscreen(nd_window(ust)) }
-        }
+        pencere.menuEkle(["Görünüm", "Tam Ekran"], kisayol: "F11") { [weak pencere] in pencere?.tamEkraniAcKapa() }
         pencere.menuEkle(["Görünüm", "Puntoyu Büyüt"], kisayol: "<Control>asterisk") { [weak editor] in
             editor?.puntoDegistir(fark: 1)
         }

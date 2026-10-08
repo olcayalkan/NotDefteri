@@ -15,7 +15,6 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     let copKutusu = CopKutusu()
     let copButonu = NSButton(title: "🗑 Çöp kutusu", target: nil, action: nil)
     let copPopover = NSPopover()
-    let favoriBolumu = KenarBolumu("Favoriler", anahtar: "favorilerKatli")
     let sonAcilanBolumu = KenarBolumu("Son açılanlar", anahtar: "sonAcilanlarKatli")
     var kisaYolGuncellemesiBekliyor = false
     var baglantiOnbellegiDegisti: (() -> Void)?
@@ -152,16 +151,13 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         tablo.target = self
         tablo.doubleAction = #selector(cifteTiklandi)
         // Sayfaları sürükleyerek başka sayfanın altına taşıma (bkz. KenarPaneli+SurukleBirak).
-        tablo.registerForDraggedTypes([kSayfaSurukleTipi, kFavoriSurukleTipi])
+        tablo.registerForDraggedTypes([kSayfaSurukleTipi])
         tablo.setDraggingSourceOperationMask(.move, forLocal: true)
         tablo.draggingDestinationFeedbackStyle = .regular
 
         sayfaBaglantilari.sonAcilanlarDegisti = { [weak self] in self?.kisaYollariPlanla() }
 
         let sagTikMenusu = NSMenu()
-        let favoriOgesi = NSMenuItem(title: "Favorilere ekle", action: #selector(favoriTiklandi), keyEquivalent: "")
-        favoriOgesi.target = self
-        sagTikMenusu.addItem(favoriOgesi)
         let altSayfaOgesi = NSMenuItem(title: "Alt Sayfa Ekle", action: #selector(altSayfaEkleTiklandi), keyEquivalent: "")
         altSayfaOgesi.target = self
         sagTikMenusu.addItem(altSayfaOgesi)
@@ -187,6 +183,7 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
 
         kaydirmaGorunumu.documentView = tablo
         kaydirmaGorunumu.hasVerticalScroller = true
+        kaydirmaGorunumu.kagitKaydiriciKullan()
         kaydirmaGorunumu.drawsBackground = false
         kaydirmaGorunumu.borderType = .noBorder
         addSubview(kaydirmaGorunumu)

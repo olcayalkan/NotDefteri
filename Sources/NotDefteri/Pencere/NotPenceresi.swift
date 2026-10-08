@@ -113,6 +113,7 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
 
         kaydirmaGorunumu.frame = NSRect(x: kenarPanelBaslangicGenislik, y: 0, width: boyut.width - kenarPanelBaslangicGenislik, height: boyut.height - kBaslikYuksekligi)
         kaydirmaGorunumu.hasVerticalScroller = true
+        kaydirmaGorunumu.kagitKaydiriciKullan()
         kaydirmaGorunumu.hasHorizontalScroller = false
         kaydirmaGorunumu.drawsBackground = false
         kaydirmaGorunumu.borderType = .noBorder

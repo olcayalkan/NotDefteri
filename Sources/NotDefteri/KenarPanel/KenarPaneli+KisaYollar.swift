@@ -12,8 +12,6 @@ final class KenarBolumu: NSObject {
     init(_ ad: String, anahtar: String) { self.ad = ad; self.anahtar = anahtar }
 }
 
-let kFavoriSurukleTipi = NSPasteboard.PasteboardType("tr.notdefteri.favori")
-
 extension KenarPaneli {
     @objc func copKutusuTiklandi() {
         if copPopover.isShown { copPopover.performClose(nil); return }
@@ -29,17 +27,16 @@ extension KenarPaneli {
 
     var kenarBolumleri: [KenarBolumu] {
         guard !aramaFiltresiEtkin else { return [] }
-        return (favoriBolumu.sayfalar.isEmpty ? [] : [favoriBolumu]) + [sonAcilanBolumu]
+        return [sonAcilanBolumu]
     }
 
     func kisaYolMu(_ dugum: AgacDugumu) -> Bool {
         guard !aramaFiltresiEtkin else { return false }
-        return [favoriBolumu, sonAcilanBolumu].contains { $0.sayfalar.contains { $0 === dugum } }
+        return sonAcilanBolumu.sayfalar.contains { $0 === dugum }
     }
 
     func kisaYollariHazirla() {
         guard !aramaFiltresiEtkin else { return }
-        favoriBolumu.sayfalar = favoriler.sayfalar.map { AgacDugumu(icerikURL: $0, klasorURL: sayfaKlasoru($0)) }
         sonAcilanBolumu.sayfalar = sayfaBaglantilari.sonAcilanlar.prefix(5).map {
             AgacDugumu(icerikURL: $0, klasorURL: sayfaKlasoru($0))
         }
@@ -84,11 +81,5 @@ extension KenarPaneli {
             return false
         }
         return true
-    }
-
-    @objc func favoriTiklandi() {
-        guard let url = tiklananDugum()?.icerikURL else { return }
-        if favoriler.iceriyor(url) { favoriler.cikar(url) } else { favoriler.ekle(url) }
-        kisaYollariPlanla()
     }
 }

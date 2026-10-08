@@ -288,7 +288,7 @@ private final class SayfaBulucusu {
     }
 
     private func konumlandir() {
-        guard acik, let editor, let pencere else { return }
+        guard acik, let editor, let pencere, !editor.yokEdildi else { return }
         // Parent pencere: pointing_to pencere koordinatındadır; TextView overlay'i değildir.
         var kare = satirIci ? editor.imlecKaresi() : GdkRectangle(
             x: gtk_widget_get_width(pencere.pencere) / 2,

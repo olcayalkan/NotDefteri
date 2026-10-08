@@ -117,6 +117,9 @@ final class LinuxEditor {
     private let adaptor: LinuxBelgeAdaptoru
     private let kaydedici = NotKaydedici()
     private let stil = gtk_css_provider_new()!
+    /// Stilin eklendiği ekran. deinit pencere kapandıktan sonra çalışır; yok edilmiş TextView'dan
+    /// ekran istemek "gtk_widget_get_display: assertion 'GTK_IS_WIDGET (widget)'" uyarısı veriyordu.
+    private var stilEkrani: OpaquePointer?
     private var mevcutURL: URL?
     private var ustbilgi = SayfaUstbilgisi()
     /// Ctrl+B gibi seçimsiz biçim komutlarının sonraki yazıma etkisi (NSTextView typingAttributes).
@@ -152,6 +155,9 @@ final class LinuxEditor {
     /// Tek geri alma geçmişi LinuxGorseller'dadır (metin, görsel ve üstbilgi adımları); tuş, menü ve düğmeler buradan geçer.
     var geriAlYolu: ((_ ileri: Bool) -> Void)?
     var kayitSonrasi: [(URL, String) -> Void] = []
+    /// TextView yok edildi (pencere kapanıyor). Ertelenmiş işler GTK'ya geçersiz widget verip
+    /// "gtk_widget_compute_point: assertion 'GTK_IS_WIDGET (widget)' failed" uyarısı üretmesin.
+    private(set) var yokEdildi = false
     /// macOS otomatikAdlandirildiMi: "Yeni sayfa" ile açılan sayfanın adı ilk satırı izler. Başka not
     /// açılınca ya da sayfa elle adlandırılınca/taşınınca kapanır.
     private var otomatikAdlandir = false
@@ -178,9 +184,7 @@ final class LinuxEditor {
     }
 
     deinit {
-        if let ekran = gtk_widget_get_display(metinGorunumu) {
-            gtk_style_context_remove_provider_for_display(ekran, nd_style_provider(stil))
-        }
+        if let stilEkrani { gtk_style_context_remove_provider_for_display(stilEkrani, nd_style_provider(stil)) }
         g_object_unref(UnsafeMutableRawPointer(stil))
     }
 
@@ -200,7 +204,8 @@ final class LinuxEditor {
         gtk_widget_action_set_enabled(metinGorunumu, "text.redo", 0)
         // Mac'teki 14 pt taban punto, mantıksal piksel olarak.
         gtk_css_provider_load_from_data(stil, "textview.nd-metin { font-size: \(Int(kTabanPunto))px; }", -1)
-        gtk_style_context_add_provider_for_display(gtk_widget_get_display(metinGorunumu), nd_style_provider(stil),
+        stilEkrani = gtk_widget_get_display(metinGorunumu)
+        gtk_style_context_add_provider_for_display(stilEkrani, nd_style_provider(stil),
                                                    guint(GTK_STYLE_PROVIDER_PRIORITY_APPLICATION))
         let kaydirici = OpaquePointer(kaydirma)
         gtk_scrolled_window_set_policy(kaydirici, GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC)
@@ -212,6 +217,7 @@ final class LinuxEditor {
     }
 
     private func sinyalleriBagla(_ pencere: LinuxPencere) {
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(metinGorunumu), "destroy") { [weak self] in self?.yokEdildi = true }
         // GTK'nin Ctrl+V ve bağlam menüsü aynı action sinyalini kullanır.
         cBagla(UnsafeMutableRawPointer(metinGorunumu), "paste-clipboard",
                unsafeBitCast(panoYapistirC, to: GCallback.self), self)
@@ -946,7 +952,7 @@ final class LinuxEditor {
 
     /// GtkTextView tampon koordinatı → widget → pencere; iter çağrı içinde kalır.
     func imlecKaresi() -> GdkRectangle {
-        guard let pencere else { return GdkRectangle() }
+        guard let pencere, !yokEdildi else { return GdkRectangle() }
         var iter = GtkTextIter(), kare = GdkRectangle()
         gtk_text_buffer_get_iter_at_mark(tampon, &iter, gtk_text_buffer_get_insert(tampon))
         gtk_text_view_get_iter_location(gorunum, &iter, &kare)

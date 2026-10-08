@@ -18,7 +18,6 @@ final class AnaSayfa: NSScrollView {
     private let belge = AnaSayfaBelgesi()
     private let bolumler = NSStackView()
     private var sonlar: [AnaSayfaKarti] = []
-    private var favoriler: [AnaSayfaKarti] = []
     private var yapilacaklar: [BekleyenYapilacak] = []
     private var metinRengi: NSColor {
         let renk = aktifTema.arkaplan.usingColorSpace(.genericRGB)
@@ -29,6 +28,7 @@ final class AnaSayfa: NSScrollView {
     override init(frame: NSRect) {
         super.init(frame: frame)
         hasVerticalScroller = true
+        kagitKaydiriciKullan()
         drawsBackground = false
         borderType = .noBorder
         documentView = belge
@@ -55,9 +55,8 @@ final class AnaSayfa: NSScrollView {
     required init?(coder: NSCoder) { fatalError() }
     override var acceptsFirstResponder: Bool { true }
 
-    func guncelle(sonlar: [AnaSayfaKarti], favoriler: [AnaSayfaKarti], yapilacaklar: [BekleyenYapilacak]) {
+    func guncelle(sonlar: [AnaSayfaKarti], yapilacaklar: [BekleyenYapilacak]) {
         self.sonlar = sonlar
-        self.favoriler = favoriler
         self.yapilacaklar = yapilacaklar
         temayiUygula()
     }
@@ -84,7 +83,6 @@ final class AnaSayfa: NSScrollView {
         tarih.dateFormat = "d MMMM yyyy, EEEE"
         bolumler.addArrangedSubview(etiket(tarih.string(from: Date()), boyut: 13, soluk: true))
         kartBolumu("Son açılanlar", kartlar: sonlar)
-        if !favoriler.isEmpty { kartBolumu("Favoriler", kartlar: favoriler) }
         bolumBasligi("Bekleyen yapılacaklar")
         if yapilacaklar.isEmpty {
             bolumler.addArrangedSubview(etiket("Bekleyen yapılacak yok.", soluk: true))

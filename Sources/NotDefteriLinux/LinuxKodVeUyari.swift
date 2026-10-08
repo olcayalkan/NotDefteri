@@ -148,7 +148,10 @@ private final class KodVeUyariAraclari {
         gtk_widget_set_visible(arac, 0)
         gtk_text_view_add_overlay(gorunum, arac, 0, 0)
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(kopyala), "clicked") { [weak self] in self?.kodKopyala() }
-        gtk_widget_set_parent(renkMenusu, editor!.metinGorunumu)
+        // GtkTextView'a doğrudan bağlanan popover'ı TextView kapanışta kendi çocuk listesinde bulamıyor,
+        // kaldıramıyor ve aynı çocuğu sonsuza dek deniyordu ("GtkPopover is not a child of GtkTextView",
+        // Ctrl+Q'da donma). Popover editörü saran katmana bağlanır; GtkOverlay çocuklarını olağan yoldan ayırır.
+        if let editor { gtk_widget_set_parent(renkMenusu, editor.ustKatman) }
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(renkMenusu), "closed") { [weak self] in self?.uyariHedefi = nil }
         let kutu = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2)!
         for renk in Self.renkler {
@@ -489,8 +492,11 @@ private final class KodVeUyariAraclari {
         panelleriKapat()
         uyariHedefi = UyariHedefi(konum: aralik.location, kimlik: blok.uyariKimligi, nesil: nesil, url: url)
         let panel: UnsafeMutablePointer<GtkPopover> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(renkMenusu))
-        var kare = GdkRectangle(x: Int32(x), y: Int32(y), width: 1, height: 1)
-        gtk_popover_set_pointing_to(panel, &kare) // Popover ise parent/widget koordinatı ister.
+        // Popover üst widget koordinatı ister: tıklama TextView'a göre, üst ise editör katmanıdır.
+        var px = x, py = y
+        gtk_widget_translate_coordinates(editor.metinGorunumu, editor.ustKatman, x, y, &px, &py)
+        var kare = GdkRectangle(x: Int32(px), y: Int32(py), width: 1, height: 1)
+        gtk_popover_set_pointing_to(panel, &kare)
         gtk_popover_popup(panel)
         return true
     }
@@ -673,9 +679,9 @@ private final class KodVeUyariAraclari {
     private func kapat() {
         guard !kapandi else { return }
         sifirla()
-        gtk_text_view_remove(gorunum, cerceveAlani)
-        gtk_text_view_remove(gorunum, arac)
-        gtk_widget_unparent(renkMenusu)
+        // Pencere "destroy" geldiğinde TextView çoktan yok edilmiştir; ondan çocuk çıkarmak
+        // (gtk_text_view_remove) boş işaretçiye erişip kapanışta çöküyordu. Çocukları sahipleri
+        // (TextView ve editör katmanı) kendi kapanışlarında ayırır; referanslar deinit'te bırakılır.
         kapandi = true
     }
 }

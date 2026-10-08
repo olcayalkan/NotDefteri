@@ -53,6 +53,8 @@ final class LinuxTema {
         .notdefteri .nd-kenar-panel row:selected { background-color: \(koyu ? "shade(@nd-panel, 0.45)" : "shade(@nd-panel, 0.82)"); }
         .notdefteri list { background-color: transparent; color: \(renk); }
         .notdefteri .nd-kenar-panel button:not(.flat) { background-image: none; background-color: \(koyu ? "shade(@nd-panel, 0.36)" : "shade(@nd-panel, 1.08)"); color: \(renk); }
+        .notdefteri .nd-baslik button { background-image: none; box-shadow: none; background-color: \(koyu ? "shade(@nd-baslik, 0.36)" : "shade(@nd-baslik, 1.08)"); color: \(renk); }
+        .notdefteri .nd-baslik button:checked { background-color: \(koyu ? "shade(@nd-baslik, 0.5)" : "shade(@nd-baslik, 0.85)"); }
         .notdefteri .nd-kod-araci { background-color: \(koyu ? "shade(@nd-zemin, 0.36)" : "shade(@nd-zemin, 0.94)"); border-radius: 6px; }
         .notdefteri .nd-etkin { background-image: none; background-color: \(koyu ? "shade(@nd-zemin, 0.45)" : "shade(@nd-zemin, 0.85)"); color: \(renk); font-weight: bold; }
         """
