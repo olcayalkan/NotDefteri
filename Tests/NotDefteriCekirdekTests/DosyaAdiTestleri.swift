@@ -94,4 +94,16 @@ final class DosyaAdiTestleri: XCTestCase {
         XCTAssertEqual(benzersizDosyaYolu(klasor: klasor, taban: "Görsel", uzanti: "png").lastPathComponent,
                        "Görsel-3.png")
     }
+
+    // MARK: Dosya boyutu
+
+    /// Linux Foundation ByteCountFormatter'ı yerelleştirmiyor ("6 bytes"); metin macOS'un Türkçe biçimine uymalı.
+    func testDosyaBoyutuTurkceYazilir() {
+        XCTAssertEqual(dosyaBoyutuMetni(6), "6 bayt")
+        XCTAssertEqual(dosyaBoyutuMetni(999), "999 bayt")
+        XCTAssertEqual(dosyaBoyutuMetni(1500), "1,5 KB")
+        XCTAssertEqual(dosyaBoyutuMetni(45_000), "45 KB")
+        XCTAssertEqual(dosyaBoyutuMetni(2_500_000), "2,5 MB")
+        XCTAssertEqual(dosyaBoyutuMetni(3_000_000_000), "3 GB")
+    }
 }

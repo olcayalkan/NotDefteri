@@ -191,7 +191,9 @@ final class LinuxEditor {
         gtk_text_view_set_bottom_margin(gorunum, 12)
         // Not açılana kadar yazılacak dosya yok.
         gtk_text_view_set_editable(gorunum, 0)
-        gtk_text_view_set_cursor_visible(gorunum, 0)
+        // İmleç hiç gizlenmez: GTK 4.6, odak dışındayken gizlenen imlecin yanıp sönme zamanlayıcısını
+        // durdurmuyor ve sonraki yanıp sönmede blink_cb'deki cursor_visible doğrulaması programı
+        // durduruyordu (ana sayfaya geçerken çökme). Düzenleme kapalıyken yazım zaten engellidir.
         // Geçmiş LinuxGorseller'de; GTK'nin ikinci undo günlüğü tutulmaz.
         gtk_text_buffer_set_enable_undo(tampon, 0)
         gtk_widget_action_set_enabled(metinGorunumu, "text.undo", 0)
@@ -415,7 +417,6 @@ final class LinuxEditor {
         editorEtkin = !anaSayfaAcik
         pencere?.icerigiGoster(anaSayfa: false)
         gtk_text_view_set_editable(gorunum, editorEtkin ? 1 : 0)
-        gtk_text_view_set_cursor_visible(gorunum, editorEtkin ? 1 : 0)
         gtk_adjustment_set_value(gtk_scrolled_window_get_vadjustment(OpaquePointer(kaydirma)), 0)
         pencere?.basligiAyarla(sayfaYolu(url))
         kenarlariAyarla()
@@ -463,7 +464,6 @@ final class LinuxEditor {
         yazimOnceligi = nil
         if anaSayfa { kaydedici.bekleyeniIptalEt() }
         gtk_text_view_set_editable(gorunum, editorEtkin ? 1 : 0)
-        gtk_text_view_set_cursor_visible(gorunum, editorEtkin ? 1 : 0)
         durumuBildir()
         if editorEtkin, kaydedici.duzenlendiMi { kaydedici.zamanlayiciKur { [weak self] in self?.otomatikKaydet() } }
     }
@@ -590,7 +590,6 @@ final class LinuxEditor {
         bekleyenKayitHatasi = nil
         adaptor.yukle(NSAttributedString(string: ""))
         gtk_text_view_set_editable(gorunum, 0)
-        gtk_text_view_set_cursor_visible(gorunum, 0)
         pencere?.basligiAyarla([])
         notSecimiBildir?(nil)
         durumuBildir()

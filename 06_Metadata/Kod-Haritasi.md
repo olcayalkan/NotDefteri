@@ -28,7 +28,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `YapistirmaBicimlendirme.swift` | 175 | **Dış içeriği nota uydurma** — `disIcerigiNotBicimineCevir()` (RTF/HTML biçimini notun diline indirger), `disMetniNotBicimineCevir()`, `yapistirmaMetniniSadelestir()` |
 | `MetinBlogu.swift` | 186 | Blok türü, uyarı kutusu başlığı/kimliği, girinti, kaynak öneki, paragraf öznitelikleri ve yerel liste numaralama |
 | `HtmlCevirici.swift` | 103 | Dışa aktarımda mevcut Markdown okuyucusundan kaçırılmış HTML, izinli href, gömülü PNG ve açık/koyu inline CSS üretimi |
-| `MarkdownCevirici.swift` | 694 | **Çift yönlü çevirici**: başlık/bloklar, satır içi biçimler, bağlantı/kod/wikilink, paragraf kaynak yazılışı; `sayfaMarkdownunuUret()` üstbilgiyle kaydeder; font yardımcıları |
+| `MarkdownCevirici.swift` | 772 | **Çift yönlü çevirici**: başlık/bloklar, satır içi biçimler, bağlantı/kod/wikilink, paragraf kaynak yazılışı; `sayfaMarkdownunuUret()` üstbilgiyle kaydeder; font yardımcıları |
 | `SayfaBaglantilari.swift` | 223 | Sayfa hedefi indeksi, Türkçe bulanık arama, ortak son açılanlar/açılma tarihleri ve değişim geri çağrısı, olmayan yolları düşürme, bağlantı çözümleme ve yeniden yazma |
 | `AnaSayfaVerisi.swift` | 83 | UI içermeyen arama önbelleği girdisi (özgün Markdown ve girdiyle bir kez taranan yapılacak satırları dahil), `onbellekGirdisiUret()`; Ana Sayfa için sıralı bekleyen yapılacaklar |
 | `Sablonlar.swift` | 26 | Toplantı, günlük ve proje Markdown şablonları; yerel tarihli günlük sayfa adı |
@@ -84,7 +84,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|---|
 | `NotPenceresi+Komutlar.swift` | 160 | Blok menüsü komutlarını mevcut biçim/sayfa/görsel işlemlerine bağlama, /0, bağlantı açma, undo/redo |
 | `NotPenceresi.swift` | 221 | Sınıf gövdesi, `init`, sayfa üstbilgisi, bul çubuğu, alt bilgi ve görünüm bağlantıları, kenar panel, pencere boyutu izleyicisi |
-| `NotPenceresi+Kaydetme.swift` | 179 | `kaydetURLe()`, `otomatikKaydet()` üstbilgiyi korur; timer yönetimi, isim sorma |
+| `NotPenceresi+Kaydetme.swift` | 184 | `kaydetURLe()`, `otomatikKaydet()` üstbilgiyi korur; timer yönetimi, isim sorma |
 | `NotPenceresi+Pencere.swift` | 174 | Notlar arası gezinme; panel/editör için ortak yerleşim, 0,2 sn geçiş ve nesil kontrolü; `performKeyEquivalent`, kapatma |
 | `NotPenceresi+Bicimlendirme.swift` | 188 | Kalın/italik/çizili/kod/vurgu/bağlantı, punto, tema ve seçim çubuğu |
 | `NotPenceresi+Baglantilar.swift` | 75 | Bulucuyu açma, olmayan hedefi oluşturma onayı, önbellekten geri bağlantı debounce ve açık editörü güncelleme |
@@ -104,7 +104,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-`Tests/NotDefteriTests/` — 112 test (`CeviriciTestleri` 23, `YenidenAdlandirmaTestleri` 15, `KaydediciTestleri` 13, `YapistirmaTestleri` 12, `TasimaTestleri` 12, `DosyaAdiTestleri` 10, `IcindekilerTestleri` 8, `OnbellekTestleri` 6, `KopyalamaTestleri` 6, `GorselBagiTestleri` 5, `YapistirmaDonmaTestleri` 2).
+`Tests/NotDefteriTests/` — 117 test (`CeviriciTestleri` 24, `YenidenAdlandirmaTestleri` 15, `KaydediciTestleri` 13, `YapistirmaTestleri` 12, `TasimaTestleri` 12, `DosyaAdiTestleri` 11, `IcindekilerTestleri` 8, `OnbellekTestleri` 6, `KopyalamaTestleri` 6, `GorselBagiTestleri` 5, `YapistirmaDonmaTestleri` 2).
 Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama, otomatik başlık,
 Türkçe arama, font yardımcıları, dış içeriğin nota uydurulması, sayfa taşıma. `swift test` ile çalıştır.
 

@@ -138,7 +138,8 @@ private final class KodVeUyariAraclari {
         gtk_drawing_area_set_draw_func(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(cerceveAlani)), kodCerceveC, veri, { veri in
             if let veri { Unmanaged<AnyObject>.fromOpaque(veri).release() }
         })
-        gtk_widget_add_css_class(arac, "background")
+        // "background" Adwaita'da beyaz zemindir; kağıt temasında kendi sınıfımız kullanılır (LinuxTema).
+        gtk_widget_add_css_class(arac, "nd-kod-araci")
         gtk_widget_add_css_class(dilEtiketi, "dim-label")
         gtk_widget_set_margin_start(dilEtiketi, 8)
         gtk_widget_set_focusable(kopyala, 0)
