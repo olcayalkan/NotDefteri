@@ -87,7 +87,6 @@ private struct SuruklenenSayfa {
 
 private enum Suruklenen {
     case sayfa(SuruklenenSayfa)
-    case favori(URL)
 }
 
 /// `ust` nil ise kök; `konum` nil ise üstüne bırakma (sıranın sonuna).
@@ -145,11 +144,9 @@ final class LinuxKenarPaneli {
     private var genislemeBaglari: [OpaquePointer: gulong] = [:]
 
     private let kisaYolKutusu = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2)!
-    private let favoriBolumu = gtk_expander_new("Favoriler")!
-    private let favoriListesi = gtk_list_box_new()!
     private let sonBolumu = gtk_expander_new("Son açılanlar")!
     private let sonListesi = gtk_list_box_new()!
-    private var favoriURLleri: [URL] = []
+    private let ayirici = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)!
     private var sonURLleri: [URL] = []
     private var kisaYolBekliyor = false
     private var surukleme: (belirtec: String, oge: Suruklenen)?
@@ -236,17 +233,16 @@ final class LinuxKenarPaneli {
         GtkKoprusu.sinyalBagla(ham(aramaAlani), "changed") { [weak self] in self?.aramaDegisti() }
         gtk_box_append(nd_box(kok), aramaAlani)
 
-        // ponytail: kısa yollar ağacın üstünde sabit alanda; çok favoride bölüm katlanır, ayrı kaydırma gerekirse eklenir.
-        bolumKur(favoriBolumu, favoriListesi, anahtar: "favorilerKatli", favori: true)
-        bolumKur(sonBolumu, sonListesi, anahtar: "sonAcilanlarKatli", favori: false)
-        gtk_widget_set_visible(favoriBolumu, 0)
+        bolumKur(sonBolumu, sonListesi, anahtar: "sonAcilanlarKatli")
         gtk_widget_set_margin_start(kisaYolKutusu, 8)
         gtk_widget_set_margin_end(kisaYolKutusu, 8)
         gtk_box_append(nd_box(kok), kisaYolKutusu)
-        birakmaHedefiKur(favoriListesi, hareket: { [weak self] _, _ in
-            if case .favori? = self?.surukleme?.oge { return true }
-            return false
-        }, birak: { [weak self] deger, x, y in self?.favoriyeBirak(deger, x, y) ?? false })
+        // Son açılanlar ile sayfa ağacı ayrı listelerdir; ince çizgi ağacı bölümün parçası gibi göstermez.
+        gtk_widget_set_margin_top(ayirici, 4)
+        gtk_widget_set_margin_bottom(ayirici, 4)
+        gtk_widget_set_margin_start(ayirici, 8)
+        gtk_widget_set_margin_end(ayirici, 8)
+        gtk_box_append(nd_box(kok), ayirici)
 
         let fabrika = gtk_signal_list_item_factory_new()!
         GtkKoprusu.sinyalBagla(ham(fabrika), "setup") { [weak self] (oge: gpointer?) in
@@ -279,7 +275,6 @@ final class LinuxKenarPaneli {
     private func eylemleriKur() {
         let grup = g_simple_action_group_new()!
         let eylemler: [(String, (AgacDugumu) -> Void)] = [
-            ("favori", { [weak self] in self?.favoriyiDegistir($0) }),
             ("altsayfa", { [weak self] in self?.altSayfaEkle($0) }),
             ("kardes", { [weak self] in self?.kardesSayfaEkle($0) }),
             ("adlandir", { [weak self] in self?.adlandirmaSor($0) }),
@@ -523,6 +518,7 @@ final class LinuxKenarPaneli {
         aramaFiltresiEtkin = !sorgu.isEmpty
         // macOS'taki gibi arama sırasında kısa yol bölümleri gizlenir.
         gtk_widget_set_visible(kisaYolKutusu, aramaFiltresiEtkin ? 0 : 1)
+        gtk_widget_set_visible(ayirici, aramaFiltresiEtkin ? 0 : 1)
         gorunenKok = sorgu.isEmpty ? tumKokDugumler : suzulmusAgac(tumKokDugumler, sorgu: sorgu)
         modeliKur()
     }
@@ -578,14 +574,11 @@ final class LinuxKenarPaneli {
 
     // MARK: Sağ tık menüsü
 
-    /// `kisaYol`: favori/son açılan satırı; düğüm ağaçtaki örnek olmadığından sabitleme sunulmaz.
+    /// `kisaYol`: son açılan satırı; düğüm ağaçtaki örnek olmadığından sabitleme sunulmaz.
     private func menuAc(_ dugum: AgacDugumu, _ hedef: Parca, _ x: Double, _ y: Double, kisaYol: Bool = false) {
         menuyuKapat()
         menuDugumu = dugum
         let model = g_menu_new()!
-        if let url = dugum.icerikURL {
-            g_menu_append(model, favoriler.iceriyor(url) ? "Favorilerden çıkar" : "Favorilere ekle", "kenar.favori")
-        }
         g_menu_append(model, "Yeni alt sayfa", "kenar.altsayfa")
         g_menu_append(model, "Yanına sayfa ekle", "kenar.kardes")
         g_menu_append(model, "Yeniden adlandır", "kenar.adlandir")
@@ -625,9 +618,9 @@ final class LinuxKenarPaneli {
         gtk_widget_unparent(menu)
     }
 
-    // MARK: Favoriler ve son açılanlar (macOS KenarPaneli+KisaYollar)
+    // MARK: Son açılanlar (macOS KenarPaneli+KisaYollar)
 
-    private func bolumKur(_ bolum: Parca, _ liste: Parca, anahtar: String, favori: Bool) {
+    private func bolumKur(_ bolum: Parca, _ liste: Parca, anahtar: String) {
         let kutu = OpaquePointer(ham(liste))
         gtk_list_box_set_selection_mode(kutu, GTK_SELECTION_NONE)
         gtk_expander_set_child(OpaquePointer(ham(bolum)), liste)
@@ -638,9 +631,8 @@ final class LinuxKenarPaneli {
         GtkKoprusu.sinyalBagla(ham(liste), "row-activated") { [weak self] (satir: gpointer?) in
             guard let self, let satir else { return }
             let sira = Int(gtk_list_box_row_get_index(GtkKoprusu.gtkIsaretci(satir)))
-            let urller = favori ? self.favoriURLleri : self.sonURLleri
-            guard urller.indices.contains(sira) else { return }
-            self.pencere?.notSecildi(urller[sira])
+            guard self.sonURLleri.indices.contains(sira) else { return }
+            self.pencere?.notSecildi(self.sonURLleri[sira])
         }
         gtk_box_append(nd_box(kisaYolKutusu), bolum)
     }
@@ -654,56 +646,33 @@ final class LinuxKenarPaneli {
 
     private func kisaYollariYenile() {
         kisaYolBekliyor = false
-        let favoriler = self.favoriler.sayfalar
         let sonlar = Array(sayfaBaglantilari.sonAcilanlar.prefix(5))
-        guard favoriler != favoriURLleri || sonlar != sonURLleri else { return }
+        guard sonlar != sonURLleri else { return }
         // Açık menünün üst satırı silinebilir; popover önce ayrılır.
         menuyuKapat()
-        favoriURLleri = favoriler
         sonURLleri = sonlar
-        satirlariKur(favoriListesi, favoriler, favori: true)
-        satirlariKur(sonListesi, sonlar, favori: false)
-        gtk_widget_set_visible(favoriBolumu, favoriler.isEmpty ? 0 : 1)
+        satirlariKur(sonListesi, sonlar)
     }
 
-    private func satirlariKur(_ liste: Parca, _ urller: [URL], favori: Bool) {
+    private func satirlariKur(_ liste: Parca, _ urller: [URL]) {
         let kutu = OpaquePointer(ham(liste))
         while let cocuk = gtk_widget_get_first_child(liste) { gtk_list_box_remove(kutu, cocuk) }
         for url in urller {
+            // Ağaç satırıyla aynı yapı ve hiza: simge + ad (yalnız metin, ağaçtan sola kayık duruyordu).
+            let icerik = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5)!
+            gtk_widget_set_margin_start(icerik, 12)
+            gtk_box_append(nd_box(icerik), gtk_image_new_from_icon_name("text-x-generic-symbolic"))
             let etiket = gtk_label_new(sayfaAdi(url))!
             gtk_label_set_xalign(nd_label(etiket), 0)
             gtk_label_set_ellipsize(nd_label(etiket), PANGO_ELLIPSIZE_END)
-            gtk_widget_set_margin_start(etiket, 6)
-            gtk_widget_set_tooltip_text(etiket, sayfaBagYolu(url))
-            gtk_list_box_append(kutu, etiket)
-            guard let satir = gtk_widget_get_parent(etiket) else { continue }
+            gtk_box_append(nd_box(icerik), etiket)
+            gtk_widget_set_tooltip_text(icerik, sayfaBagYolu(url))
+            gtk_list_box_append(kutu, icerik)
+            guard let satir = gtk_widget_get_parent(icerik) else { continue }
             sagTikKur(satir) { [weak self] x, y in
                 self?.menuAc(AgacDugumu(icerikURL: url, klasorURL: sayfaKlasoru(url)), satir, x, y, kisaYol: true)
             }
-            if favori { surukleKaynagiKur(satir) { .favori(url) } }
         }
-    }
-
-    private func favoriyiDegistir(_ dugum: AgacDugumu) {
-        guard let url = dugum.icerikURL else { return }
-        if favoriler.iceriyor(url) { favoriler.cikar(url) } else { favoriler.ekle(url) }
-        veriyiBildir()
-    }
-
-    /// Favoriler yalnızca kendi içinde yeniden sıralanır (macOS ile aynı).
-    private func favoriyeBirak(_ deger: UnsafePointer<GValue>?, _ x: Double, _ y: Double) -> Bool {
-        guard case .favori(let url)? = suruklenenAl(deger) else { return false }
-        var hedef = favoriURLleri.count
-        if let satir = gtk_list_box_get_row_at_y(OpaquePointer(ham(favoriListesi)), Int32(y)) {
-            let sira = Int(gtk_list_box_row_get_index(satir))
-            let widget: Parca = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(satir))
-            var sx = 0.0, sy = 0.0
-            gtk_widget_translate_coordinates(favoriListesi, widget, x, y, &sx, &sy)
-            hedef = sy > Double(gtk_widget_get_height(widget)) / 2 ? sira + 1 : sira
-        }
-        favoriler.tasi(url, hedef: hedef)
-        veriyiBildir()
-        return true
     }
 
     // MARK: Sürükle-bırak (macOS KenarPaneli+SurukleBirak)
@@ -890,6 +859,9 @@ final class LinuxKenarPaneli {
     func hedefKlasor() -> URL {
         acikNotURL.map { ustKlasor($0) } ?? notlarKlasoru()
     }
+
+    /// Başlık çubuğundaki "Yeni Not" düğmesi (macOS BaslikCubugu.yeniNotTiklandi).
+    func yeniSayfaIstendi() { ustSeviyeSayfaEkle() }
 
     private func ustSeviyeSayfaEkle() {
         yeniSayfa(klasor: hedefKlasor())

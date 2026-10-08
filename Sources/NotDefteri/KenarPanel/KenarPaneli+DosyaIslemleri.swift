@@ -156,11 +156,6 @@ extension KenarPaneli {
 
     /// Dönüştürme seçeneği yalnızca eski düzendeki düz notlarda görünür.
     func menuNeedsUpdate(_ menu: NSMenu) {
-        for oge in menu.items where oge.action == #selector(favoriTiklandi) {
-            let url = tiklananDugum()?.icerikURL
-            oge.isHidden = url == nil
-            oge.title = url.map { favoriler.iceriyor($0) } == true ? "Favorilerden çıkar" : "Favorilere ekle"
-        }
         let sabitlenebilir = tiklananDugum().map { !kisaYolMu($0) } ?? false
         for oge in menu.items where oge.action == #selector(sabitleTiklandi) {
             // Süzülmüş ağaçta düğümler kopyadır; sabit durumu güvenilir değil.

@@ -41,6 +41,7 @@ final class SayfaDosyalariAlani: NSView, NSTableViewDataSource, NSTableViewDeleg
         tablo.target = self
         tablo.action = #selector(satirTiklandi)
         kaydirma.hasVerticalScroller = true
+        kaydirma.kagitKaydiriciKullan()
         kaydirma.drawsBackground = false
         kaydirma.documentView = tablo
         addSubview(kaydirma)

@@ -72,7 +72,6 @@ extension NotPenceresi {
             return AnaSayfaKarti(url: url, tarih: baglar.sonAcilmaTarihi(url))
         }
         anaSayfa.guncelle(sonlar: baglar.sonAcilanlar.prefix(8).compactMap(kart),
-                         favoriler: kenarPaneli.favoriler.sayfalar.compactMap(kart),
                          yapilacaklar: bekleyenYapilacaklariBul(onbellek))
     }
 

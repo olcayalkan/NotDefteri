@@ -126,8 +126,6 @@ final class LinuxAnaSayfa {
             urller.filter { onbellek[$0] != nil }.map { ($0, panel.sayfaBaglantilari.sonAcilmaTarihi($0)) }
         }
         kartBolumu(icerik, "Son açılanlar", kartlar(Array(panel.sayfaBaglantilari.sonAcilanlar.prefix(8))))
-        let favoriler = kartlar(panel.favoriler.sayfalar)
-        if !favoriler.isEmpty { kartBolumu(icerik, "Favoriler", favoriler) }
         yapilacakBolumu(icerik, bekleyenYapilacaklariBul(onbellek))
         eylemBolumu(icerik)
         gtk_scrolled_window_set_child(OpaquePointer(kaydirma), icerik)
