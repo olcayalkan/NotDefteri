@@ -139,6 +139,8 @@ final class LinuxEditor {
     var degisiklikSonrasi: [() -> Void] = []
     /// Editör alanının genişliği değişti (pencere boyutu, panel aç/kapa, sayfanın ilk gösterilişi).
     var boyutDegisti: [() -> Void] = []
+    /// Dikey kaydırma: okunan bölüm değişti (içindekiler etkin başlığı izler).
+    var kaydirildi: [() -> Void] = []
     /// İkinci değer editörün diskte olduğuna inandığı metindir; kancalar diski yeniden okumasın (TOCTOU).
     var notAcildi: [(URL, String?) -> Void] = []
     var acikURL: URL? { mevcutURL }
@@ -241,6 +243,10 @@ final class LinuxEditor {
         GtkKoprusu.sinyalBagla(tamponNesnesi, "notify::cursor-position") { [weak self] (_: gpointer?) in
             guard let self, !self.imlecIzlenmiyor else { return }
             self.yazimOnceligi = nil
+        }
+        let dikey = gtk_scrolled_window_get_vadjustment(OpaquePointer(kaydirma))!
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(dikey), "value-changed") { [weak self] in
+            self?.kaydirildi.forEach { $0() }
         }
         let yatay = gtk_scrolled_window_get_hadjustment(OpaquePointer(kaydirma))!
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(yatay), "changed") { [weak self] in
@@ -948,6 +954,18 @@ final class LinuxEditor {
         blokDuzenle(paragraf, yeni: yeni,
                     secim: NSRange(location: paragraf.location + isaret.length, length: 0),
                     yazim: tur == .ayirici ? [:] : blok.oznitelikler, numarala: blok.listeMi)
+    }
+
+    /// Okunan bölümün konumu (macOS editorKaydirildi): görünür alanın üst çeyreğindeki satır;
+    /// sona gelindiyse son satır alınır ki son bölümün başlığı da etkin olabilsin.
+    func okunanKonum() -> Int {
+        var alan = GdkRectangle()
+        gtk_text_view_get_visible_rect(gorunum, &alan)
+        let dikey = gtk_scrolled_window_get_vadjustment(OpaquePointer(kaydirma))!
+        let sonda = gtk_adjustment_get_value(dikey) + gtk_adjustment_get_page_size(dikey) >= gtk_adjustment_get_upper(dikey) - 1
+        var iter = GtkTextIter()
+        _ = gtk_text_view_get_iter_at_location(gorunum, &iter, alan.x, sonda ? alan.y + alan.height - 1 : alan.y + min(80, alan.height / 4))
+        return LinuxMetinDonusumu.konum(iter)
     }
 
     /// GtkTextView tampon koordinatı → widget → pencere; iter çağrı içinde kalır.

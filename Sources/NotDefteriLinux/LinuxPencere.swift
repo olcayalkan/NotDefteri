@@ -6,7 +6,6 @@ final class LinuxPencere {
     let pencere: UnsafeMutablePointer<GtkWidget>
     let kenarPanelYuvasi = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
     let editorYuvasi = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
-    let sagPanelYuvasi = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
     // Bileşenler pencereyle yaşar; bileşenlerin pencereye geri bağı weak olmalıdır.
     var kenarPaneli: AnyObject?
     var editor: LinuxEditor?
@@ -325,12 +324,8 @@ final class LinuxPencere {
         gtk_widget_set_size_request(kenarPanelYuvasi, Int32(kKenarPanelMinGenislik), -1)
         gtk_widget_set_size_request(editorYuvasi, 220, -1)
         gtk_paned_set_start_child(nd_paned(bolme), kenarPanelYuvasi)
-        let editorVeSagPanel = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)!
-        gtk_box_append(nd_box(editorVeSagPanel), editorYuvasi)
-        gtk_box_append(nd_box(editorVeSagPanel), sagPanelYuvasi)
-        gtk_widget_set_visible(sagPanelYuvasi, 0)
         gtk_box_append(nd_box(sayfaKutusu), sayfaUstYuvasi)
-        gtk_box_append(nd_box(sayfaKutusu), editorVeSagPanel)
+        gtk_box_append(nd_box(sayfaKutusu), editorYuvasi)
         gtk_box_append(nd_box(sayfaKutusu), sayfaAltYuvasi)
         let icerik = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
         gtk_box_append(nd_box(icerik), sayfaKutusu)

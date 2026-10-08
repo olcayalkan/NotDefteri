@@ -117,6 +117,10 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
         kaydirmaGorunumu.hasHorizontalScroller = false
         kaydirmaGorunumu.drawsBackground = false
         kaydirmaGorunumu.borderType = .noBorder
+        // İçindekilerde etkin başlık kaydırılan bölümü izler (bkz. editorKaydirildi).
+        kaydirmaGorunumu.contentView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(self, selector: #selector(editorKaydirildi(_:)),
+                                               name: NSView.boundsDidChangeNotification, object: kaydirmaGorunumu.contentView)
 
         metinGorunumu.frame = NSRect(origin: .zero, size: kaydirmaGorunumu.contentSize)
         // Genişlik kaydırma görünümünü takip eder; yükseklik içerik kadar uzar.

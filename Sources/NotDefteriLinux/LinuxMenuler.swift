@@ -130,6 +130,8 @@ private final class PanelCubuklari {
 
     private func serit() -> UnsafeMutablePointer<GtkWidget> {
         let kutu = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2)!
+        // macOS'taki yuvarlak köşeli düğme grubu; renkler LinuxTema'daki .nd-serit kuralından gelir.
+        gtk_widget_add_css_class(kutu, "nd-serit")
         gtk_box_set_homogeneous(nd_box(kutu), 1)
         gtk_widget_set_margin_start(kutu, 8)
         gtk_widget_set_margin_end(kutu, 8)

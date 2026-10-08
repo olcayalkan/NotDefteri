@@ -41,14 +41,17 @@ final class LinuxAnaSayfa {
         gtk_widget_set_vexpand(kaydirma, 1)
         gtk_widget_set_hexpand(kaydirma, 1)
         gtk_box_append(nd_box(pencere.anaSayfaYuvasi), kaydirma)
-        // currentColor tema rengini izler; kart zemini açık/koyu temada okunur kalır.
+        // macOS AnaSayfa ile aynı: metin siyah %90 (soluk %60), kart kenar panel renginde ve üstünde
+        // başlık çubuğu renginde 38 px şerit. Renkler LinuxTema'nın @nd-* tanımlarından gelir.
         gtk_css_provider_load_from_data(stil, """
-        .nd-ana-selam { font-size: 28px; font-weight: 700; }
-        .nd-ana-bolum { font-size: 16px; font-weight: 600; }
-        .nd-ana-soluk { opacity: 0.6; }
-        .nd-ana-kart-baslik { font-weight: 600; }
-        button.nd-ana-kart { background-image: none; background-color: alpha(currentColor, 0.08); border-radius: 8px; padding: 12px; }
-        button.nd-ana-kart:hover { background-color: alpha(currentColor, 0.16); }
+        .nd-ana-selam { font-size: 28px; font-weight: 700; color: alpha(black, 0.9); }
+        .nd-ana-bolum { font-size: 16px; font-weight: 600; color: alpha(black, 0.9); }
+        .nd-ana-soluk { color: alpha(black, 0.6); }
+        .nd-ana-kart-baslik { font-weight: 600; color: alpha(black, 0.9); }
+        button.nd-ana-kart { background-image: none; background-color: @nd-panel; border: none; box-shadow: none; border-radius: 8px; padding: 0; }
+        button.nd-ana-kart:hover { background-color: @nd-grup; }
+        .nd-ana-kart-serit { background-color: @nd-baslik; min-height: 38px; }
+        .nd-ana-kart .nd-ana-soluk { font-size: 11px; }
         """, -1)
         gtk_style_context_add_provider_for_display(ekran, nd_style_provider(stil),
                                                    guint(GTK_STYLE_PROVIDER_PRIORITY_APPLICATION))
@@ -176,12 +179,24 @@ final class LinuxAnaSayfa {
         for kart in kartlar {
             let dugme = gtk_button_new()!
             gtk_widget_add_css_class(dugme, "nd-ana-kart")
-            gtk_widget_set_size_request(dugme, 176, 80)
+            gtk_widget_set_size_request(dugme, 176, 114)
+            gtk_widget_set_overflow(dugme, GTK_OVERFLOW_HIDDEN)
             gtk_widget_set_focus_on_click(dugme, 0)
             gtk_widget_set_tooltip_text(dugme, sayfaBagYolu(kart.url))
-            let ic = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6)!
-            ekle(ic, etiket(sayfaAdi(kart.url), sinif: "nd-ana-kart-baslik"))
-            ekle(ic, etiket(kart.tarih.map(Self.goreliZaman) ?? "Daha önce açıldı", sinif: "nd-ana-soluk"))
+            let ic = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
+            let renkSeridi = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)!
+            gtk_widget_add_css_class(renkSeridi, "nd-ana-kart-serit")
+            ekle(ic, renkSeridi)
+            let baslik = etiket(sayfaAdi(kart.url), sinif: "nd-ana-kart-baslik")
+            let zaman = etiket(kart.tarih.map(Self.goreliZaman) ?? "Daha önce açıldı", sinif: "nd-ana-soluk")
+            for alan in [baslik, zaman] {
+                gtk_widget_set_margin_start(alan, 12)
+                gtk_widget_set_margin_end(alan, 12)
+            }
+            gtk_widget_set_margin_top(baslik, 13)
+            gtk_widget_set_margin_top(zaman, 11)
+            ekle(ic, baslik)
+            ekle(ic, zaman)
             let buton: UnsafeMutablePointer<GtkButton> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(dugme))
             gtk_button_set_child(buton, ic)
             GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(dugme), "clicked") { [weak self] in

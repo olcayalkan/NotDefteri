@@ -53,7 +53,10 @@ final class LinuxBelgeAdaptoru {
         etiket("kodArka", [("background", .metin("rgba(0,0,0,0.08)"))])
         etiket("kod-girinti", [("left-margin", .tam(24)), ("indent", .tam(0))])
         etiket("vurgu", [("background", .metin("rgba(255,204,0,0.3)"))])
-        etiket("baglanti", [("foreground", .metin("#2a6fdb")),
+        // macOS: web bağlantısı metin renginde altı çizili, sayfa bağı systemBlue altı çizili.
+        etiket("sayfaBagi", [("foreground", .metin("#007aff")),
+                             ("underline", .sayim(pango_underline_get_type(), Int32(PANGO_UNDERLINE_SINGLE.rawValue)))])
+        etiket("baglanti", [("foreground", .metin("#000000")),
                             ("underline", .sayim(pango_underline_get_type(), Int32(PANGO_UNDERLINE_SINGLE.rawValue)))])
         // Ayırıcı: Mac'teki ince yatay çizginin karşılığı; ince, tam genişlikte paragraf arka planı.
         etiket("ayirici", [("scale", .ondalik(0.2)), ("paragraph-background", .metin("rgba(128,128,128,0.45)"))])
@@ -191,7 +194,8 @@ final class LinuxBelgeAdaptoru {
         if satirIciKod { adlar.append("kodArka") }
         if kod { adlar.append("kod-girinti") }
         if o[kVurguAnahtari] as? Bool == true { adlar.append("vurgu") }
-        if o[kBaglantiAnahtari] != nil || o[kSayfaBagiAnahtari] != nil { adlar.append("baglanti") }
+        if o[kSayfaBagiAnahtari] != nil { adlar.append("sayfaBagi") }
+        else if o[kBaglantiAnahtari] != nil { adlar.append("baglanti") }
         if blok?.tur == .ayirici { adlar.append("ayirici") }
         if let blok, blok.tur == .uyari {
             adlar.append(dinamik("uyari-girinti-\(blok.seviye)", [("left-margin", .tam(Int32(blok.seviye * 24 + 24))),
