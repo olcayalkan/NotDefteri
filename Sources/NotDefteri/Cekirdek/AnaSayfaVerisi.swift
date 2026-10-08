@@ -64,7 +64,7 @@ private func yapilacakSatirlariniBul(_ hamMarkdown: String) -> [YapilacakSatiri]
         let aralik = ns.lineRange(for: NSRange(location: konum, length: 0))
         let satir = ns.substring(with: aralik)
         if let ayirac = kodBloguAyiraci(satir) {
-            konum = kodBloguKapanisi(govde, ayirac: ayirac, sonrasinda: NSMaxRange(aralik)).map { NSMaxRange($0) } ?? ns.length
+            konum = kodBloguKapanisi(ns, ayirac: ayirac, sonrasinda: NSMaxRange(aralik)).map { NSMaxRange($0) } ?? ns.length
             continue
         }
         let sade = satir.trimmingCharacters(in: .newlines)

@@ -80,6 +80,24 @@ extension KenarPaneli {
         }
     }
 
+    /// Kayıt ve açılış yolu: girdi seri önbellek kuyruğunda üretilir. Büyük notta üretim ana
+    /// thread'i her otomatik kayıtta ~100 ms donduruyordu. Daha yeni tarihli girdi ezilmez.
+    func notIceriginiArkaPlandaGuncelle(_ url: URL, metin: String) {
+        let tarih = degistirilmeTarihi(URL(fileURLWithPath: url.path))
+        onbellekKuyrugu.async { [weak self] in
+            let girdi = onbellekGirdisiUret(metin, tarih: tarih)
+            DispatchQueue.main.async {
+                guard let self, self.tumNotlar.contains(url) else { return }
+                if let simdiki = self.icerikOnbellek[url], simdiki.tarih > girdi.tarih { return }
+                self.icerikOnbellek[url] = girdi
+                self.baglantiOnbellegiDegisti?()
+                if !self.aramaAlani.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    self.filtrelemeyiPlanla()
+                }
+            }
+        }
+    }
+
     /// Okuma yolları (Ana Sayfa, ⌘P, geri bağlantılar) beklemez; sonuç gelince
     /// `baglantiOnbellegiDegisti` ile yeniden çizilir.
     func icerikOnbelleginiIste() {
@@ -269,6 +287,13 @@ extension KenarPaneli {
     func acikNotuBildir(_ url: URL) {
         acikNotURL = url
         kisaYollariPlanla()
+    }
+
+    /// Panel dışından (bulucu, bağ, Ana Sayfa) açılan ve ağaçta zaten olan not: diski yeniden
+    /// taramadan, bellekteki ağaçta seçilip ataları açılır.
+    func acikNotuGoster(_ url: URL) {
+        acikNotURL = url
+        filtreUygula()
     }
 }
 

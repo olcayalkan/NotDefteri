@@ -12,17 +12,21 @@ package struct SayfaBagi {
 /// Kaçışlar ve kod ayıraçları atlanır; açılış/kayıtta veya yalnızca değişen paragrafta kullanılır.
 package func sayfaBaglariniBul(_ metin: String) -> [SayfaBagi] {
     let ns = NSString(string: metin)
+    // Karakter başına NSString sorgusu Linux'ta (corelibs) köprüden geçip büyük notta taramayı
+    // ~90 ms'ye çıkarıyordu; UTF-16 birimleri bir kez diziye alınır.
+    let kod = Array(metin.utf16)
+    let n = kod.count
     var sonuc: [SayfaBagi] = []
     var i = 0
-    while i < ns.length {
-        if ns.character(at: i) == 92 { i += 2; continue }
-        if ns.character(at: i) == 96 {
+    while i < n {
+        if kod[i] == 92 { i += 2; continue }
+        if kod[i] == 96 {
             var adet = 1
-            while i + adet < ns.length, ns.character(at: i + adet) == 96 { adet += 1 }
+            while i + adet < n, kod[i + adet] == 96 { adet += 1 }
             let satir = ns.lineRange(for: NSRange(location: i, length: 0))
             if i == satir.location, let ayirac = kodBloguAyiraci(ns.substring(with: satir)) {
-                let kapanis = kodBloguKapanisi(metin, ayirac: ayirac, sonrasinda: NSMaxRange(satir))
-                i = kapanis.map { NSMaxRange($0) } ?? ns.length
+                let kapanis = kodBloguKapanisi(ns, ayirac: ayirac, sonrasinda: NSMaxRange(satir))
+                i = kapanis.map { NSMaxRange($0) } ?? n
                 continue
             }
             let ayirac = String(repeating: "`", count: adet)
@@ -32,10 +36,10 @@ package func sayfaBaglariniBul(_ metin: String) -> [SayfaBagi] {
             i += adet
             continue
         }
-        if i + 1 < ns.length, ns.character(at: i) == 91, ns.character(at: i + 1) == 91 {
+        if i + 1 < n, kod[i] == 91, kod[i + 1] == 91 {
             var son = i + 2
-            while son < ns.length, ![10, 13, 91, 93].contains(ns.character(at: son)) { son += 1 }
-            if son > i + 2, son + 1 < ns.length, ns.character(at: son) == 93, ns.character(at: son + 1) == 93 {
+            while son < n, ![10, 13, 91, 93].contains(kod[son]) { son += 1 }
+            if son > i + 2, son + 1 < n, kod[son] == 93, kod[son + 1] == 93 {
                 let hedef = ns.substring(with: NSRange(location: i + 2, length: son - i - 2))
                 if !hedef.trimmingCharacters(in: .whitespaces).isEmpty {
                     sonuc.append(SayfaBagi(aralik: NSRange(location: i, length: son + 2 - i), hedef: hedef))
@@ -45,21 +49,21 @@ package func sayfaBaglariniBul(_ metin: String) -> [SayfaBagi] {
             }
         }
         // Normal Markdown bağlantısının etiketi/URL'si sayfa bağlantısı değildir.
-        if ns.character(at: i) == 91 {
+        if kod[i] == 91 {
             var son = i + 1
             var derinlik = 1
-            while son < ns.length, derinlik > 0, ![10, 13].contains(ns.character(at: son)) {
-                let harf = ns.character(at: son)
+            while son < n, derinlik > 0, ![10, 13].contains(kod[son]) {
+                let harf = kod[son]
                 if harf == 92 { son += 2; continue }
                 if harf == 91 { derinlik += 1 }
                 if harf == 93 { derinlik -= 1 }
                 son += 1
             }
-            if derinlik == 0, son < ns.length, ns.character(at: son) == 40 {
+            if derinlik == 0, son < n, kod[son] == 40 {
                 son += 1
                 derinlik = 1
-                while son < ns.length, derinlik > 0, ![10, 13].contains(ns.character(at: son)) {
-                    let harf = ns.character(at: son)
+                while son < n, derinlik > 0, ![10, 13].contains(kod[son]) {
+                    let harf = kod[son]
                     if harf == 92 { son += 2; continue }
                     if harf == 40 { derinlik += 1 }
                     if harf == 41 { derinlik -= 1 }
@@ -289,7 +293,30 @@ func kodBloguAyiraci(_ satir: String) -> String? {
     return ayirac.count >= 3 && !satir.dropFirst(ayirac.count).contains("`") ? ayirac : nil
 }
 
-func kodBloguKapanisi(_ metin: String, ayirac: String, sonrasinda: Int) -> NSRange? {
-    let desen = try! NSRegularExpression(pattern: "(?m)^" + ayirac + "[ \t]*(?:\r?\n|$)")
-    return desen.firstMatch(in: metin, range: NSRange(location: sonrasinda, length: NSString(string: metin).length - sonrasinda))?.range
+/// `(?m)^ayirac[ \t]*(?:\r?\n|$)` ile aynı eşleşme, ama yalnızca kapanışa kadar olan satırlara bakar.
+/// Düzenli ifade her çağrıda tüm metni UTF-16'ya kopyalıyordu; kod bloğu sayısıyla çarpılınca
+/// büyük not açmak karesel büyüyordu.
+func kodBloguKapanisi(_ metin: NSString, ayirac: String, sonrasinda: Int) -> NSRange? {
+    let ayiracUzunlugu = NSString(string: ayirac).length
+    var konum = sonrasinda
+    while konum < metin.length {
+        let satir = metin.lineRange(for: NSRange(location: konum, length: 0))
+        konum = NSMaxRange(satir)
+        guard satir.length >= ayiracUzunlugu,
+              metin.range(of: ayirac, options: .anchored, range: satir).location != NSNotFound else { continue }
+        var i = satir.location + ayiracUzunlugu
+        while i < konum, metin.character(at: i) == 32 || metin.character(at: i) == 9 { i += 1 }
+        // Geriye yalnızca satır sonu kalmalı; "\n" ve "\r\n" eşleşmeye dahil, diğerleri değil.
+        guard i == konum || satirSonuMu(metin, i, konum) else { continue }
+        let son = i < konum && metin.character(at: konum - 1) == 10 ? konum : i
+        return NSRange(location: satir.location, length: son - satir.location)
+    }
+    return nil
+}
+
+/// [i, son) yalnızca tek bir satır sonu mu ("\r\n" dahil)?
+private func satirSonuMu(_ metin: NSString, _ i: Int, _ son: Int) -> Bool {
+    let ilk = metin.character(at: i)
+    if son - i == 2 { return ilk == 13 && metin.character(at: i + 1) == 10 }
+    return son - i == 1 && [10, 11, 12, 13, 0x85, 0x2028, 0x2029].contains(ilk)
 }

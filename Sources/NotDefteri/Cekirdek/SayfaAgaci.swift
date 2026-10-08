@@ -162,35 +162,57 @@ package func degistirilmeTarihi(_ url: URL) -> Date {
 
 /// Klasörü özyinelemeli tarayıp sayfa ağacını kurar.
 package func agaciYukle(_ klasor: URL = notlarKlasoru()) -> [AgacDugumu] {
+    klasoruTara(klasor).dugumler
+}
+
+/// Bir klasörün tek listelemesinden çıkan her şey: düğümler, kendisi sayfaysa index.md'nin
+/// değişme tarihi. Sayfa mı, tarih ne, sıra dosyası var mı soruları ayrı stat/okuma yapıyordu;
+/// 1000 sayfada taramanın çoğu bunlardı (olmayan .sira.json için hata nesnesi bile üretiliyordu).
+private func klasoruTara(_ klasor: URL) -> (dugumler: [AgacDugumu], icerikTarihi: Date?) {
     let fm = FileManager.default
-    guard let icerik = try? fm.contentsOfDirectory(at: klasor,
-                                                    includingPropertiesForKeys: [.contentModificationDateKey, .isDirectoryKey],
-                                                    options: [.skipsHiddenFiles]) else { return [] }
+    let anahtarlar: [URLResourceKey] = [.contentModificationDateKey, .isDirectoryKey, .isHiddenKey]
+    // Gizli dosyalar elle süzülür: .sira.json'un varlığı da bu listeden öğrenilir.
+    guard let icerik = try? fm.contentsOfDirectory(at: klasor, includingPropertiesForKeys: anahtarlar,
+                                                    options: []) else { return ([], nil) }
     var klasorler: [URL] = []
     var duzNotlar: [URL] = []
+    var tarihler: [String: Date] = [:]   // dosya adı -> değişme tarihi (listelemede önceden alındı)
+    var icerikTarihi: Date?
+    var siraVar = false
     for url in icerik {
-        let dizinMi = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-        if dizinMi {
-            guard url.lastPathComponent != "ekler", url.lastPathComponent != kGorsellerKlasorAdi else { continue }
+        let ad = url.lastPathComponent
+        let degerler = try? url.resourceValues(forKeys: Set(anahtarlar))
+        if ad == kSiraDosyaAdi { siraVar = true }
+        if ad.hasPrefix(".") || degerler?.isHidden == true { continue }
+        if degerler?.isDirectory ?? false {
+            guard ad != "ekler", ad != kGorsellerKlasorAdi else { continue }
             klasorler.append(url)
-        } else if url.pathExtension.lowercased() == "md", url.lastPathComponent != kIcerikDosyaAdi {
+        } else if ad == kIcerikDosyaAdi {
+            icerikTarihi = degerler?.contentModificationDate ?? .distantPast
+        } else if url.pathExtension.lowercased() == "md" {
             duzNotlar.append(url)
+            tarihler[ad] = degerler?.contentModificationDate ?? .distantPast
+            // Büyük/küçük harf duyarsız diskte "Index.md" de sayfa işaretidir (eski fileExists davranışı).
+            if icerikTarihi == nil, ad.lowercased() == kIcerikDosyaAdi,
+               fm.fileExists(atPath: klasor.appendingPathComponent(kIcerikDosyaAdi).path) {
+                icerikTarihi = degistirilmeTarihi(klasor.appendingPathComponent(kIcerikDosyaAdi))
+            }
         }
     }
 
     let duzNotAdlari = Set(duzNotlar.map { $0.deletingPathExtension().lastPathComponent })
-    var sayfalar: [AgacDugumu] = []
+    var sayfalar: [(dugum: AgacDugumu, tarih: Date)] = []
     var kapsayicilar: [AgacDugumu] = []
 
     for klasorURL in klasorler {
         // Eski düz notun alt dal klasörüyse o notun düğümünde işlenecek.
         guard !duzNotAdlari.contains(klasorURL.lastPathComponent) else { continue }
-        let cocuklar = agaciYukle(klasorURL)
-        if klasorSayfasiMi(klasorURL) {
-            sayfalar.append(AgacDugumu(icerikURL: klasorURL.appendingPathComponent(kIcerikDosyaAdi),
-                                        klasorURL: klasorURL, cocuklar: cocuklar))
+        let alt = klasoruTara(klasorURL)
+        if let tarih = alt.icerikTarihi {
+            sayfalar.append((AgacDugumu(icerikURL: klasorURL.appendingPathComponent(kIcerikDosyaAdi),
+                                        klasorURL: klasorURL, cocuklar: alt.dugumler), tarih))
         } else {
-            kapsayicilar.append(AgacDugumu(icerikURL: nil, klasorURL: klasorURL, cocuklar: cocuklar))
+            kapsayicilar.append(AgacDugumu(icerikURL: nil, klasorURL: klasorURL, cocuklar: alt.dugumler))
         }
     }
 
@@ -199,16 +221,18 @@ package func agaciYukle(_ klasor: URL = notlarKlasoru()) -> [AgacDugumu] {
     for notURL in duzNotlar {
         let ad = notURL.deletingPathExtension().lastPathComponent
         let altKlasor = klasorlerAdaGore[ad]
-        sayfalar.append(AgacDugumu(icerikURL: notURL,
+        sayfalar.append((AgacDugumu(icerikURL: notURL,
                                     klasorURL: altKlasor ?? sayfaKlasoru(notURL),
-                                    cocuklar: altKlasor.map { agaciYukle($0) } ?? []))
+                                    cocuklar: altKlasor.map { klasoruTara($0).dugumler } ?? []),
+                         tarihler[notURL.lastPathComponent] ?? .distantPast))
     }
 
     kapsayicilar.sort { $0.ad.localizedStandardCompare($1.ad) == .orderedAscending }
-    // Tarih her karşılaştırmada değil, sayfa başına bir kez okunur (sıralama n·log n stat yapıyordu).
-    let tarihler = Dictionary(sayfalar.map { ($0.icerikURL!, degistirilmeTarihi($0.icerikURL!)) }, uniquingKeysWith: { ilk, _ in ilk })
-    sayfalar.sort { tarihler[$0.icerikURL!]! > tarihler[$1.icerikURL!]! }
-    return siraUygula(kapsayicilar + sayfalar, siraOku(klasor))
+    // Kararlı sıralama: eşit tarihte listeleme sırası korunur (eski sıralamayla aynı).
+    let siraliSayfalar = sayfalar.enumerated()
+        .sorted { $0.element.tarih != $1.element.tarih ? $0.element.tarih > $1.element.tarih : $0.offset < $1.offset }
+        .map(\.element.dugum)
+    return (siraUygula(kapsayicilar + siraliSayfalar, siraVar ? siraOku(klasor) : nil), icerikTarihi)
 }
 
 /// Ağacın gizleyeceği ya da tek bir klasör adı olmayan adları reddeder.

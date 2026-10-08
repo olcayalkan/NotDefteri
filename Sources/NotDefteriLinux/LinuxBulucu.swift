@@ -533,11 +533,21 @@ private final class SayfaBulucusu {
         guard let editor, kapsam.length > 0 else { return }
         var bas = bas, son = son
         for etiket in [bagEtiketi, solukBagEtiketi] { gtk_text_buffer_remove_tag(editor.tampon, etiket, &bas, &son) }
-        let paragraf = belge.attributedSubstring(from: kapsam), ns = paragraf.string as NSString
-        for bag in baglar(paragraf) {
-            var (b, s) = GtkKoprusu.iterler(editor.tampon, bag.aralik, metin: ns, baslangic: bas)
+        // Tüm belge boyanırken kopya alınmaz (büyük notta corelibs kopyası yüzlerce ms).
+        let paragraf = kapsam == NSRange(location: 0, length: belge.length) ? belge : belge.attributedSubstring(from: kapsam)
+        let ns = paragraf.string as NSString
+        // Bağlar sıralı gelir; iter bir öncekinden ilerletilir. Her bağ için kapsam başından
+        // saymak 2000 bağlı notta açılışı 1,6 sn donduruyordu (karesel).
+        var iter = bas, konum = 0
+        for bag in baglar(paragraf) where bag.aralik.location >= konum {
+            gtk_text_iter_forward_chars(&iter, Int32(LinuxMetinDonusumu.karakterSayisi(
+                ns, NSRange(location: konum, length: bag.aralik.location - konum))))
+            var sonu = iter
+            gtk_text_iter_forward_chars(&sonu, Int32(LinuxMetinDonusumu.karakterSayisi(ns, bag.aralik)))
             let etiket = baglantilar.coz(bag.hedef) == nil ? solukBagEtiketi : bagEtiketi
-            gtk_text_buffer_apply_tag(editor.tampon, etiket, &b, &s)
+            gtk_text_buffer_apply_tag(editor.tampon, etiket, &iter, &sonu)
+            iter = sonu
+            konum = NSMaxRange(bag.aralik)
         }
     }
 

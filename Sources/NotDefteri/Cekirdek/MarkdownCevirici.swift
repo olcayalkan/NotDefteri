@@ -26,6 +26,21 @@ package func isaretlemeleriTemizle(_ metin: String) -> String {
         .replacingOccurrences(of: "\u{200B}", with: "")
 }
 
+private let kSatirIciBicimAnahtarlari = [kPuntoOlcegiAnahtari, kKalinAnahtari, kItalikAnahtari, kSatirIciKodAnahtari,
+    kUstuCiziliAnahtari, kVurguAnahtari, kBaglantiAnahtari, kCiplakBagAnahtari, kSayfaBagiAnahtari, kBaslikSeviyesiAnahtari]
+
+/// Aynı Markdown etiketine girecek iki parça mı? Değerleri metne çevirip karşılaştırmak
+/// (String(describing:)) her parçada yansıma maliyeti çıkarıyordu.
+private func ayniSatirIciBicim(_ a: [NSAttributedString.Key: Any], _ b: [NSAttributedString.Key: Any]) -> Bool {
+    kSatirIciBicimAnahtarlari.allSatisfy { anahtar in
+        switch (a[anahtar], b[anahtar]) {
+        case (nil, nil): return true
+        case let (x?, y?): return (x as? AnyHashable) == (y as? AnyHashable) && x as? AnyHashable != nil
+        default: return false
+        }
+    }
+}
+
 private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
     var sonuc = ""
     let tamAralik = NSRange(location: 0, length: attr.length)
@@ -33,7 +48,6 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
     let ns = NSString(string: attr.string)
     var satirBasi = true
     var tampon = ""
-    var tamponBicimi = ""
     var tamponOznitelikleri: [NSAttributedString.Key: Any] = [:]
     var yazilanBagSonu = 0
     let riskli = satirKacisRiskleri(attr)
@@ -150,10 +164,7 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
         // Satır sonu biçim etiketinin dışında kalır; blok sınırları karışmaz.
         let satirSonu = parca.hasSuffix("\n")
         if satirSonu { parca.removeLast() }
-        let bicim = [kPuntoOlcegiAnahtari, kKalinAnahtari, kItalikAnahtari, kSatirIciKodAnahtari, kUstuCiziliAnahtari, kVurguAnahtari, kBaglantiAnahtari,
-             kCiplakBagAnahtari, kSayfaBagiAnahtari, kBaslikSeviyesiAnahtari].map { String(describing: oznitelikler[$0]) }.joined(separator: "|")
-        if !tampon.isEmpty, tamponBicimi != bicim { tamponuYaz() }
-        tamponBicimi = bicim
+        if !tampon.isEmpty, !ayniSatirIciBicim(tamponOznitelikleri, oznitelikler) { tamponuYaz() }
         tamponOznitelikleri = oznitelikler
         tampon += parca
         if satirSonu { tamponuYaz(); isaretleriKapat(); sonuc += "\n" }
@@ -456,11 +467,34 @@ private func satiriAttributedStringeCevir(_ metin: String, taban: URL, devamBlog
     return sonuc
 }
 
+/// Algılayıcının bulabileceği her bağ "@", harf/rakamdan önce "." ya da "/"/harften önce ":"
+/// içerir. Çoğu satırda bunlar yok; algılayıcı (macOS'ta dil tanıma dahil) satır başına
+/// pahalı olduğu için önce bu ucuz tarama yapılır.
+private func bagIcerebilir(_ ns: NSString, _ aralik: NSRange) -> Bool {
+    let son = NSMaxRange(aralik)
+    var i = aralik.location
+    while i < son {
+        let k = ns.character(at: i)
+        if k == 64 { return true }                                    // @
+        if (k == 46 || k == 58), i + 1 < son {                        // . :
+            let sonraki = ns.character(at: i + 1)
+            if UTF16.isLeadSurrogate(sonraki) { return true }
+            if let skaler = Unicode.Scalar(sonraki) {
+                if k == 46, CharacterSet.alphanumerics.contains(skaler) { return true }
+                if k == 58, sonraki == 47 || CharacterSet.letters.contains(skaler) { return true }
+            }
+        }
+        i += 1
+    }
+    return false
+}
+
 #if os(macOS)
 private let kBagAlgilayici = try! NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
 
 private func ciplakBaglariBul(_ metin: String, aralik: NSRange) -> [(aralik: NSRange, url: URL)] {
-    kBagAlgilayici.matches(in: metin, range: aralik).compactMap {
+    guard bagIcerebilir(NSString(string: metin), aralik) else { return [] }
+    return kBagAlgilayici.matches(in: metin, range: aralik).compactMap {
         guard let url = $0.url else { return nil }
         return ($0.range, url)
     }
@@ -494,6 +528,7 @@ private func ciplakBagURLsi(_ yazi: String) -> URL? {
 
 private func ciplakBaglariBul(_ metin: String, aralik: NSRange) -> [(aralik: NSRange, url: URL)] {
     let ns = NSString(string: metin)
+    guard bagIcerebilir(ns, aralik) else { return [] }
     return kBagAlgilayici.matches(in: metin, range: aralik).compactMap { eslesme in
         var yazi = ns.substring(with: eslesme.range)
         while let son = yazi.last {
@@ -513,6 +548,7 @@ private func ciplakBaglariBul(_ metin: String, aralik: NSRange) -> [(aralik: NSR
 
 /// Algılama yalnızca açılan/yapıştırılan aralıkta çalışır; yazımda belge taranmaz.
 package func ciplakBaglariIsaretle(_ metin: NSMutableAttributedString, aralik: NSRange) {
+    guard bagIcerebilir(metin.mutableString, aralik) else { return }
     #if os(macOS)
     kBagAlgilayici.enumerateMatches(in: metin.string, range: aralik) { eslesme, _, _ in
         guard let eslesme, let url = eslesme.url, disBaglantiGecerliMi(url),
@@ -596,13 +632,13 @@ package func markdownMetniUret(_ metin: NSAttributedString) -> String {
         }
         let parca = metin.attributedSubstring(from: aralik)
         let kanonik = kanonikMarkdownUret(parca)
-        let kaynak = parca.attribute(kMarkdownKaynakAnahtari, at: 0, effectiveRange: nil) as? [String: String]
+        let kaynak = MarkdownKaynagi(oznitelik: parca.attribute(kMarkdownKaynakAnahtari, at: 0, effectiveRange: nil))
         var ayniKaynak = kaynak != nil
         parca.enumerateAttribute(kMarkdownKaynakAnahtari, in: NSRange(location: 0, length: parca.length)) { deger, _, durdur in
-            if (deger as? [String: String]) != kaynak { ayniKaynak = false; durdur.pointee = true }
+            if MarkdownKaynagi(oznitelik: deger) != kaynak { ayniKaynak = false; durdur.pointee = true }
         }
         // Karşılaştırma kayıt/kopyalamada yapılır; özgün paragrafın yazılışı korunur.
-        if ayniKaynak, kaynak?["kanonik"] == kanonik { sonuc += kaynak?["metin"] ?? kanonik }
+        if ayniKaynak, let kaynak, kaynak.kanonik == kanonik { sonuc += kaynak.metin }
         else { sonuc += kanonik }
         oncekiBlok = blok
         konum = NSMaxRange(aralik)
@@ -611,7 +647,7 @@ package func markdownMetniUret(_ metin: NSAttributedString) -> String {
 }
 
 package func markdowndenAttributedStringUret(_ metin: String, taban: URL = notlarKlasoru()) -> NSAttributedString {
-    let sonuc = NSMutableAttributedString(string: "")
+    var parcalar: [NSAttributedString] = []
     let ns = NSString(string: metin)
     var konum = 0
     var uyari: MetinBlogu?
@@ -631,7 +667,7 @@ package func markdowndenAttributedStringUret(_ metin: String, taban: URL = notla
         let parca: NSMutableAttributedString
         if let ayirac = kodBloguAyiraci(yazi) {
             let govdeBasi = NSMaxRange(satir)
-            let kapanis = kodBloguKapanisi(metin, ayirac: ayirac, sonrasinda: govdeBasi)
+            let kapanis = kodBloguKapanisi(ns, ayirac: ayirac, sonrasinda: govdeBasi)
             let govdeSonu = kapanis?.location ?? ns.length
             kaynakAraligi.length = (kapanis.map { NSMaxRange($0) } ?? ns.length) - konum
             let sinirlar = kodBloguSinirlari(acilis: yazi, kapanis: kapanis.map { ns.substring(with: $0) } ?? "")
@@ -656,12 +692,36 @@ package func markdowndenAttributedStringUret(_ metin: String, taban: URL = notla
             parca.append(NSAttributedString(string: "\u{200B}", attributes: [
                 kBlokIsaretiAnahtari: true]))
         }
-        let kaynak = ["metin": ns.substring(with: kaynakAraligi), "kanonik": kanonikMarkdownUret(parca)]
-        parca.addAttribute(kMarkdownKaynakAnahtari, value: kaynak, range: NSRange(location: 0, length: parca.length))
-        sonuc.append(parca)
+        let kaynak = MarkdownKaynagi(metin: ns.substring(with: kaynakAraligi), kanonik: kanonikMarkdownUret(parca))
+        parca.addAttribute(kMarkdownKaynakAnahtari, value: kaynak.oznitelikDegeri, range: NSRange(location: 0, length: parca.length))
+        parcalar.append(parca)
         konum = NSMaxRange(kaynakAraligi)
     }
+    return parcalariBirlestir(parcalar)
+}
+
+/// Linux'ta (corelibs) her append tüm metnin UTF-16 uzunluğunu baştan sayıyordu; büyük not
+/// karesel açılıyordu. Orada metin tek seferde kurulur, öznitelikler sonra yazılır. AppKit'in
+/// append'i zaten doğrusal ve bu yoldan biraz hızlı.
+private func parcalariBirlestir(_ parcalar: [NSAttributedString]) -> NSAttributedString {
+    #if os(macOS)
+    let sonuc = NSMutableAttributedString()
+    for parca in parcalar { sonuc.append(parca) }
     return sonuc
+    #else
+    let sonuc = NSMutableAttributedString(string: parcalar.map(\.string).joined())
+    sonuc.beginEditing()
+    var konum = 0
+    for parca in parcalar {
+        parca.enumerateAttributes(in: NSRange(location: 0, length: parca.length)) { oznitelikler, aralik, _ in
+            guard !oznitelikler.isEmpty else { return }
+            sonuc.setAttributes(oznitelikler, range: NSRange(location: konum + aralik.location, length: aralik.length))
+        }
+        konum += parca.length
+    }
+    sonuc.endEditing()
+    return sonuc
+    #endif
 }
 
 /// İçerikte backtick varsa daha uzun ayıraç seçilir; yeniden açışta kod bölünmesin.
@@ -691,12 +751,27 @@ private func satirKacisRiskleri(_ satir: NSAttributedString) -> Set<Character> {
         if o[kSatirIciKodAnahtari] as? Bool == true { riskli.insert("`") }
         if let bag = o[kBaglantiAnahtari], o[kCiplakBagAnahtari] as? Bool != true { riskli.insert("["); baglam += "\(bag)" }
     }
-    func cift(_ h: Character) -> Int { zip(baglam, baglam.dropFirst()).filter { $0 == h && $1 == h }.count }
-    if baglam.filter({ $0 == "*" }).count > 1 { riskli.insert("*") }
-    if baglam.filter({ $0 == "`" }).count > 1 { riskli.insert("`") }
-    if cift("~") > 1 { riskli.insert("~") }
-    if cift("=") > 1 { riskli.insert("=") }
-    if baglam.contains("[[") || baglam.contains("](") { riskli.insert("[") }
+    // İşaretlerin hepsi ASCII: tek geçişte UTF-8 baytları sayılır. NSString'den gelen metinde
+    // Character yinelemesi her karakterde köprüden geçiyor, kaydın en pahalı adımıydı.
+    var yildiz = 0, tirnak = 0, tilda = 0, esittir = 0, bagIsareti = false
+    var onceki: UInt8 = 0
+    for bayt in baglam.utf8 {
+        switch bayt {
+        case UInt8(ascii: "*"): yildiz += 1
+        case UInt8(ascii: "`"): tirnak += 1
+        case UInt8(ascii: "~") where onceki == bayt: tilda += 1
+        case UInt8(ascii: "=") where onceki == bayt: esittir += 1
+        case UInt8(ascii: "[") where onceki == bayt: bagIsareti = true
+        case UInt8(ascii: "(") where onceki == UInt8(ascii: "]"): bagIsareti = true
+        default: break
+        }
+        onceki = bayt
+    }
+    if yildiz > 1 { riskli.insert("*") }
+    if tirnak > 1 { riskli.insert("`") }
+    if tilda > 1 { riskli.insert("~") }
+    if esittir > 1 { riskli.insert("=") }
+    if bagIsareti { riskli.insert("[") }
     if satir.length > 0, let blok = MetinBlogu(oznitelik: satir.attribute(kMetinBloguAnahtari, at: 0, effectiveRange: nil)),
        blok.tur == .alinti || (blok.tur == .uyari && blok.devam) {
         let govde = NSString(string: satir.string).substring(from: blokIsaretiUzunlugu(satir))

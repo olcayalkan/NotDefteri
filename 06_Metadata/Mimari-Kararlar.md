@@ -154,6 +154,37 @@ metin.folding(options: [.diacriticInsensitive, .caseInsensitive],
 **Neden:** `İ/I/ı` ve `ö ü ş ç ğ` doğru eşleşsin. Locale vermezsen
 Türkçe nokta-i sorunları çıkar.
 
+## Performans (2026-10-08 ölçümleri)
+
+### Öznitelik değeri sözlük olamaz (macOS)
+`NSDictionary.hash` eleman sayısıdır. AppKit öznitelik sözlüklerini hash ile
+tekilleştirdiği için satır başına farklı `[String: String]` değeri her satırı
+aynı kovaya düşürüyordu: 280 KB not açmak O(n²), 4,3 sn. `MarkdownKaynagi`
+macOS'ta hash'i dağılan bir nesne olarak saklanır. **Tuzak:** Linux'ta
+(corelibs) `NSObject` alt sınıfı öznitelik değeri CFRunArray karşılaştırmasında
+çöküyor; orada değer sözlük kalır. Erişim yalnızca `MarkdownKaynagi(oznitelik:)`
+ve `.oznitelikDegeri` üzerinden.
+
+### Linux'ta NSString/NSAttributedString köprüsü pahalı
+corelibs'te değiştirilebilir NSString Swift String'dir; `append` her seferinde
+UTF-16 uzunluğunu baştan sayar (karesel). Karakter başına `character(at:)`
+da yavaş. Büyük metin tek seferde kurulur, taramalar `Array(metin.utf16)` üzerinde
+yapılır. GTK iter'ları bağlar için sıralı ve artımlı ilerletilir.
+
+### Ana thread'den çıkarılanlar
+Kayıt/açılıştaki arama girdisi (`notIceriginiArkaPlandaGuncelle`) arka planda
+üretilir; daha yeni tarihli girdi ezilmez. Senkron güncellemeye güvenen yollar
+(yapılacak doğrulama, dal taşıma) eski `notIceriginiGuncelle`'yi kullanır.
+
+| Ölçüm (265 KB not, 1000 sayfa) | Önce | Sonra |
+|---|---|---|
+| macOS not açma | 4,3 sn | 1,2 sn |
+| macOS otomatik kayıt | 2,0 sn | 0,45 sn |
+| macOS kaydırma adımı | 10,4 ms | ~0 (içindekiler takibi) |
+| macOS ağaç taraması | 200 ms | 140 ms |
+| Linux not açma | 3,6 sn | 2,0 sn |
+| Linux otomatik kayıt | 1,4 sn | 0,67 sn |
+
 ## Klavye
 
 ### Punto kısayolları menüden geçmiyor

@@ -138,12 +138,15 @@ final class MacBelgeAdaptoru {
 
     /// Çekirdek dosyanın varlığını, Mac ise codec'i doğrular. Çözülemeyen
     /// görsel eski okuyucudaki gibi kaynak metin olarak kalır.
-    static func markdownuAc(_ markdown: String, taban: URL = notlarKlasoru()) -> NSAttributedString {
-        belgeyiAc(markdowndenAttributedStringUret(markdown, taban: taban), taban: taban)
+    /// `olcek`: hedef editörün yazı ölçeği. Görünüm burada bir kez doğru ölçekle kurulur;
+    /// editör yüklerken aynı hesabı (büyük notta açılışın üçte biri) tekrarlamaz.
+    static func markdownuAc(_ markdown: String, taban: URL = notlarKlasoru(), olcek: CGFloat = 1) -> NSAttributedString {
+        belgeyiAc(markdowndenAttributedStringUret(markdown, taban: taban), taban: taban, olcek: olcek)
     }
 
-    static func belgeyiAc(_ anlamsal: NSAttributedString, taban: URL) -> NSAttributedString {
+    static func belgeyiAc(_ anlamsal: NSAttributedString, taban: URL, olcek: CGFloat = 1) -> NSAttributedString {
         let adaptor = MacBelgeAdaptoru()
+        adaptor.olcek = olcek
         let belge = NSMutableAttributedString(attributedString: adaptor.gorunumluBelge(anlamsal))
         var degisiklikler: [(NSRange, NSAttributedString)] = []
         var konum = 0
@@ -168,12 +171,12 @@ final class MacBelgeAdaptoru {
     /// Doğal/küçük görsel boyutu kayda taşınır; düzenlenmemiş kaynak yine aynen kalır.
     private static func gorselKaynakKanoniginiGuncelle(_ belge: NSMutableAttributedString, onceki: NSAttributedString) {
         guard gorselSayisi(belge) > 0,
-              var kaynak = onceki.attribute(kMarkdownKaynakAnahtari, at: 0, effectiveRange: nil) as? [String: String],
-              markdownMetniUret(onceki) == kaynak["metin"] else { return }
+              let kaynak = MarkdownKaynagi(oznitelik: onceki.attribute(kMarkdownKaynakAnahtari, at: 0, effectiveRange: nil)),
+              markdownMetniUret(onceki) == kaynak.metin else { return }
         let tumu = NSRange(location: 0, length: belge.length)
         belge.removeAttribute(kMarkdownKaynakAnahtari, range: tumu)
-        kaynak["kanonik"] = markdownMetniUret(belge)
-        belge.addAttribute(kMarkdownKaynakAnahtari, value: kaynak, range: tumu)
+        let kanonik = markdownMetniUret(belge)
+        belge.addAttribute(kMarkdownKaynakAnahtari, value: MarkdownKaynagi(metin: kaynak.metin, kanonik: kanonik).oznitelikDegeri, range: tumu)
     }
 
     private static func okunamayanGorselleriMetneCevir(_ parca: NSAttributedString, taban: URL) -> NSAttributedString? {
@@ -184,8 +187,7 @@ final class MacBelgeAdaptoru {
             }
         }
         guard !yollar.isEmpty,
-              let kaynak = parca.attribute(kMarkdownKaynakAnahtari, at: 0, effectiveRange: nil) as? [String: String],
-              let ham = kaynak["metin"] else { return nil }
+              let ham = MarkdownKaynagi(oznitelik: parca.attribute(kMarkdownKaynakAnahtari, at: 0, effectiveRange: nil))?.metin else { return nil }
         let metin = NSMutableString(string: ham)
         var yeni = markdowndenAttributedStringUret(ham, taban: taban)
         let desen = try! NSRegularExpression(pattern: #"!\[[^\]]*\]\(([^)]{0,1024})\)"#)
@@ -209,7 +211,7 @@ final class MacBelgeAdaptoru {
         }
         sonuc.removeAttribute(kMarkdownKaynakAnahtari, range: tumu)
         let kanonik = markdownMetniUret(sonuc)
-        sonuc.addAttribute(kMarkdownKaynakAnahtari, value: ["metin": ham, "kanonik": kanonik], range: tumu)
+        sonuc.addAttribute(kMarkdownKaynakAnahtari, value: MarkdownKaynagi(metin: ham, kanonik: kanonik).oznitelikDegeri, range: tumu)
         return sonuc
     }
 

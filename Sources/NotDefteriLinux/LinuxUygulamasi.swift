@@ -34,7 +34,7 @@ package enum LinuxUygulamasi {
             editor.notSecimiBildir = { [weak panel] in panel?.acikNotuBildir($0) }
             panel.baglarYenidenYazildi = { [weak editor] in editor?.baglariYenidenYaz($0) }
             panel.anaSayfaIstendi = { [weak yeni] in yeni?.icerigiGoster(anaSayfa: true) }
-            editor.kayitSonrasi.append { [weak panel] url, metin in panel?.notIceriginiGuncelle(url, metin: metin) }
+            editor.kayitSonrasi.append { [weak panel] url, metin in panel?.notIceriginiArkaPlandaGuncelle(url, metin: metin) }
             LinuxEklentiler.kur(pencere: yeni, editor: editor, panel: panel)
             GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(yeni.pencere), "destroy") { pencere = nil }
             gtk_window_present(nd_window(yeni.pencere))
