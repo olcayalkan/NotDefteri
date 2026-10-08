@@ -10,6 +10,12 @@ package enum LinuxUygulamasi {
         // kullanıcı GTK_THEME verdiyse dokunulmaz.
         // Kağıt temaları macOS'taki gibi hep açıktır; masaüstü koyu olsa da açık Adwaita kullanılır.
         if g_getenv("GTK_THEME") == nil { g_setenv("GTK_THEME", "Adwaita", 1) }
+        // Wayland'de "her zaman üstte" istemi yok (GNOME/Mutter, Zorin); sabitleme düğmesi işe
+        // yaramıyordu. XWayland varsa pencere X11 olarak açılır, _NET_WM_STATE_ABOVE çalışır.
+        // Kullanıcı GDK_BACKEND verdiyse dokunulmaz.
+        if g_getenv("GDK_BACKEND") == nil, g_getenv("WAYLAND_DISPLAY") != nil, g_getenv("DISPLAY") != nil {
+            g_setenv("GDK_BACKEND", "x11", 1)
+        }
         guard let uygulama = gtk_application_new("com.notdefteri.uygulama", GApplicationFlags(rawValue: 0)) else {
             FileHandle.standardError.write(Data("GTK uygulaması oluşturulamadı.\n".utf8))
             return 1
