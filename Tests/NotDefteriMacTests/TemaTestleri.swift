@@ -4,6 +4,22 @@ import XCTest
 @testable import NotDefteriMac
 
 final class TemaTestleri: XCTestCase {
+    func testUygulamaGorunumuSeciliTemayiIzler() {
+        _ = NSApplication.shared
+        let eskiTema = gTemaIndex
+        let eskiGorunum = NSApp.appearance
+        defer {
+            gTemaIndex = eskiTema
+            NSApp.appearance = eskiGorunum
+        }
+        gTemaIndex = 1
+        temaGorunumunuUygula()
+        XCTAssertEqual(NSApp.appearance?.name, .darkAqua)
+        gTemaIndex = 0
+        temaGorunumunuUygula()
+        XCTAssertEqual(NSApp.appearance?.name, .aqua)
+    }
+
     func testTemaDegisimiMarkdownuVeBicimleriKorur() {
         let eski = gTemaIndex
         defer { gTemaIndex = eski }
