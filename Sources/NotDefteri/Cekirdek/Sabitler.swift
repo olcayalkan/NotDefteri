@@ -28,3 +28,12 @@ package let kTabanPunto: CGFloat = 14
 /// 3 pt dışına çizildiği için kutu ile komşu paragraf arasında yaklaşık yarım satır kalır.
 /// Yalnızca görünümdür; Markdown'a satır yazılmaz.
 package let kKutuDisBoslugu: CGFloat = (kTabanPunto * 0.6).rounded() + 3
+
+/// Uyarı kutusu renkleri (0–1 RGB). Doygun sistem renkleri yerine kağıtta göz yormayan yumuşak tonlar.
+package let kUyariRenkleri: [String: (r: Double, g: Double, b: Double)] = [
+    "gri": (0.56, 0.56, 0.58), "mavi": (0.36, 0.53, 0.78), "sarı": (0.80, 0.64, 0.20),
+    "kırmızı": (0.80, 0.38, 0.36), "yeşil": (0.36, 0.62, 0.43)]
+
+/// Kutu (kod/uyarı) içi çerçeve rengiyle doldurulur; uyarı çizgisi de soluk tutulur.
+package let kKutuDolguOpakligi = 0.07
+package let kUyariCizgiOpakligi = 0.45

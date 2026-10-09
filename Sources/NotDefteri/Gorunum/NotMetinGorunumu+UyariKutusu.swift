@@ -52,19 +52,18 @@ extension NotMetinGorunumu {
         NSBezierPath(rect: kirpma).addClip()
         for aralik in cerceveliBlokAraliklari(adaylar, anahtar: anahtar) {
             guard let kare = blokCerceveKaresi(aralik, anahtar: anahtar), kare.intersects(kirpma) else { continue }
+            guard anahtar != kKodBloguAnahtari else { blokCercevesiniCiz(kare, renk: kMetinRenk, cizgi: 0.7); continue }
             let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
-            let renkler: [String: NSColor] = ["mavi": .systemBlue, "sarı": .systemYellow,
-                "kırmızı": .systemRed, "yeşil": .systemGreen]
-            let renk = anahtar == kKodBloguAnahtari ? kMetinRenk : renkler[blok?.renk ?? ""] ?? .systemGray
-            blokCercevesiniCiz(kare, renk: renk)
+            let r = kUyariRenkleri[blok?.renk ?? ""] ?? kUyariRenkleri["gri"]!
+            blokCercevesiniCiz(kare, renk: NSColor(srgbRed: r.r, green: r.g, blue: r.b, alpha: 1), cizgi: kUyariCizgiOpakligi)
         }
     }
 
-    func blokCercevesiniCiz(_ kare: NSRect, renk: NSColor) {
+    func blokCercevesiniCiz(_ kare: NSRect, renk: NSColor, cizgi: CGFloat) {
         let cerceve = NSBezierPath(roundedRect: kare.insetBy(dx: 0.5, dy: 0.5), xRadius: 6, yRadius: 6)
-        renk.withAlphaComponent(0.03).setFill()
+        renk.withAlphaComponent(kKutuDolguOpakligi).setFill()
         cerceve.fill()
-        renk.withAlphaComponent(0.7).setStroke()
+        renk.withAlphaComponent(cizgi).setStroke()
         cerceve.lineWidth = 1
         cerceve.stroke()
     }
