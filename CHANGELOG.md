@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- NotDefteri: Terminal teması, kayıtlı tema seçimi için tek seferlik geçiş ve macOS/Linux tema yenilemesi.
+- NotDefteri: Dil etiketi olmayan veya tanınmayan kod bloklarında genel sözdizimi renklendirmesi.
+
+### Fixed
+
+- NotDefteri: Tema değişiminde metin/kod renklerinin güncellenmesi ve Türkçe arama normalizasyonuna uygun önbellek testi beklentileri.
+
 ## [0.15.1] - 2026-04-11
 
 ### Fixed
