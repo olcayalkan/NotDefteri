@@ -62,6 +62,20 @@ final class LinuxBelgeAdaptoru {
         etiket("ayirici", [("scale", .ondalik(0.2)), ("paragraph-background", .metin("rgba(128,128,128,0.45)"))])
         etiket(Self.kutuUstEtiketi, [("pixels-above-lines", .tam(Self.kutuBoslugu))])
         etiket(Self.kutuAltEtiketi, [("pixels-below-lines", .tam(Self.kutuBoslugu))])
+        temayiUygula()
+    }
+
+    /// GtkTextTag renkleri CSS mirasını ezdiği için tema değişiminde ayrıca güncellenir.
+    func temayiUygula() {
+        let koyu = LinuxTema.koyuMu
+        let metin = LinuxTema.metinRengi
+        let soluk = koyu ? "rgba(242,240,247,0.55)" : "rgba(0,0,0,0.45)"
+        let kodArka = koyu ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"
+        let ayirici = koyu ? "rgba(242,240,247,0.45)" : "rgba(128,128,128,0.45)"
+        if let tag = etiketler["soluk"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(soluk)) }
+        if let tag = etiketler["kodArka"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "background", .metin(kodArka)) }
+        if let tag = etiketler["baglanti"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(metin)) }
+        if let tag = etiketler["ayirici"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "paragraph-background", .metin(ayirici)) }
     }
 
     // MARK: Yükleme ve programatik değişiklik

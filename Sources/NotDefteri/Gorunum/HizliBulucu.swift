@@ -43,12 +43,15 @@ final class HizliBulucu: NSView, NSTextFieldDelegate {
         kaydirma.autohidesScrollers = true
         kaydirma.documentView = liste
         addSubview(kaydirma)
-        bosEtiketi.textColor = .secondaryLabelColor
+        bosEtiketi.textColor = kMetinRenk.withAlphaComponent(0.6)
         addSubview(bosEtiketi)
     }
     required init?(coder: NSCoder) { fatalError() }
 
     func filtrele(_ sorgu: String) {
+        layer?.backgroundColor = aktifTema.kenarPanel.cgColor
+        aramaAlani.textColor = kMetinRenk
+        bosEtiketi.textColor = kMetinRenk.withAlphaComponent(0.6)
         sonSorgu = sorgu
         sonuclar = ara?(sorgu) ?? []
         secili = 0

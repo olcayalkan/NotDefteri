@@ -106,7 +106,7 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         aramaKutusu.layer?.backgroundColor = aramaKutuRengi().cgColor
         addSubview(aramaKutusu)
 
-        aramaIkonu.image = renklendirilmisSembol("magnifyingglass", renk: NSColor.black.withAlphaComponent(0.65), boyut: 12)
+        aramaIkonu.image = renklendirilmisSembol("magnifyingglass", renk: kMetinRenk.withAlphaComponent(0.65), boyut: 12)
         aramaIkonu.imageScaling = .scaleProportionallyDown
         aramaKutusu.addSubview(aramaIkonu)
 
@@ -116,16 +116,16 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         aramaAlani.isBordered = false
         aramaAlani.drawsBackground = false
         aramaAlani.focusRingType = .none
-        aramaAlani.textColor = .black
+        aramaAlani.textColor = kMetinRenk
         aramaAlani.usesSingleLineMode = true
         aramaAlani.lineBreakMode = .byTruncatingTail
         aramaAlani.placeholderAttributedString = NSAttributedString(
             string: "Notlarda ara...",
-            attributes: [.foregroundColor: NSColor.black.withAlphaComponent(0.45), .font: NSFont.systemFont(ofSize: 12)]
+            attributes: [.foregroundColor: kMetinRenk.withAlphaComponent(0.45), .font: NSFont.systemFont(ofSize: 12)]
         )
         aramaKutusu.addSubview(aramaAlani)
 
-        aramaTemizleButonu.image = renklendirilmisSembol("xmark.circle.fill", renk: NSColor.black.withAlphaComponent(0.55), boyut: 13)
+        aramaTemizleButonu.image = renklendirilmisSembol("xmark.circle.fill", renk: kMetinRenk.withAlphaComponent(0.55), boyut: 13)
         aramaTemizleButonu.isBordered = false
         aramaTemizleButonu.imageScaling = .scaleProportionallyDown
         aramaTemizleButonu.target = self
@@ -215,7 +215,7 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
             buton.tag = seviye
             buton.attributedTitle = NSAttributedString(
                 string: yazi,
-                attributes: [.foregroundColor: NSColor.black.withAlphaComponent(0.7),
+                attributes: [.foregroundColor: kMetinRenk.withAlphaComponent(0.7),
                              .font: NSFont.systemFont(ofSize: 11.5, weight: seviye == 0 ? .regular : .semibold)]
             )
             buton.target = self
@@ -246,10 +246,10 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
             buton.bezelStyle = .inline
             buton.refusesFirstResponder = true   // Odak, yazı alanından kaçmasın.
             buton.font = NSFont.systemFont(ofSize: puntoBoyutu, weight: .semibold)
-            buton.contentTintColor = .darkGray
+            buton.contentTintColor = temaSimgeRengi()
             buton.attributedTitle = NSAttributedString(
                 string: buton.title,
-                attributes: [.foregroundColor: NSColor.black.withAlphaComponent(0.7),
+                attributes: [.foregroundColor: kMetinRenk.withAlphaComponent(0.7),
                              .font: NSFont.systemFont(ofSize: puntoBoyutu, weight: .semibold)]
             )
             buton.target = self
@@ -259,7 +259,7 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         puntoArttirButonu.action = #selector(puntoArttirTiklandi)
 
         puntoEtiketi.font = NSFont.systemFont(ofSize: 11.5)
-        puntoEtiketi.textColor = NSColor.black.withAlphaComponent(0.6)
+        puntoEtiketi.textColor = kMetinRenk.withAlphaComponent(0.6)
         puntoEtiketi.alignment = .center
         puntoCubugu.addSubview(puntoEtiketi)
 
@@ -286,13 +286,46 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         aramaKutusu.layer?.backgroundColor = aramaKutuRengi().cgColor
         baslikCubugu.layer?.backgroundColor = aramaKutuRengi().cgColor
         puntoCubugu.layer?.backgroundColor = aramaKutuRengi().cgColor
+        anaSayfaButonu.attributedTitle = NSAttributedString(string: "🏠 Ana Sayfa", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: kMetinRenk])
+        copButonu.contentTintColor = kMetinRenk
+        aramaIkonu.image = renklendirilmisSembol("magnifyingglass", renk: kMetinRenk.withAlphaComponent(0.65), boyut: 12)
+        aramaTemizleButonu.image = renklendirilmisSembol("xmark.circle.fill", renk: kMetinRenk.withAlphaComponent(0.55), boyut: 13)
+        aramaAlani.textColor = kMetinRenk
+        aramaAlani.placeholderAttributedString = NSAttributedString(
+            string: "Notlarda ara...",
+            attributes: [.foregroundColor: kMetinRenk.withAlphaComponent(0.45), .font: NSFont.systemFont(ofSize: 12)])
+        for buton in baslikButonlari {
+            buton.attributedTitle = NSAttributedString(
+                string: buton.title,
+                attributes: [.foregroundColor: kMetinRenk.withAlphaComponent(0.7),
+                             .font: NSFont.systemFont(ofSize: 11.5, weight: buton.tag == 0 ? .regular : .semibold)])
+        }
+        for (buton, puntoBoyutu) in [(puntoAzaltButonu, CGFloat(11)), (puntoArttirButonu, CGFloat(13))] {
+            buton.contentTintColor = temaSimgeRengi()
+            buton.attributedTitle = NSAttributedString(
+                string: buton.title,
+                attributes: [.foregroundColor: kMetinRenk.withAlphaComponent(0.7),
+                             .font: NSFont.systemFont(ofSize: puntoBoyutu, weight: .semibold)])
+        }
+        puntoEtiketi.textColor = kMetinRenk.withAlphaComponent(0.6)
         guard gorunumGuncellemeleriEtkin else {
             temaGuncellemesiBekliyor = true
             return
         }
         temaGuncellemesiBekliyor = false
+        // Salt renk değişiminde ağacı yeniden yükleme: seçim/açık dallar ve
+        // kullanıcı düzenlemesi korunur. Yeni hücreler zaten güncel renkle kurulur.
         for satirIndex in 0..<tablo.numberOfRows {
             (tablo.rowView(atRow: satirIndex, makeIfNecessary: false) as? NotSatirGorunumu)?.temayiUygula()
+            for sutun in 0..<tablo.numberOfColumns {
+                let gorunum = tablo.view(atColumn: sutun, row: satirIndex, makeIfNecessary: false)
+                if let hucre = gorunum as? NSTableCellView, let dugum = tablo.item(atRow: satirIndex) as? AgacDugumu {
+                    notHucresininTemasiniUygula(hucre, dugum: dugum)
+                } else if let baslik = gorunum as? NSTextField {
+                    baslik.textColor = kMetinRenk.withAlphaComponent(0.6)
+                }
+            }
         }
     }
 

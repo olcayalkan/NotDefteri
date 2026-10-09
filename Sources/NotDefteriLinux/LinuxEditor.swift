@@ -154,6 +154,7 @@ final class LinuxEditor {
     private(set) var editorEtkin = false
     private(set) var nesil: UInt = 0
     var durumDegisti: [() -> Void] = []
+    var temaDegisti: [() -> Void] = []
     /// Tek geri alma geçmişi LinuxGorseller'dadır (metin, görsel ve üstbilgi adımları); tuş, menü ve düğmeler buradan geçer.
     var geriAlYolu: ((_ ileri: Bool) -> Void)?
     var kayitSonrasi: [(URL, String) -> Void] = []
@@ -188,6 +189,12 @@ final class LinuxEditor {
     deinit {
         if let stilEkrani { gtk_style_context_remove_provider_for_display(stilEkrani, nd_style_provider(stil)) }
         g_object_unref(UnsafeMutableRawPointer(stil))
+    }
+
+    func temayiUygula() {
+        adaptor.temayiUygula()
+        temaDegisti.forEach { $0() }
+        gtk_widget_queue_draw(metinGorunumu)
     }
 
     private func gorunumuKur(_ pencere: LinuxPencere) {

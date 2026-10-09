@@ -169,7 +169,7 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
 
         icerikGorunum.addSubview(kaydirmaGorunumu)
         sayfaAltBilgisi.font = NSFont.systemFont(ofSize: 11)
-        sayfaAltBilgisi.textColor = .secondaryLabelColor
+        sayfaAltBilgisi.textColor = kMetinRenk.withAlphaComponent(0.6)
         sayfaAltBilgisi.lineBreakMode = .byTruncatingTail
         icerikGorunum.addSubview(sayfaAltBilgisi)
         icerikGorunum.addSubview(sayfaSecenekAlani)

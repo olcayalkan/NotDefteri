@@ -7,6 +7,7 @@ enum LinuxKodVeUyari {
         let araclar = KodVeUyariAraclari(pencere: pencere, editor: editor)
         // Kancalar bileşeni yaşatır; bileşen editörü zayıf tutar.
         editor.degisiklikSonrasi.append { araclar.degisti() }
+        editor.temaDegisti.append { araclar.temayiUygula() }
         LinuxEklentiler.yasamDongusunuIzle(editor) { araclar.notAcildi() }
     }
 }
@@ -247,12 +248,20 @@ private final class KodVeUyariAraclari {
 
     private func renkleriGuncelle() {
         guard !kapandi else { return }
-        // KodRenkleri.swift'in açık kağıt değerleri; kağıt temaları macOS'taki gibi hep açıktır.
-        let renkler: [KodTokenTuru: String] = [.anahtarKelime: "#9342ae", .metin: "#b93931", .sayi: "#2869ad",
-            .yorum: "#565656", .tur: "#32868c", .fonksiyon: "#2869ad", .operator: "#292929"]
+        let renkler: [KodTokenTuru: String] = LinuxTema.koyuMu
+            ? [.anahtarKelime: "#ff78b4", .metin: "#7ee787", .sayi: "#ffa657",
+               .yorum: "#8b949e", .tur: "#56d4dd", .fonksiyon: "#79c0ff", .operator: "#d2a8ff"]
+            : [.anahtarKelime: "#9342ae", .metin: "#b93931", .sayi: "#2869ad",
+               .yorum: "#66727f", .tur: "#087a8c", .fonksiyon: "#1769aa", .operator: "#7a3fa3"]
         for (tur, tag) in kodEtiketleri { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(renkler[tur]!)) }
         cerceveKirli = true
         yerlesimiPlanla()
+    }
+
+    func temayiUygula() {
+        renkleriGuncelle()
+        cerceveKirli = true
+        gtk_widget_queue_draw(cerceveAlani)
     }
 
     /// Sinyal sırasında belge okunmaz. Sol/sağ yerçekimi eklenen metni kapsar;
@@ -636,7 +645,8 @@ private final class KodVeUyariAraclari {
                 _ = belge.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok, in: tumu)
                 let kod = anahtar == kKodBloguAnahtari
                 let uyari = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: alt.location, effectiveRange: nil))
-                let r = kod ? (r: 0.0, g: 0.0, b: 0.0) : kUyariRenkleri[uyari?.renk ?? ""] ?? kUyariRenkleri["gri"]!
+                let ton = LinuxTema.koyuMu ? 1.0 : 0.0
+                let r = kod ? (r: ton, g: ton, b: ton) : kUyariRenkleri[uyari?.renk ?? ""] ?? kUyariRenkleri["gri"]!
                 let renk = GdkRGBA(red: Float(r.r), green: Float(r.g), blue: Float(r.b), alpha: Float(kod ? 0.3 : kUyariCizgiOpakligi))
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
                 let x = gtk_text_view_get_left_margin(gorunum) + seviye

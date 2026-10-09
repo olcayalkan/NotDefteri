@@ -41,13 +41,13 @@ final class LinuxAnaSayfa {
         gtk_widget_set_vexpand(kaydirma, 1)
         gtk_widget_set_hexpand(kaydirma, 1)
         gtk_box_append(nd_box(pencere.anaSayfaYuvasi), kaydirma)
-        // macOS AnaSayfa ile aynı: metin siyah %90 (soluk %60), kart kenar panel renginde ve üstünde
+        // macOS AnaSayfa ile aynı: tema metni %90 (soluk %60), kart kenar panel renginde ve üstünde
         // başlık çubuğu renginde 38 px şerit. Renkler LinuxTema'nın @nd-* tanımlarından gelir.
         gtk_css_provider_load_from_data(stil, """
-        .nd-ana-selam { font-size: 28px; font-weight: 700; color: alpha(black, 0.9); }
-        .nd-ana-bolum { font-size: 16px; font-weight: 600; color: alpha(black, 0.9); }
-        .nd-ana-soluk { color: alpha(black, 0.6); }
-        .nd-ana-kart-baslik { font-weight: 600; color: alpha(black, 0.9); }
+        .nd-ana-selam { font-size: 28px; font-weight: 700; color: alpha(@nd-metin, 0.9); }
+        .nd-ana-bolum { font-size: 16px; font-weight: 600; color: alpha(@nd-metin, 0.9); }
+        .nd-ana-soluk { color: alpha(@nd-metin, 0.6); }
+        .nd-ana-kart-baslik { font-weight: 600; color: alpha(@nd-metin, 0.9); }
         button.nd-ana-kart { background-image: none; background-color: @nd-panel; border: none; box-shadow: none; border-radius: 8px; padding: 0; }
         button.nd-ana-kart:hover { background-color: @nd-grup; }
         .nd-ana-kart-serit { background-color: @nd-baslik; min-height: 38px; }

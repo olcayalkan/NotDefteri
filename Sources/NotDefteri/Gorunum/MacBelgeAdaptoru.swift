@@ -1,8 +1,8 @@
 import AppKit
 import NotDefteriCekirdek
 
-/// Metin rengi. Kağıt temalarının hepsi açık zeminli olduğu için sabit siyah.
-let kMetinRenk = NSColor.black
+/// Editör ve özel kontrollerin seçili temaya göre değişen ana metin rengi.
+var kMetinRenk: NSColor { aktifTema.metin }
 
 /// Etiketsiz metnin temel fontu: her zaman sabit taban punto (kayma olmaması için).
 func varsayilanFont() -> NSFont { fontUret(boyut: kTabanPunto, kalin: false) }
@@ -58,8 +58,8 @@ final class MacBelgeAdaptoru {
          .underlineStyle, .underlineColor, .strikethroughColor, .baselineOffset, .kern, .ligature,
          .strokeWidth, .strokeColor, .shadow, .obliqueness, .expansion, .writingDirection,
          .verticalGlyphForm, .textEffect, .superscript]
-    private static let solukRenk = kMetinRenk.withAlphaComponent(0.45)
-    private static let kodArkaplani = kMetinRenk.withAlphaComponent(0.08)
+    private static var solukRenk: NSColor { kMetinRenk.withAlphaComponent(0.45) }
+    private static var kodArkaplani: NSColor { kMetinRenk.withAlphaComponent(0.08) }
     private static let vurguArkaplani = NSColor.systemYellow.withAlphaComponent(0.3)
     private static var fontlar: [String: NSFont] = [:]
 

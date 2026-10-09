@@ -13,7 +13,24 @@ package let gAyarlar: UserDefaults = {
 }()
 
 /// Seçili temanın kayıtlı indeksi; geçerliliğini platformun görünümü denetler.
-package var gTemaIndex: Int = gAyarlar.integer(forKey: "temaIndex")
+/// Sürüm 2'de Terminal teması ikinci sıraya eklendi. Eski 1...3 seçimleri aynı
+/// kağıt temasını göstermeye devam etsin diye yalnızca bir kez ileri taşınır.
+package var gTemaIndex: Int = {
+    temaSeciminiYukle(gAyarlar)
+}()
+
+/// Bozuk/elle değiştirilmiş eski indeksler taşma yaratmadan Sepya'ya döner.
+/// Ayrı depo parametresi göçün gerçek kullanıcı ayarlarına dokunmadan sınanmasını sağlar.
+package func temaSeciminiYukle(_ ayarlar: UserDefaults) -> Int {
+    let kayitli = ayarlar.integer(forKey: "temaIndex")
+    guard ayarlar.integer(forKey: "temaDuzeniSurumu") < 2 else {
+        return (0...4).contains(kayitli) ? kayitli : 0
+    }
+    let tasinmis = (1...3).contains(kayitli) ? kayitli + 1 : 0
+    ayarlar.set(tasinmis, forKey: "temaIndex")
+    ayarlar.set(2, forKey: "temaDuzeniSurumu")
+    return tasinmis
+}
 
 /// Kenar panelin genişliği; sürükle tutamacıyla değiştirilir.
 package var gKenarPanelGenislik: CGFloat = {

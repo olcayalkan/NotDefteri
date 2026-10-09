@@ -48,7 +48,7 @@ final class NotSatirGorunumu: NSTableRowView {
         let cerceve = NSBezierPath(roundedRect: bounds.insetBy(dx: 4, dy: 1), xRadius: 6, yRadius: 6)
         secimVurguRengi().withAlphaComponent(0.35).setFill()
         cerceve.fill()
-        secimVurguRengi().koyulastir(0.12).setStroke()
+        secimVurguRengi().tonFarki(0.12, koyuTema: aktifTema.koyuMu).setStroke()
         cerceve.lineWidth = 1.5
         cerceve.stroke()
     }

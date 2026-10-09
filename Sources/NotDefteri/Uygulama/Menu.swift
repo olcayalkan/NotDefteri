@@ -106,6 +106,7 @@ func anaMenuyuOlustur(delege: UygulamaDelegesi) -> NSMenu {
     for (index, tema) in temaListesi.enumerated() {
         let oge = NSMenuItem(title: tema.ad, action: #selector(NotPenceresi.temaSecKomutu(_:)), keyEquivalent: "")
         oge.representedObject = index
+        oge.state = index == gTemaIndex ? .on : .off
         temaAltMenu.addItem(oge)
     }
     temaMenuOgesi.submenu = temaAltMenu

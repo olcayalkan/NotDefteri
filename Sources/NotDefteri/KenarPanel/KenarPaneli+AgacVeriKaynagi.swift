@@ -41,7 +41,7 @@ extension KenarPaneli {
         if let bolum = item as? KenarBolumu {
             let etiket = NSTextField(labelWithString: bolum.ad)
             etiket.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
-            etiket.textColor = .secondaryLabelColor
+            etiket.textColor = kMetinRenk.withAlphaComponent(0.6)
             return etiket
         }
         guard let dugum = item as? AgacDugumu else { return nil }
@@ -61,7 +61,7 @@ extension KenarPaneli {
 
             let etiket = NSTextField(labelWithString: "")
             etiket.font = NSFont.systemFont(ofSize: 12.5)
-            etiket.textColor = .darkGray
+            etiket.textColor = temaSimgeRengi()
             etiket.lineBreakMode = .byTruncatingTail
             etiket.translatesAutoresizingMaskIntoConstraints = false
             hucre.addSubview(etiket)
@@ -89,6 +89,16 @@ extension KenarPaneli {
                 etiket.centerYAnchor.constraint(equalTo: hucre.centerYAnchor)
             ])
         }
+        notHucresininTemasiniUygula(hucre, dugum: dugum)
+        hucre.textField?.stringValue = dugum.ad
+        (hucre.subviews.first { $0.identifier?.rawValue == "Raptiye" } as? NSTextField)?.stringValue =
+            dugum.sabit && !kisaYolMu(dugum) ? "📌" : ""
+        hucre.textField?.font = NSFont.systemFont(ofSize: 12.5, weight: dugum.sayfaMi ? .regular : .medium)
+        return hucre
+    }
+
+    /// Hücreyi değiştirmeden renkleri yenile; ad düzenleme ve seçim bozulmasın.
+    func notHucresininTemasiniUygula(_ hucre: NSTableCellView, dugum: AgacDugumu) {
         // Alt sayfası olan sayfa dolu, olmayan boş belge simgesiyle gösterilir.
         let sembol: String
         if !dugum.sayfaMi {
@@ -97,17 +107,13 @@ extension KenarPaneli {
             sembol = dugum.cocuklar.isEmpty ? "doc.text" : "doc.on.doc"
         }
         hucre.imageView?.image = renklendirilmisSembol(sembol,
-                                                        renk: NSColor.black.withAlphaComponent(dugum.sayfaMi ? 0.45 : 0.6),
+                                                        renk: kMetinRenk.withAlphaComponent(dugum.sayfaMi ? 0.45 : 0.6),
                                                         boyut: 12)
         hucre.wantsLayer = true
         hucre.layer?.cornerRadius = 6
         hucre.layer?.backgroundColor = kisaYolMu(dugum) && dugum.icerikURL == acikNotURL
             ? secimVurguRengi().cgColor : NSColor.clear.cgColor
-        hucre.textField?.stringValue = dugum.ad
-        (hucre.subviews.first { $0.identifier?.rawValue == "Raptiye" } as? NSTextField)?.stringValue =
-            dugum.sabit && !kisaYolMu(dugum) ? "📌" : ""
-        hucre.textField?.font = NSFont.systemFont(ofSize: 12.5, weight: dugum.sayfaMi ? .regular : .medium)
-        return hucre
+        hucre.textField?.textColor = temaSimgeRengi()
     }
 
     func outlineViewSelectionDidChange(_ notification: Notification) {
@@ -159,7 +165,7 @@ extension KenarPaneli {
         alan.isSelectable = false
         alan.isBordered = false
         alan.drawsBackground = false
-        alan.textColor = .darkGray
+        alan.textColor = temaSimgeRengi()
         guard let dugum = duzenlenenDugum else { return }
         duzenlenenDugum = nil
 
