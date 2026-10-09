@@ -209,7 +209,10 @@ final class LinuxPencere {
     /// 046'nın seçim çıkışı, 047'nin editörüne buradan bağlanır.
     func notSecildi(_ url: URL) { editor?.notuAc(url) }
 
-    func temayiUygula() { tema.uygula() }
+    func temayiUygula() {
+        tema.uygula()
+        editor?.temayiUygula()
+    }
 
     func kenarPaneliniAcKapa() {
         kenarPanelGizli.toggle()
