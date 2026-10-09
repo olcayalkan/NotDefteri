@@ -238,13 +238,22 @@ final class MacBelgeAdaptoru {
 
     /// Depodaki aralığın görünümünü anlamsala eşitler; yalnızca farklı olan öznitelik yazılır.
     func gorunumuUygula(_ depo: NSMutableAttributedString, aralik: NSRange) {
-        let aralik = NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length))
+        var aralik = NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length))
         guard !uygulaniyor, aralik.length > 0 else { return }
         uygulaniyor = true
         defer { uygulaniyor = false }
+        // Kutu kenarındaki boşluk ilk/son paragrafa bağlıdır; kutu büyüyüp küçülünce eski kenar
+        // paragrafında boşluk kalmasın diye düzenlenen aralık kutunun tamamına genişler.
+        aralik = Self.kutularaGenislet(depo, aralik)
         var islemler: [(NSRange, [NSAttributedString.Key: Any], [NSAttributedString.Key])] = []
-        depo.enumerateAttributes(in: aralik) { o, alt, _ in
-            let istenen = gorunum(o)
+        func isle(_ o: [NSAttributedString.Key: Any], _ alt: NSRange) {
+            var istenen = gorunum(o)
+            if let kenar = Self.kutuKenari(depo, o, alt) {
+                let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
+                if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, kKutuDisBoslugu) }
+                if kenar.alt { stil.paragraphSpacing = max(stil.paragraphSpacing, kKutuDisBoslugu) }
+                istenen[.paragraphStyle] = stil
+            }
             var ekle: [NSAttributedString.Key: Any] = [:]
             var sil: [NSAttributedString.Key] = []
             for anahtar in Self.gorunumAnahtarlari {
@@ -257,11 +266,55 @@ final class MacBelgeAdaptoru {
             }
             if !ekle.isEmpty || !sil.isEmpty { islemler.append((alt, ekle, sil)) }
         }
+        let ns = depo.string as NSString
+        depo.enumerateAttributes(in: aralik) { o, alt, _ in
+            // Kod gövdesi çok satırlı tek parçadır; kenar boşluğu yalnızca ilk/son paragrafa
+            // gitsin diye kutu içindeki parça paragraf sınırlarında bölünür.
+            guard Self.kutuAnahtarlari.contains(where: { o[$0] != nil }) else { isle(o, alt); return }
+            var bas = alt.location
+            while bas < NSMaxRange(alt) {
+                let paragraf = NSIntersectionRange(ns.paragraphRange(for: NSRange(location: bas, length: 0)), alt)
+                isle(o, paragraf)
+                bas = max(NSMaxRange(paragraf), bas + 1)
+            }
+        }
         for (alt, ekle, sil) in islemler {
             if !ekle.isEmpty { depo.addAttributes(ekle, range: alt) }
             for anahtar in sil { depo.removeAttribute(anahtar, range: alt) }
         }
         gorselleriEsle(depo, aralik: aralik)
+    }
+
+    private static let kutuAnahtarlari = [kKodBloguAnahtari, kUyariKutusuAnahtari]
+
+    private static func kutularaGenislet(_ depo: NSAttributedString, _ aralik: NSRange) -> NSRange {
+        let tumu = NSRange(location: 0, length: depo.length)
+        var sonuc = aralik
+        // İçerdeki kutular zaten kapsanır; yalnızca uçlardan taşan kutular eklenir.
+        for konum in [aralik.location, max(aralik.location, NSMaxRange(aralik) - 1)] where konum < depo.length {
+            for anahtar in kutuAnahtarlari {
+                var blok = NSRange()
+                if depo.attribute(anahtar, at: konum, longestEffectiveRange: &blok, in: tumu) != nil {
+                    sonuc = NSUnionRange(sonuc, blok)
+                }
+            }
+        }
+        return sonuc
+    }
+
+    /// Parça kutunun ilk paragrafındaysa üst, son paragrafındaysa alt kenardadır.
+    private static func kutuKenari(_ depo: NSAttributedString, _ o: [NSAttributedString.Key: Any],
+                                   _ alt: NSRange) -> (ust: Bool, alt: Bool)? {
+        guard let anahtar = kutuAnahtarlari.first(where: { o[$0] != nil }) else { return nil }
+        let ns = depo.string as NSString
+        var blok = NSRange()
+        _ = depo.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok,
+                           in: NSRange(location: 0, length: depo.length))
+        guard blok.length > 0 else { return nil }
+        let ilk = ns.paragraphRange(for: NSRange(location: blok.location, length: 0))
+        let son = ns.paragraphRange(for: NSRange(location: NSMaxRange(blok) - 1, length: 0))
+        let kenar = (ust: NSLocationInRange(alt.location, ilk), alt: NSLocationInRange(alt.location, son))
+        return kenar.ust || kenar.alt ? kenar : nil
     }
 
     private func gorunum(_ o: [NSAttributedString.Key: Any]) -> [NSAttributedString.Key: Any] {
