@@ -88,7 +88,11 @@ final class LinuxTema {
         /* Editör: siyah metin, macOS (aqua) seçim rengi. */
         .notdefteri .nd-editor, .notdefteri .nd-editor textview, .notdefteri .nd-editor textview text { background-color: @nd-zemin; color: @nd-metin; caret-color: @nd-metin; }
         .notdefteri textview text selection { background-color: #b3d7ff; color: @nd-metin; }
-        .notdefteri .nd-kod-araci { background-color: alpha(@nd-zemin, 0.95); border-radius: 6px; }
+        /* Kod bloğu şeridi: çerçevenin üst kenarına oturan küçük etiket + Kopyala (macOS ile aynı ölçü). */
+        .notdefteri .nd-kod-araci { background-color: @nd-zemin; border-radius: 4px; padding: 0 2px 0 6px; min-height: 0; }
+        .notdefteri .nd-kod-araci label { font-family: monospace; font-size: 9.5px; color: alpha(black, 0.55); opacity: 1; }
+        .notdefteri .nd-kod-araci button { background-image: none; background-color: transparent; box-shadow: none; border: none; min-height: 0; min-width: 0; padding: 0 4px; font-size: 10px; font-weight: 500; color: alpha(black, 0.7); }
+        .notdefteri .nd-kod-araci button:hover { background-color: alpha(black, 0.07); }
 
         /* İçindekiler: macOS IcindekilerPaneli — çizgi siyah %30 (etkin %80), ad siyah %58 (etkin %90). */
         .notdefteri .nd-icindekiler { border-radius: 8px; }

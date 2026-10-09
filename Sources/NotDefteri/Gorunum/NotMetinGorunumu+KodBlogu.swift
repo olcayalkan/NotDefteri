@@ -4,7 +4,10 @@ import NotDefteriCekirdek
 private let kKodTokenAnahtari = NSAttributedString.Key("kodToken")
 private let kodRenklendirmeKuyrugu = DispatchQueue(label: "NotDefteri.kod-renklendirme", qos: .userInitiated)
 
+/// Kod bloğu çerçevesinin üst kenarına oturan küçük şerit: dil etiketi + Kopyala.
+/// Eskiden ilk kod satırının üstüne 180×24'lük düğme olarak biniyor, metni örtüyordu.
 final class KodBloguAraclari: NSView {
+    static let yukseklik: CGFloat = 16
     let etiket = NSTextField(labelWithString: "")
     let dugme = NSButton(title: "Kopyala", target: nil, action: nil)
     var kopyala: (() -> Void)?
@@ -13,35 +16,51 @@ final class KodBloguAraclari: NSView {
     private var bildirim: DispatchWorkItem?
 
     init() {
-        super.init(frame: NSRect(x: 0, y: 0, width: 180, height: 24))
+        super.init(frame: NSRect(x: 0, y: 0, width: 90, height: Self.yukseklik))
         wantsLayer = true
-        layer?.cornerRadius = 5
-        etiket.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
-        etiket.alignment = .right
-        etiket.frame = NSRect(x: 4, y: 4, width: 86, height: 16)
-        dugme.frame = NSRect(x: 94, y: 0, width: 86, height: 24)
-        dugme.font = .systemFont(ofSize: 11)
-        dugme.bezelStyle = .rounded
+        layer?.cornerRadius = 4
+        etiket.font = .monospacedSystemFont(ofSize: 9.5, weight: .regular)
+        dugme.isBordered = false
         dugme.refusesFirstResponder = true
         dugme.target = self
         dugme.action = #selector(tiklandi)
+        dugmeBasliginiYaz("Kopyala")
         addSubview(etiket)
         addSubview(dugme)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) desteklenmiyor") }
     @objc private func tiklandi() { kopyala?() }
 
+    private func dugmeBasliginiYaz(_ baslik: String) {
+        dugme.attributedTitle = NSAttributedString(string: baslik, attributes: [
+            .font: NSFont.systemFont(ofSize: 10, weight: .medium), .foregroundColor: kMetinRenk.withAlphaComponent(0.7)])
+        yerlesimiKur()
+    }
+
+    /// Genişlik içeriğe göre; sağ kenar sabit kalır ki "Kopyalandı" yazısı şeridi kaydırmasın.
+    func yerlesimiKur() {
+        let sag = frame.maxX
+        etiket.sizeToFit()
+        dugme.sizeToFit()
+        let etiketEn = etiket.stringValue.isEmpty ? 0 : ceil(etiket.frame.width)
+        let dugmeEn = ceil(dugme.frame.width)
+        let en = 6 + etiketEn + (etiketEn > 0 ? 6 : 0) + dugmeEn + 4
+        etiket.frame = NSRect(x: 6, y: (Self.yukseklik - etiket.frame.height) / 2, width: etiketEn, height: etiket.frame.height)
+        dugme.frame = NSRect(x: en - dugmeEn - 4, y: 0, width: dugmeEn, height: Self.yukseklik)
+        frame = NSRect(x: sag - en, y: frame.minY, width: en, height: Self.yukseklik)
+    }
+
     func sifirla() {
         bildirim?.cancel()
         kimlik = nil
         isHidden = true
-        dugme.title = "Kopyala"
+        dugmeBasliginiYaz("Kopyala")
     }
 
     func kopyalandi() {
         bildirim?.cancel()
-        dugme.title = "Kopyalandı"
-        let islem = DispatchWorkItem { [weak self] in self?.dugme.title = "Kopyala" }
+        dugmeBasliginiYaz("Kopyalandı")
+        let islem = DispatchWorkItem { [weak self] in self?.dugmeBasliginiYaz("Kopyala") }
         bildirim = islem
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: islem)
     }
@@ -160,8 +179,7 @@ extension NotMetinGorunumu {
 
     func kodAraclariniGuncelle(noktada nokta: NSPoint?) {
         guard let nokta, isEditable, !isHidden, visibleRect.contains(nokta),
-              let depo = textStorage, depo.length > 0, let yerlesim = layoutManager,
-              let kapsayici = textContainer else { kodAraclari.isHidden = true; return }
+              let depo = textStorage, depo.length > 0, let yerlesim = layoutManager else { kodAraclari.isHidden = true; return }
         let aracta = !kodAraclari.isHidden && kodAraclari.frame.contains(nokta)
         let konum = min(aracta ? kodAraclari.aralik.location : characterIndexForInsertion(at: nokta), depo.length - 1)
         var aralik = NSRange()
@@ -176,18 +194,22 @@ extension NotMetinGorunumu {
         let satir = yerlesim.lineFragmentRect(forGlyphAt: glif, effectiveRange: nil)
             .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
         guard aracta || satir.contains(nokta) else { kodAraclari.isHidden = true; return }
-        let ilkGlif = yerlesim.glyphIndexForCharacter(at: aralik.location)
-        let ilkSatir = yerlesim.lineFragmentRect(forGlyphAt: ilkGlif, effectiveRange: nil)
-        let kare = NSRect(x: textContainerOrigin.x + kapsayici.size.width - kodAraclari.frame.width - 6,
-                          y: textContainerOrigin.y + ilkSatir.minY, width: kodAraclari.frame.width, height: 24)
-        guard visibleRect.intersects(kare) else { kodAraclari.isHidden = true; return }
+        // Konum çizilen çerçeveden türetilir: ikisi aynı geometriyi paylaşır, araç kutudan
+        // kopamaz. Şerit üst kenarın ortasına oturur, kod satırını örtmez.
+        guard let cerceve = blokCerceveKaresi(aralik, anahtar: kKodBloguAnahtari) else {
+            kodAraclari.isHidden = true; return
+        }
         if kodAraclari.kimlik != bilgi["kimlik"] { kodAraclari.sifirla() }
         kodAraclari.kimlik = bilgi["kimlik"]
         kodAraclari.aralik = aralik
         kodAraclari.etiket.stringValue = kodBloguDilEtiketi(bilgi)
-        kodAraclari.etiket.textColor = kMetinRenk
-        kodAraclari.layer?.backgroundColor = aktifTema.kenarPanel.cgColor
-        kodAraclari.frame = kare
+        kodAraclari.etiket.textColor = kMetinRenk.withAlphaComponent(0.55)
+        kodAraclari.layer?.backgroundColor = aktifTema.arkaplan.cgColor
+        // yerlesimiKur sağ kenarı korur: önce sağ kenar çerçevenin 10 pt içine konur.
+        kodAraclari.frame.origin = NSPoint(x: cerceve.maxX - 10 - kodAraclari.frame.width,
+                                           y: cerceve.minY - KodBloguAraclari.yukseklik / 2)
+        kodAraclari.yerlesimiKur()
+        guard visibleRect.intersects(kodAraclari.frame) else { kodAraclari.isHidden = true; return }
         kodAraclari.isHidden = false
     }
 

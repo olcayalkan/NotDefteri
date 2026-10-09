@@ -43,3 +43,6 @@ DerivedData/
 .obsidian/workspace-mobile.json
 .obsidian/graph.json
 
+
+# Claude Code ajan worktree klasörleri
+.claude/worktrees/

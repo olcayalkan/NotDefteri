@@ -99,7 +99,8 @@ Uygulama menüsünde de **Office → Not Defteri** olarak durur.
 Güncellemek için `git pull` yapıp yine `not` yazman yeterli; kod değiştiyse kendisi derler
 (ilk kurulumdaki tam derleme birkaç dakika sürer, sonrakiler birkaç saniye).
 
-> **Not:** Pencereyi üstte tutma (📌) X11'de çalışır; Wayland bunu desteklemez.
+> **Not:** Pencereyi üstte tutma (📌) Wayland oturumlarında da çalışır (Zorin, Ubuntu GNOME): Wayland bu
+> isteği desteklemediği için uygulama XWayland üzerinden açılır. İstemezsen `GDK_BACKEND=wayland not` ile başlat.
 
 ---
 

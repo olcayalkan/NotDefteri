@@ -145,6 +145,13 @@ final class LinuxIcindekiler {
             self.etkinBasligiGuncelle(editor.okunanKonum())
         }
         editor.boyutDegisti.append { [weak self] in self?.yuksekligiSinirla() }
+        // boyutDegisti yatay ayardan gelir; yalnız yükseklik değişince de sınır güncellensin (sayfa
+        // boyu = görünür yükseklik). Boyut dağıtımı içinde sınır yazmamak için ertelenir.
+        if let dikey = gtk_scrollable_get_vadjustment(OpaquePointer(editor.metinGorunumu)) {
+            GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(dikey), "notify::page-size") { [weak self] (_: gpointer?) in
+                Platform.anaIsParcaciginda { [weak self] in self?.yuksekligiSinirla() }
+            }
+        }
         // Panel yer kaplamaz; yine de istenirse gizlenebilir.
         pencere.menuEkle(["Görünüm", "İçindekiler paneli"], kisayol: "<Control><Shift>backslash") { [weak self] in
             guard let self else { return }

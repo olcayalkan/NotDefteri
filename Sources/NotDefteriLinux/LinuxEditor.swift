@@ -210,7 +210,10 @@ final class LinuxEditor {
         gtk_style_context_add_provider_for_display(stilEkrani, nd_style_provider(stil),
                                                    guint(GTK_STYLE_PROVIDER_PRIORITY_APPLICATION))
         let kaydirici = OpaquePointer(kaydirma)
-        gtk_scrolled_window_set_policy(kaydirici, GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC)
+        // EXTERNAL: yatay çubuk yok ama içeriğin en küçük genişliği pencereye dayatılmaz. NEVER'da
+        // görselin genişliği pencerenin daralmasını engelliyordu; görsel de pencere daralmadığı için
+        // hiç küçülmüyordu (kilitlenme).
+        gtk_scrolled_window_set_policy(kaydirici, GTK_POLICY_EXTERNAL, GTK_POLICY_AUTOMATIC)
         gtk_scrolled_window_set_child(kaydirici, metinGorunumu)
         gtk_overlay_set_child(OpaquePointer(ustKatman), kaydirma)
         gtk_widget_set_vexpand(ustKatman, 1)

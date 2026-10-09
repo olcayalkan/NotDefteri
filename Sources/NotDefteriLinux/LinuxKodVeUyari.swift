@@ -85,7 +85,7 @@ private final class KodVeUyariAraclari {
 
     private weak var editor: LinuxEditor?
     private var gorunum: UnsafeMutablePointer<GtkTextView> { GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(editor!.metinGorunumu)) }
-    private let arac = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8)!
+    private let arac = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4)!
     private let dilEtiketi = gtk_label_new("")!
     private let kopyala = gtk_button_new_with_label("Kopyala")!
     private var kopyalaDugmesi: UnsafeMutablePointer<GtkButton> { GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(kopyala)) }
@@ -111,6 +111,10 @@ private final class KodVeUyariAraclari {
     private var cerceveler: [Cerceve] = []
     private var sonAlan = GdkRectangle()
     private var cerceveKirli = true
+    /// GTK eklenen satırları sonraki karelerde doğrular; o ana kadar satır yükseklikleri tahmindir.
+    /// Düzenlemeden sonra birkaç kare boyunca çerçeve yeniden ölçülür ki tahmini konumda kalmasın.
+    private var dengeKaresi = 0
+    private var duzenlemeSonrasiGizli = false
     private static let renkler = ["gri", "mavi", "sarı", "kırmızı", "yeşil"]
 
     init(pencere: LinuxPencere, editor: LinuxEditor) {
@@ -139,7 +143,6 @@ private final class KodVeUyariAraclari {
         // "background" Adwaita'da beyaz zemindir; kağıt temasında kendi sınıfımız kullanılır (LinuxTema).
         gtk_widget_add_css_class(arac, "nd-kod-araci")
         gtk_widget_add_css_class(dilEtiketi, "dim-label")
-        gtk_widget_set_margin_start(dilEtiketi, 8)
         gtk_widget_set_focusable(kopyala, 0)
         gtk_box_append(nd_box(arac), dilEtiketi)
         gtk_box_append(nd_box(arac), kopyala)
@@ -176,6 +179,7 @@ private final class KodVeUyariAraclari {
         }
         let veri = Unmanaged.passRetained(KodUyariEylemi { [weak self] in
             guard let self, !self.kapandi else { return }
+            if self.dengeKaresi > 0 { self.dengeKaresi -= 1; self.cerceveKirli = true }
             self.cerceveleriGuncelle()
         }).toOpaque()
         gtk_widget_add_tick_callback(editor.metinGorunumu, { _, _, veri in
@@ -187,7 +191,14 @@ private final class KodVeUyariAraclari {
         let hareket = gtk_event_controller_motion_new()!
         gtk_event_controller_set_propagation_phase(hareket, GTK_PHASE_CAPTURE)
         kodUyariSinyali(UnsafeMutableRawPointer(hareket), "motion", unsafeBitCast(kodHareketC, to: GCallback.self),
-                       { [weak self] (x: Double, y: Double) -> Void in self?.fare = (x, y); self?.araciGuncelle() })
+                       { [weak self] (x: Double, y: Double) -> Void in
+            guard let self else { return }
+            // Yerleşim değişince GTK aynı koordinatla hareket olayı üretebilir; yalnızca gerçek hareket
+            // düzenleme sonrası gizlemeyi kaldırır.
+            if let eski = self.fare, eski.0 == x, eski.1 == y {} else { self.duzenlemeSonrasiGizli = false }
+            self.fare = (x, y)
+            self.araciGuncelle()
+        })
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(hareket), "leave") { [weak self] in
             self?.fare = nil
             self?.araciGizle()
@@ -204,7 +215,12 @@ private final class KodVeUyariAraclari {
         for ayar in [gtk_scrollable_get_hadjustment(OpaquePointer(editor.metinGorunumu)),
                      gtk_scrollable_get_vadjustment(OpaquePointer(editor.metinGorunumu))].compactMap({ $0 }) {
             for ad in ["changed", "value-changed"] {
-                GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(ayar), ad) { [weak self] in self?.yerlesimiPlanla() }
+                // "changed": doğrulama satır yüksekliklerini değiştirdi; görünür alan aynı kalsa da
+                // çerçeveler yeniden ölçülmeli (eskiden yalnızca alan değişince ölçülüyordu).
+                GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(ayar), ad) { [weak self] in
+                    if ad == "changed" { self?.cerceveKirli = true }
+                    self?.yerlesimiPlanla()
+                }
             }
         }
         GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(editor.metinGorunumu), "notify::visible") { [weak self] (_: gpointer?) in
@@ -247,6 +263,7 @@ private final class KodVeUyariAraclari {
         nesil += 1
         debounce?(); debounce = nil
         araciGizle()
+        duzenlemeSonrasiGizli = true
         panelleriKapat()
         var bas = ilk, bitis = son
         for aralik in kirli {
@@ -267,6 +284,7 @@ private final class KodVeUyariAraclari {
         guard !kapandi, let editor else { return }
         guard editor.editorEtkin else { sifirla(); return }
         cerceveKirli = true
+        dengeKaresi = 30
         yerlesimiPlanla()
         debounce?()
         guard !kirli.isEmpty else { return }
@@ -411,6 +429,9 @@ private final class KodVeUyariAraclari {
     }
 
     private func araciGuncelle() {
+        // Düzenlemeden sonra fare yeniden hareket edene kadar araç gizli kalır: eski fare
+        // koordinatı ve henüz doğrulanmamış satır geometrisiyle yanlış bloğa/yüksekliğe atlıyordu.
+        guard !duzenlemeSonrasiGizli else { araciGizle(); return }
         guard let editor, let (x, y) = fare, var iter = noktadakiIter(x, y) else { araciGizle(); return }
         var bx: Int32 = 0, by: Int32 = 0
         gtk_text_view_window_to_buffer_coords(gorunum, GTK_TEXT_WINDOW_WIDGET, Int32(x), Int32(y), &bx, &by)
@@ -426,21 +447,38 @@ private final class KodVeUyariAraclari {
         guard let (aralik, bilgi) = blok else { araciGizle(); return }
         iter = GtkKoprusu.iter(editor.tampon, utf16: aralik.location)
         guard !gizliMi(iter) else { araciGizle(); return }
-        var kare = GdkRectangle(), gorunen = GdkRectangle(), en: Int32 = 0, boy: Int32 = 0
-        gtk_text_view_get_iter_location(gorunum, &iter, &kare)
+        var gorunen = GdkRectangle(), en: Int32 = 0, boy: Int32 = 0
         gtk_text_view_get_visible_rect(gorunum, &gorunen)
         let kimlik = bilgi["kimlik"] ?? ""
         if aracBlogu?.kimlik != kimlik { bildirim?(); gtk_button_set_label(kopyalaDugmesi, "Kopyala") }
         gtk_label_set_text(nd_label(dilEtiketi), kodBloguDilEtiketi(bilgi))
+        // GTK4 görünmez widget'ı 0 genişlikte ölçer; gizliyken ölçünce x sağ kenara taşıyor,
+        // görünür olunca kırpılıp ilk fare hareketinde sola zıplıyordu. Önce görünür yapılır.
+        gtk_widget_set_visible(arac, 1)
         gtk_widget_measure(arac, GTK_ORIENTATION_HORIZONTAL, -1, nil, &en, nil, nil)
         gtk_widget_measure(arac, GTK_ORIENTATION_VERTICAL, en, nil, &boy, nil, nil)
-        aracKaresi = GdkRectangle(x: max(gtk_text_view_get_left_margin(gorunum), gorunen.x + gorunen.width - gtk_text_view_get_right_margin(gorunum) - en - 6),
-                                 y: kare.y, width: en, height: boy)
-        guard kare.y >= gorunen.y, kare.y < gorunen.y + gorunen.height else { araciGizle(); return }
+        // Konum çizilen çerçeveyle aynı geometriden gelir; şerit üst kenarın ortasına oturur.
+        let ust = kutuDikeyAraligi(aralik).ust
+        let sag = gorunen.x + gorunen.width - gtk_text_view_get_right_margin(gorunum) - 10
+        aracKaresi = GdkRectangle(x: max(gtk_text_view_get_left_margin(gorunum), sag - en),
+                                 y: max(0, ust - boy / 2), width: en, height: boy)
+        guard aracKaresi.y + boy > gorunen.y, aracKaresi.y < gorunen.y + gorunen.height else { araciGizle(); return }
         aracBlogu = (aralik, kimlik)
         // GtkTextView overlay konumu buffer koordinatıdır; pencere koordinatı değildir.
         gtk_text_view_move_overlay(gorunum, arac, aracKaresi.x, aracKaresi.y)
-        gtk_widget_set_visible(arac, 1)
+    }
+
+    /// Kutu çerçevesinin tampon koordinatında üst/alt kenarı. Satır aralığı kutu-ust/kutu-alt
+    /// etiketinin boşluğunu da içerir; çerçeve metnin 3 px dışına çizilir, boşluk dışarıda kalır.
+    private func kutuDikeyAraligi(_ blok: NSRange) -> (ust: Int32, alt: Int32) {
+        var bas = GtkKoprusu.iter(editor!.tampon, utf16: blok.location)
+        var son = GtkKoprusu.iter(editor!.tampon, utf16: NSMaxRange(blok))
+        gtk_text_iter_backward_char(&son)
+        var ust: Int32 = 0, alt: Int32 = 0, boy: Int32 = 0
+        gtk_text_view_get_line_yrange(gorunum, &bas, &ust, nil)
+        gtk_text_view_get_line_yrange(gorunum, &son, &alt, &boy)
+        let bosluk = LinuxBelgeAdaptoru.kutuBoslugu
+        return (ust + bosluk - 3, alt + boy - bosluk + 3)
     }
 
     private func icerir(_ kare: GdkRectangle, _ x: Int32, _ y: Int32) -> Bool {
@@ -566,6 +604,14 @@ private final class KodVeUyariAraclari {
         guard cerceveKirli || alan.x != sonAlan.x || alan.y != sonAlan.y ||
                 alan.width != sonAlan.width || alan.height != sonAlan.height else { return }
         cerceveKirli = false; sonAlan = alan
+        let eskiKareler = cerceveler.map { [$0.kare.x, $0.kare.y, $0.kare.width, $0.kare.height] }
+        defer {
+            // Dengelenme karelerinde yalnızca geometri değiştiyse çizilir; araç kutuyla birlikte taşınır.
+            if cerceveler.map({ [$0.kare.x, $0.kare.y, $0.kare.width, $0.kare.height] }) != eskiKareler {
+                gtk_widget_queue_draw(cerceveAlani)
+                if gtk_widget_get_visible(arac) != 0 { araciGuncelle() }
+            }
+        }
         cerceveler.removeAll()
         if gtk_widget_get_visible(editor.metinGorunumu) != 0, editor.acikURL != nil {
             gtk_text_view_get_line_at_y(gorunum, &bas, alan.y, nil)
@@ -577,7 +623,6 @@ private final class KodVeUyariAraclari {
                 gorunenCerceveleriOlc(belge, aralik: aralik, alan: alan)
             }
         }
-        gtk_widget_queue_draw(cerceveAlani)
     }
 
     private func gorunenCerceveleriOlc(_ belge: NSAttributedString, aralik: NSRange, alan: GdkRectangle) {
@@ -605,14 +650,9 @@ private final class KodVeUyariAraclari {
     }
 
     private func cerceveKaresi(_ blok: NSRange, x: Int32, en: Int32, alan: GdkRectangle) -> GdkRectangle {
-        var bas = GtkKoprusu.iter(editor!.tampon, utf16: blok.location)
-        var son = GtkKoprusu.iter(editor!.tampon, utf16: NSMaxRange(blok))
-        gtk_text_iter_backward_char(&son)
-        var ust: Int32 = 0, alt: Int32 = 0, boy: Int32 = 0
-        gtk_text_view_get_line_yrange(gorunum, &bas, &ust, nil)
-        gtk_text_view_get_line_yrange(gorunum, &son, &alt, &boy)
+        let (ust, alt) = kutuDikeyAraligi(blok)
         // Katman görünür alanın köşesinden başlar: tampon koordinatı görünür alana göre çevrilir.
-        return GdkRectangle(x: x - alan.x, y: ust - alan.y - 3, width: max(1, en), height: max(1, alt + boy - ust + 6))
+        return GdkRectangle(x: x - alan.x, y: ust - alan.y, width: max(1, en), height: max(1, alt - ust))
     }
 
     private func cerceveleriCiz(_ cr: OpaquePointer) {

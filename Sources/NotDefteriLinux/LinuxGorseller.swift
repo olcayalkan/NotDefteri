@@ -127,7 +127,10 @@ private final class LinuxGorselYoneticisi {
             self.grup = nil
             self.grubuKaydet(grup)
         }
-        for ad in ["notify::width", "notify::left-margin", "notify::right-margin"] {
+        // GtkTextView'da "width" özelliği yok; "notify::width" hiç gelmiyordu. Genişlik değişimi
+        // editörün boyut kancasından, sayfa genişliği seçeneği kenar boşluğu bildiriminden gelir.
+        editor.boyutDegisti.append { [weak self] in self?.genisligiGuncelle() }
+        for ad in ["notify::left-margin", "notify::right-margin"] {
             GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(editor.metinGorunumu), ad) { [weak self] (_: gpointer?) in
                 Platform.anaIsParcaciginda { [weak self] in self?.genisligiGuncelle() }
             }
@@ -581,10 +584,13 @@ private final class LinuxGorselHucresi {
         editor.aralikDegistir(NSRange(location: konum, length: 1), ile: yeni)
     }
 
+    /// Görünür alan genişliği esas alınır: metin görünümü kendi en küçük genişliğinden (bu görselin
+    /// eski boyutu) dar ayrılmadığı için onun genişliği daralan pencereyi göstermez.
     private func maksimumEn() -> Double {
         guard let editor else { return 1 }
-        return max(1, Double(gtk_widget_get_width(editor.metinGorunumu)
-            - gtk_text_view_get_left_margin(gorunum(editor)) - gtk_text_view_get_right_margin(gorunum(editor))))
+        let gorunur = gtk_widget_get_parent(editor.metinGorunumu).map { gtk_widget_get_width($0) } ?? 0
+        let alan = gorunur > 0 ? gorunur : gtk_widget_get_width(editor.metinGorunumu)
+        return max(1, Double(alan - gtk_text_view_get_left_margin(gorunum(editor)) - gtk_text_view_get_right_margin(gorunum(editor))))
     }
 
     func genisligiGuncelle() {

@@ -60,6 +60,8 @@ final class LinuxBelgeAdaptoru {
                             ("underline", .sayim(pango_underline_get_type(), Int32(PANGO_UNDERLINE_SINGLE.rawValue)))])
         // Ayırıcı: Mac'teki ince yatay çizginin karşılığı; ince, tam genişlikte paragraf arka planı.
         etiket("ayirici", [("scale", .ondalik(0.2)), ("paragraph-background", .metin("rgba(128,128,128,0.45)"))])
+        etiket(Self.kutuUstEtiketi, [("pixels-above-lines", .tam(Self.kutuBoslugu))])
+        etiket(Self.kutuAltEtiketi, [("pixels-below-lines", .tam(Self.kutuBoslugu))])
     }
 
     // MARK: Yükleme ve programatik değişiklik
@@ -158,20 +160,68 @@ final class LinuxBelgeAdaptoru {
     func gorunumuUygula(_ aralik: NSRange) {
         let ns = belge.mutableString
         let konum = min(aralik.location, ns.length)
-        let kapsam = ns.paragraphRange(for: NSRange(location: konum, length: min(aralik.length, ns.length - konum)))
+        var kapsam = ns.paragraphRange(for: NSRange(location: konum, length: min(aralik.length, ns.length - konum)))
         guard kapsam.length > 0 else { return }
+        // Kutu kenarındaki boşluk ilk/son paragrafa bağlıdır; kutu büyüyüp küçülünce eski kenar
+        // paragrafında boşluk kalmasın diye kapsam kutunun tamamına genişler (macOS ile aynı).
+        kapsam = kutularaGenislet(kapsam)
         var (bas, son) = GtkKoprusu.iterler(tampon, kapsam, metin: ns)
         // Yalnızca adaptörün etiketlerini temizle; eklentilerin kod-/uyari-/katla- etiketleri korunur.
         for etiket in etiketler.values { gtk_text_buffer_remove_tag(tampon, etiket, &bas, &son) }
         var iter = bas
-        belge.enumerateAttributes(in: kapsam) { o, alt, _ in
+        func uygula(_ o: Oznitelikler, _ alt: NSRange) {
             var sonraki = iter
             gtk_text_iter_forward_chars(&sonraki, Int32(LinuxMetinDonusumu.karakterSayisi(ns, alt)))
-            for ad in etiketAdlari(o) {
-                gtk_text_buffer_apply_tag(tampon, ad, &iter, &sonraki)
+            var adlar = etiketAdlari(o)
+            if let kenar = kutuKenari(o, alt) {
+                if kenar.ust, let ust = etiketler[Self.kutuUstEtiketi] { adlar.append(ust) }
+                if kenar.alt, let alt = etiketler[Self.kutuAltEtiketi] { adlar.append(alt) }
             }
+            for ad in adlar { gtk_text_buffer_apply_tag(tampon, ad, &iter, &sonraki) }
             iter = sonraki
         }
+        belge.enumerateAttributes(in: kapsam) { o, alt, _ in
+            // Kod gövdesi çok satırlı tek parçadır; kenar yalnızca ilk/son paragrafa gitsin diye bölünür.
+            guard Self.kutuAnahtarlari.contains(where: { o[$0] != nil }) else { uygula(o, alt); return }
+            var bas = alt.location
+            while bas < NSMaxRange(alt) {
+                let paragraf = NSIntersectionRange(ns.paragraphRange(for: NSRange(location: bas, length: 0)), alt)
+                uygula(o, paragraf)
+                bas = max(NSMaxRange(paragraf), bas + 1)
+            }
+        }
+    }
+
+    private static let kutuAnahtarlari = [kKodBloguAnahtari, kUyariKutusuAnahtari]
+    static let kutuUstEtiketi = "kutu-ust", kutuAltEtiketi = "kutu-alt"
+    /// Kutunun üstünde/altında bırakılan görünüm boşluğu (macOS kKutuDisBoslugu); çerçeve bunu dışarıda bırakır.
+    static let kutuBoslugu = Int32(kKutuDisBoslugu)
+
+    private func kutularaGenislet(_ kapsam: NSRange) -> NSRange {
+        let tumu = NSRange(location: 0, length: belge.length)
+        var sonuc = kapsam
+        for konum in [kapsam.location, max(kapsam.location, NSMaxRange(kapsam) - 1)] where konum < belge.length {
+            for anahtar in Self.kutuAnahtarlari {
+                var blok = NSRange()
+                if belge.attribute(anahtar, at: konum, longestEffectiveRange: &blok, in: tumu) != nil {
+                    sonuc = NSUnionRange(sonuc, blok)
+                }
+            }
+        }
+        return sonuc
+    }
+
+    /// Parça kutunun ilk paragrafındaysa üst, son paragrafındaysa alt kenardadır.
+    private func kutuKenari(_ o: Oznitelikler, _ alt: NSRange) -> (ust: Bool, alt: Bool)? {
+        guard let anahtar = Self.kutuAnahtarlari.first(where: { o[$0] != nil }) else { return nil }
+        let ns = belge.mutableString
+        var blok = NSRange()
+        _ = belge.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok, in: NSRange(location: 0, length: belge.length))
+        guard blok.length > 0 else { return nil }
+        let ilk = ns.paragraphRange(for: NSRange(location: blok.location, length: 0))
+        let son = ns.paragraphRange(for: NSRange(location: NSMaxRange(blok) - 1, length: 0))
+        let kenar = (ust: NSLocationInRange(alt.location, ilk), alt: NSLocationInRange(alt.location, son))
+        return kenar.ust || kenar.alt ? kenar : nil
     }
 
     private func etiketAdlari(_ o: Oznitelikler) -> [UnsafeMutablePointer<GtkTextTag>] {
@@ -250,6 +300,11 @@ final class LinuxBelgeAdaptoru {
         gtk_text_tag_table_add(tablo, yeni)
         g_object_unref(UnsafeMutableRawPointer(yeni)) // Tablo sahiplendi.
         etiketler[ad] = yeni
+        // Sonra eklenen etiket öncekini ezer; uyarı/paragraf etiketlerinin kendi pixels-above/below
+        // değerleri kutu kenarı boşluğunu yutmasın diye kenar etiketleri hep en üstte tutulur.
+        for kenar in [Self.kutuUstEtiketi, Self.kutuAltEtiketi] where kenar != ad {
+            if let etiket = etiketler[kenar] { gtk_text_tag_set_priority(etiket, gtk_text_tag_table_get_size(tablo) - 1) }
+        }
     }
 
     /// Editör sayfayı ortalarken görünümün sol kenar boşluğuyla birlikte çağırır.
