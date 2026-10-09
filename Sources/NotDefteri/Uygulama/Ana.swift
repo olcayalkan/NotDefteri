@@ -8,7 +8,7 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        kagitGorunumunuUygula()
+        temaGorunumunuUygula()
         NSApp.mainMenu = anaMenuyuOlustur(delege: self)
         let p = NotPenceresi()
         self.pencere = p
@@ -47,10 +47,9 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 }
 
-/// Kağıt temaları açık renklidir. Sistem koyu görünümdeyken dinamik renkler (etiketler,
-/// ikincil yazılar, alt bilgi) beyaza dönüp açık zeminde okunmuyordu; uygulama açık görünümde sabitlenir.
-func kagitGorunumunuUygula() {
-    NSApp.appearance = NSAppearance(named: .aqua)
+/// Yerel AppKit kontrolleri seçili temayla aynı açık/koyu görünümü kullanır.
+func temaGorunumunuUygula() {
+    NSApp.appearance = NSAppearance(named: aktifTema.koyuMu ? .darkAqua : .aqua)
 }
 
 /// Ortak çalıştırıcının çağırdığı macOS giriş noktası.
