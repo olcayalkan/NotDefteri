@@ -102,11 +102,10 @@ private final class KodVeUyariAraclari {
     private var aracKaresi = GdkRectangle()
     private var aracBlogu: (aralik: NSRange, kimlik: String)?
     private var uyariHedefi: UyariHedefi?
-    /// macOS ile aynı: kod bloğu siyah %30 çizgi; uyarı kutusu kendi renginde %70 çizgi, %3 dolgu.
+    /// macOS ile aynı: kutunun içi çerçeve rengiyle doldurulur; çizgi kodda siyah %30, uyarıda soluk ton.
     private struct Cerceve {
         let kare: GdkRectangle
         let renk: GdkRGBA
-        let dolgulu: Bool
     }
     private var cerceveler: [Cerceve] = []
     private var sonAlan = GdkRectangle()
@@ -637,14 +636,11 @@ private final class KodVeUyariAraclari {
                 _ = belge.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok, in: tumu)
                 let kod = anahtar == kKodBloguAnahtari
                 let uyari = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: alt.location, effectiveRange: nil))
-                var renk = GdkRGBA()
-                let renkler = ["gri": "#8e8e93", "mavi": "#007aff", "sarı": "#ffcc00", "kırmızı": "#ff3b30", "yeşil": "#34c759"]
-                let renkAdi = kod ? "#000000" : renkler[uyari?.renk ?? "gri"] ?? "#8e8e93"
-                gdk_rgba_parse(&renk, renkAdi)
-                renk.alpha = kod ? 0.3 : 0.7
+                let r = kod ? (r: 0.0, g: 0.0, b: 0.0) : kUyariRenkleri[uyari?.renk ?? ""] ?? kUyariRenkleri["gri"]!
+                let renk = GdkRGBA(red: Float(r.r), green: Float(r.g), blue: Float(r.b), alpha: Float(kod ? 0.3 : kUyariCizgiOpakligi))
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
                 let x = gtk_text_view_get_left_margin(gorunum) + seviye
-                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: icEn - seviye, alan: alan), renk: renk, dolgulu: !kod))
+                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: icEn - seviye, alan: alan), renk: renk))
             }
         }
     }
@@ -667,10 +663,8 @@ private final class KodVeUyariAraclari {
             cairo_arc(cr, x + r, y + boy - r, r, .pi / 2, .pi)
             cairo_arc(cr, x + r, y + r, r, .pi, .pi * 1.5)
             cairo_close_path(cr)
-            if cerceve.dolgulu {
-                cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), 0.03)
-                cairo_fill_preserve(cr)
-            }
+            cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), kKutuDolguOpakligi)
+            cairo_fill_preserve(cr)
             cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), Double(renk.alpha))
             cairo_set_line_width(cr, 1)
             cairo_stroke(cr)
