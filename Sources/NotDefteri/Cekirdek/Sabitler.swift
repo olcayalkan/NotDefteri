@@ -24,10 +24,13 @@ package let kMaksYaziBoyutu: CGFloat = 28
 /// hiçbir zaman değişmez, böylece kaydedilen puntolar yeniden açışta/derlemede kaymaz.
 package let kTabanPunto: CGFloat = 14
 
+/// Kutu çerçevesinin metnin üstünde/altında bıraktığı iç boşluk.
+package let kKutuIcBoslugu: CGFloat = 8
+
 /// Kod bloğu ve uyarı kutusunun üstünde/altında bırakılan görünüm boşluğu. Çerçeve metnin
-/// 3 pt dışına çizildiği için kutu ile komşu paragraf arasında yaklaşık yarım satır kalır.
-/// Yalnızca görünümdür; Markdown'a satır yazılmaz.
-package let kKutuDisBoslugu: CGFloat = (kTabanPunto * 0.6).rounded() + 3
+/// kKutuIcBoslugu kadar dışına çizildiği için kutu ile komşu paragraf arasında yaklaşık yarım
+/// satır kalır. Yalnızca görünümdür; Markdown'a satır yazılmaz.
+package let kKutuDisBoslugu: CGFloat = (kTabanPunto * 0.6).rounded() + kKutuIcBoslugu
 
 /// Uyarı kutusu renkleri (0–1 RGB). Doygun sistem renkleri yerine kağıtta göz yormayan yumuşak tonlar.
 package let kUyariRenkleri: [String: (r: Double, g: Double, b: Double)] = [

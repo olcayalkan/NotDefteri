@@ -468,7 +468,7 @@ private final class KodVeUyariAraclari {
     }
 
     /// Kutu çerçevesinin tampon koordinatında üst/alt kenarı. Satır aralığı kutu-ust/kutu-alt
-    /// etiketinin boşluğunu da içerir; çerçeve metnin 3 px dışına çizilir, boşluk dışarıda kalır.
+    /// etiketinin boşluğunu da içerir; çerçeve metnin kKutuIcBoslugu kadar dışına çizilir, boşluk dışarıda kalır.
     private func kutuDikeyAraligi(_ blok: NSRange) -> (ust: Int32, alt: Int32) {
         var bas = GtkKoprusu.iter(editor!.tampon, utf16: blok.location)
         var son = GtkKoprusu.iter(editor!.tampon, utf16: NSMaxRange(blok))
@@ -476,8 +476,8 @@ private final class KodVeUyariAraclari {
         var ust: Int32 = 0, alt: Int32 = 0, boy: Int32 = 0
         gtk_text_view_get_line_yrange(gorunum, &bas, &ust, nil)
         gtk_text_view_get_line_yrange(gorunum, &son, &alt, &boy)
-        let bosluk = LinuxBelgeAdaptoru.kutuBoslugu
-        return (ust + bosluk - 3, alt + boy - bosluk + 3)
+        let bosluk = LinuxBelgeAdaptoru.kutuBoslugu, ic = Int32(kKutuIcBoslugu)
+        return (ust + bosluk - ic, alt + boy - bosluk + ic)
     }
 
     private func icerir(_ kare: GdkRectangle, _ x: Int32, _ y: Int32) -> Bool {

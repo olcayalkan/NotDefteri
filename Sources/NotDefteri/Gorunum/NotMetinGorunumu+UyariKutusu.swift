@@ -26,20 +26,20 @@ extension NotMetinGorunumu {
         let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
         let girinti = anahtar == kKodBloguAnahtari ? 0 : CGFloat(blok?.seviye ?? 0) * 24
         return NSRect(x: textContainerOrigin.x + kapsayici.lineFragmentPadding + girinti,
-                      y: textContainerOrigin.y + kare.minY - 3,
+                      y: textContainerOrigin.y + kare.minY - kKutuIcBoslugu,
                       width: max(0, kapsayici.size.width - kapsayici.lineFragmentPadding * 2 - girinti),
-                      height: kare.height + 6)
+                      height: kare.height + kKutuIcBoslugu * 2)
     }
 
     func cerceveliBloklariCiz(_ kirliAlan: NSRect, anahtar: NSAttributedString.Key) {
         guard let depo = textStorage, let yerlesim = layoutManager, let kapsayici = textContainer else { return }
         let kirpma = kirliAlan.intersection(visibleRect)
         guard !kirpma.isEmpty else { return }
-        let alan = kirpma.insetBy(dx: -7, dy: -7).offsetBy(dx: -textContainerOrigin.x, dy: -textContainerOrigin.y)
+        let alan = kirpma.insetBy(dx: -7, dy: -(kKutuIcBoslugu + 4)).offsetBy(dx: -textContainerOrigin.x, dy: -textContainerOrigin.y)
         let glifler = yerlesim.glyphRange(forBoundingRect: alan, in: kapsayici)
         var karakterler = yerlesim.characterRange(forGlyphRange: glifler, actualGlyphRange: nil)
         if glifler.length == 0, depo.length > 0,
-           yerlesim.extraLineFragmentRect.insetBy(dx: -7, dy: -7).intersects(alan) {
+           yerlesim.extraLineFragmentRect.insetBy(dx: -7, dy: -(kKutuIcBoslugu + 4)).intersects(alan) {
             karakterler = NSRange(location: depo.length - 1, length: 1)
         }
         // Belge sonunun extra-line alanında glif yoktur; son karakterin kutusu
