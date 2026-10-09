@@ -4,17 +4,24 @@ import NotDefteriCekirdek
 func kodRengi(_ tur: KodTokenTuru, tema: Tema) -> NSColor {
     let zemin = tema.arkaplan.usingColorSpace(.genericRGB) ?? tema.arkaplan
     let koyu = 0.2126 * zemin.redComponent + 0.7152 * zemin.greenComponent + 0.0722 * zemin.blueComponent < 0.5
-    let renk: NSColor
-    switch tur {
-    case .anahtarKelime: renk = koyu ? .systemPink : .systemPurple
-    case .metin: renk = koyu ? .systemGreen : .systemRed
-    case .sayi: renk = koyu ? .systemOrange : .systemBlue
-    case .yorum: renk = koyu ? .lightGray : .darkGray
-    case .tur: renk = .systemTeal
-    case .fonksiyon: renk = .systemBlue
-    case .operator: renk = koyu ? .white : .black
+    let hex: UInt32
+    switch (koyu, tur) {
+    case (true, .anahtarKelime): hex = 0xFF7AB2
+    case (true, .metin): hex = 0xA8CC8C
+    case (true, .sayi): hex = 0xD9C97C
+    case (true, .yorum): hex = 0x8B949E
+    case (true, .tur): hex = 0x6BDFFF
+    case (true, .fonksiyon): hex = 0x79C0FF
+    case (true, .operator): hex = 0xD2A8FF
+    case (false, .anahtarKelime): hex = 0x8E2CB1
+    case (false, .metin): hex = 0xA52A2A
+    case (false, .sayi): hex = 0x1769AA
+    case (false, .yorum): hex = 0x66727F
+    case (false, .tur): hex = 0x087A8C
+    case (false, .fonksiyon): hex = 0x1769AA
+    case (false, .operator): hex = 0x7A3FA3
     }
-    // Tema tonu korunur; koyu zeminde kontrast için renk beyaza yaklaştırılır.
-    let belirgin = renk.blended(withFraction: koyu ? 0.25 : 0.2, of: koyu ? .white : .black) ?? renk
-    return belirgin.blended(withFraction: 0.08, of: zemin) ?? belirgin
+    return NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+                   green: CGFloat((hex >> 8) & 0xFF) / 255,
+                   blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
 }
