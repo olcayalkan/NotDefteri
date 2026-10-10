@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""README animasyonlarını üretir: docs/baslik.svg, docs/kart-*.svg, docs/kurulum.svg.
+"""README animasyonlarını üretir: docs/baslik.svg, docs/tanitim.svg, docs/kart-*.svg, docs/kurulum.svg.
 
 Hepsi aynı mantığı izler: Markdown kaynağı yazılır, uygulamadaki gibi biçimlenmiş hâline
-dönüşür. SVG'ler kaynaktır; README GIF'leri kullanır (scripts/readme-gifleri.mjs), çünkü SVG
-içindeki CSS animasyonu her görüntüleyicide oynamıyor.
+dönüşür. SVG içindeki CSS animasyonu GitHub'da <img> ile kendiliğinden oynar; GIF'leri ise
+GitHub "hareketi azalt" kullanıcılarında durduruyor.
 
 Tasarım: uygulamanın sepya kâğıt kimliği; serif başlık + sans metin, kendi çizilmiş tutarlı
 simgeler (emoji yok), ince kenarlık, uçuk pastel vurgu, hafif kâğıt dokusu (minimalist-ui,
@@ -12,7 +12,7 @@ yalnızca transform ve opacity; giriş/çıkış güçlü ease-out, yer değişt
 80 ms kademe. Hareket azaltıldığında kayma kalkar, solma ve yazma sürer ("az ve yumuşak,
 sıfır değil"). Animasyon desteklemeyen görüntüleyicide son hâl görünür.
 
-    python3 scripts/readme-animasyonlar.py && node scripts/readme-gifleri.mjs
+    python3 scripts/readme-animasyonlar.py
 """
 from html import escape
 from pathlib import Path
@@ -60,6 +60,7 @@ SIMGELER = {
     "bag": '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
     "ampul": '<path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z"/>',
     "sayfa": '<path d="M6.5 3.5h7.5l4 4v13h-11.5z"/><path d="M14 3.5v4h4"/>',
+    "ev": '<path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/>',
 }
 
 
@@ -96,9 +97,15 @@ def doku(gen, yuk, rx):
             f'<rect width="{gen}" height="{yuk}" rx="{rx}" filter="url(#gren)"/>')
 
 
+# README vitrini her izleyicide tam hareketle oynasın diye hareket-azaltılmış sürüm kapalı.
+# GitHub GIF'leri "hareketi azalt" kullanıcılarında durduruyordu; solma sürümü de durağan sanıldı.
+# Yeniden açmak için True yap: azaltılmış sürüm transform'suz, aynı zamanlamayla solar.
+HAREKETI_AZALT = False
+
+
 class Sahne:
-    """Bir SVG'nin zaman çizelgesi. Her hareket iki sürümle yazılır: tam ve hareket-azaltılmış
-    (transform'suz, yalnızca opacity). Azaltılmış sürüm aynı zamanlamayla solarak oynar."""
+    """Bir SVG'nin zaman çizelgesi. HAREKETI_AZALT açıkken her hareket iki sürümle yazılır:
+    tam ve hareket-azaltılmış (transform'suz, yalnızca opacity)."""
 
     def __init__(self, toplam):
         self.toplam = toplam
@@ -118,21 +125,25 @@ class Sahne:
             return f"@keyframes {ad_} {{\n" + "\n".join(satirlar) + "\n}"
         self.css.append(yaz(ad, True))
         self.css.append(f".{ad} {{ animation: {ad} {self.toplam}s infinite; }}")
-        if azalt:
+        if azalt and HAREKETI_AZALT:
             self.css.append(yaz(f"{ad}-a", False))
             self.azaltilacak.append(ad)
 
     def gir_cik(self, ad, gir, cik, kayma="translateY(8px)", cikis_kayma=None, sure=0.45):
         """`gir`de kayarak belirir, `cik`ta söner; çıkış girişin tersinden (animate skill'i)."""
         cikis_kayma = cikis_kayma or kayma
-        self.kareler(ad, [
-            (0, {"opacity": 0, "transform": kayma}),
-            (gir, {"opacity": 0, "transform": kayma}),
-            (gir + sure, {"opacity": 1, "transform": "translate(0, 0)"}),
-            (cik, {"opacity": 1, "transform": "translate(0, 0)"}),
-            (cik + 0.3, {"opacity": 0, "transform": cikis_kayma}),
-            (self.toplam, {"opacity": 0, "transform": cikis_kayma}),
-        ])
+        adimlar = [(0, {"opacity": 0, "transform": kayma}),
+                   (gir, {"opacity": 0, "transform": kayma}),
+                   (gir + sure, {"opacity": 1, "transform": "translate(0, 0)"})]
+        # Çıkışı süre dışında olan öğe sonuna dek durur; yoksa %100'de üst üste binen kareler
+        # öğeyi bütün döngü boyunca yavaşça söndürüyordu.
+        if cik + 0.3 < self.toplam:
+            adimlar += [(cik, {"opacity": 1, "transform": "translate(0, 0)"}),
+                        (cik + 0.3, {"opacity": 0, "transform": cikis_kayma}),
+                        (self.toplam, {"opacity": 0, "transform": cikis_kayma})]
+        else:
+            adimlar.append((self.toplam, {"opacity": 1, "transform": "translate(0, 0)"}))
+        self.kareler(ad, adimlar)
 
     def svg(self, gen, yuk, baslik, icerik):
         azalt = " ".join(f".{ad} {{ animation-name: {ad}-a; }}" for ad in self.azaltilacak)
@@ -141,7 +152,8 @@ class Sahne:
                 # Animasyonsuz görüntüleyicide geçici öğeler (kaynak, ipucu, imleç) görünmez; son hâl kalır.
                 ".gecici { opacity: 0; }\n"
                 + "\n".join(self.css)
-                + f"\n@media (prefers-reduced-motion: reduce) {{ {azalt} }}\n</style>\n{icerik}\n</svg>\n")
+                + (f"\n@media (prefers-reduced-motion: reduce) {{ {azalt} }}" if HAREKETI_AZALT else "")
+                + f"\n</style>\n{icerik}\n</svg>\n")
 
 
 # ───────────────────────────── Başlık ─────────────────────────────
@@ -333,6 +345,216 @@ def kartlar():
     ]
 
 
+# ───────────────────────────── Tanıtım ─────────────────────────────
+# brag-output/work/sahne.html'deki 20,5 sn'lik tanıtımın vektör karşılığı (aynı sahneler,
+# aynı zamanlama). GIF'i GitHub "hareketi azalt" kullanıcılarında durduruyor; SVG kendiliğinden
+# oynar ve birkaç MB yerine birkaç on KB tutar. Ses yalnızca docs/tanitim.mp4'te.
+
+def tanitim_svg():
+    G, Y = 1920, 1080
+    s = Sahne(20.5)
+    T = s.toplam
+    PANEL, BASLIK_CUBUGU, SECIM = "#ccc4b0", "#c7bda6", "#b8ae98"
+    pay = 1.1                          # sans yazı genişliği tarayıcı fontuna göre değişir; örtü cömert
+
+    def goster(ad, bas, bit):
+        """Anında belirip kaybolan öğe (imleç, kısayolla değişen satır)."""
+        s.kareler(ad, [(0, {"opacity": 0}), (bas, {"opacity": 0}), (bas + 0.001, {"opacity": 1}),
+                       (bit, {"opacity": 1}), (bit + 0.001, {"opacity": 0}), (T, {"opacity": 0})], egri="linear", azalt=False)
+
+    def sahne(ad, gir, cik):
+        s.kareler(ad, [(0, {"opacity": 0}), (gir, {"opacity": 0}), (gir + 0.45, {"opacity": 1}),
+                       (cik, {"opacity": 1}), (cik + 0.4, {"opacity": 0}), (T, {"opacity": 0})])
+
+    def yazma(ad, x, y_ust, yuk, bas, n, hiz, genislik, zemin, imlec_bit, imlec_yuk, imlec_en=4, cizgiler=False):
+        """Örtü + imleç adım adım sağa kayar: metin harf harf yazılıyormuş gibi açılır."""
+        bitis = bas + n * hiz
+        s.css.append(f"@keyframes {ad} {{ 0% {{ transform: translateX(0); }} "
+                     f"{s.yuzde(bas)} {{ transform: translateX(0); animation-timing-function: steps({n}, end); }} "
+                     f"{s.yuzde(bitis)} {{ transform: translateX({genislik:.1f}px); }} 100% {{ transform: translateX({genislik:.1f}px); }} }}"
+                     f"\n.{ad} {{ animation: {ad} {T}s infinite; }}")
+        goster(f"{ad}-i", min(bas, imlec_bit) - 0.25 if bas - 0.25 > 0 else 0, imlec_bit)
+        orta = y_ust + (yuk - imlec_yuk) / 2
+        # Defter sayfasında örtü altındaki çizgileri de taşır: yatay çizgi yatay kayınca fark edilmez.
+        cizgi = "".join(f'<line x1="{x}" y1="{c}" x2="{x + genislik + 12:.1f}" y2="{c}" stroke="#a0947a" stroke-opacity="0.28"/>'
+                        for c in range(64, Y, 64) if y_ust <= c <= y_ust + yuk) if cizgiler else ""
+        return (f'<g class="{ad}" transform="translate({genislik:.1f} 0)"><rect x="{x}" y="{y_ust}" width="{genislik + 12:.1f}" '
+                f'height="{yuk}" fill="{zemin}"/>{cizgi}<rect class="{ad}-i gecici" x="{x}" y="{orta}" width="{imlec_en}" '
+                f'height="{imlec_yuk}" fill="{MUREKKEP}"/></g>')
+
+    govde = [f'<rect width="{G}" height="{Y}" fill="{SEPYA}"/>',
+             "".join(f'<line x1="0" y1="{y}" x2="{G}" y2="{y}" stroke="#a0947a" stroke-opacity="0.28"/>' for y in range(64, Y, 64)),
+             f'<line x1="140.5" y1="0" x2="140.5" y2="{Y}" stroke="{KENAR}" stroke-width="3" stroke-opacity="0.75"/>',
+             '<defs><filter id="golge" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="28" '
+             'stdDeviation="30" flood-color="#46321a" flood-opacity="0.35"/></filter>'
+             '<clipPath id="pencere-kirp"><rect x="210" y="96" width="1500" height="820" rx="16"/></clipPath>'
+             '<clipPath id="dosya-kirp"><rect x="410" y="250" width="1100" height="362" rx="16"/></clipPath></defs>']
+
+    # 1 · Kanca: "## Bugün" yazılır, "## " kaybolur, başlık olur.
+    sahne("s1", 0, 3.0)
+    harf = 72                                      # 120 px tek aralıklı
+    s.kareler("k-mono", [(0, {"opacity": 1, "transform": "translateX(0)"}), (1.55, {"opacity": 1, "transform": "translateX(0)"}),
+                         (1.75, {"opacity": 0, "transform": "translateX(-27px)"}), (T, {"opacity": 0, "transform": "translateX(-60px)"})],
+              egri=EASE_IN_OUT, azalt=False)
+    goster("k-ortu-g", 0, 1.5)
+    s.gir_cik("k-baslik", 1.7, 99, kayma="translateY(10px)", sure=0.45)
+    govde.append(
+        '<g class="s1">'
+        f'<g class="k-mono">{yazi("##", 220, 520, 120, ISARET, MONO, textLength=2 * harf, lengthAdjust="spacingAndGlyphs")}'
+        f'{yazi("Bugün", 220 + 3 * harf, 520, 120, MUREKKEP, MONO, textLength=5 * harf, lengthAdjust="spacingAndGlyphs")}</g>'
+        f'<g class="k-ortu-g">{yazma("k-ortu", 220, 420, 130, 0.35, 8, 0.11, 8 * harf, SEPYA, 1.5, 128, 8, cizgiler=True)}</g>'
+        + yazi("Bugün", 214, 532, 168, MUREKKEP, SERIF, font_weight="bold", letter_spacing="-5", **{"class": "k-baslik"}) + "</g>")
+
+    # 2 · Açılış
+    sahne("s2", 3.4, 6.0)
+    s.gir_cik("a-ad", 3.45, 99, kayma="translateY(24px)")
+    s.gir_cik("a-slogan", 3.7, 99, kayma="translateY(16px)")
+    govde.append('<g class="s2">'
+                 + yazi("NotDefteri", 214, 480, 176, MUREKKEP, SERIF, font_weight="bold", letter_spacing="-5", **{"class": "a-ad"})
+                 + yazi(escape(SLOGAN), 220, 610, 46, SOLUK, **{"class": "a-slogan"}) + "</g>")
+
+    # 3–4 · Uygulama penceresi
+    sahne("s3", 6.4, 14.3)
+    s.kareler("pencere", [(0, {"transform": "translateY(30px) scale(0.97)"}), (6.4, {"transform": "translateY(30px) scale(0.97)"}),
+                          (6.95, {"transform": "translateY(0) scale(1)"}), (14.25, {"transform": "translateY(0) scale(1)"}),
+                          (14.7, {"transform": "translateY(0) scale(0.96)"}), (T, {"transform": "translateY(0) scale(0.96)"})],
+              azalt=False)
+    s.css.append(".pencere { transform-box: fill-box; transform-origin: center; }")
+    satirlar = [("ev", "Ana Sayfa", 0, "", False), (None, "Sayfalar", 0, "", False), ("klasor", "Proje", 0, "▾", False),
+                (None, "Toplantı notları", 1, "", True), (None, "Proje Planı", 1, "", False), (None, "Bütçe", 1, "", False),
+                ("klasor", "Günlük", 0, "▸", False), ("sayfa", "Okuma listesi", 0, "", False)]
+    panel = [f'<rect x="210" y="148" width="330" height="768" fill="{PANEL}"/>',
+             f'<rect x="226" y="170" width="298" height="42" rx="9" fill="{MUREKKEP}" fill-opacity="0.07"/>',
+             yazi("Ara…", 242, 198, 18, SOLUK)]
+    y = 234
+    for sim, ad, alt, ok, secili in satirlar:
+        if ad == "Sayfalar":
+            panel.append(yazi("Sayfalar", 240, y + 30, 14, SOLUK, letter_spacing="0.6"))
+            y += 40
+            continue
+        if secili:
+            panel.append(f'<rect x="226" y="{y}" width="298" height="48" rx="8" fill="{SECIM}"/>')
+        if ok:
+            panel.append(yazi(ok, 240, y + 30, 13, SOLUK))
+        if sim:
+            panel.append(simge(sim, 258, y + 14, 20, MUREKKEP))
+        panel.append(yazi(escape(ad), 270 if alt else 288, y + 31, 22, MUREKKEP, font_weight="600" if secili else "400"))
+        y += 48
+    pencere = [f'<rect x="210" y="96" width="1500" height="820" rx="16" fill="{SEPYA}" filter="url(#golge)"/>',
+               '<g clip-path="url(#pencere-kirp)">',
+               f'<rect x="210" y="96" width="1500" height="52" fill="{BASLIK_CUBUGU}"/>',
+               "".join(f'<circle cx="{239 + i * 24}" cy="122" r="7" fill="{r}"/>' for i, r in enumerate(["#e0645a", "#e3b341", "#5fb05a"])),
+               yazi(f'Proje  ›  <tspan fill="{MUREKKEP}" font-weight="600">Toplantı notları</tspan>', 960, 128, 19, SOLUK,
+                    text_anchor="middle"),
+               *panel,
+               yazi("Toplantı notları", 636, 272, 66, MUREKKEP, font_weight="700", letter_spacing="-1"),
+               f'<rect x="210.5" y="96.5" width="1499" height="819" rx="16" fill="none" stroke="{MUREKKEP}" stroke-opacity="0.12"/>']
+
+    # Görev 1: "[] " kısayolu onay kutusuna dönüşür, "Raporu gönder" yazılır.
+    goster("g1-kaynak", 6.75, 7.11)
+    s.kareler("g1-kutu", [(0, {"opacity": 0}), (7.11, {"opacity": 0}), (7.3, {"opacity": 1}), (T, {"opacity": 1})], azalt=False)
+    pencere += [
+        f'<g class="g1-kaynak gecici">{yazi("[] ", 636, 354, 36, ISARET, MONO)}'
+        + yazma("g1-k-ortu", 636, 318, 50, 6.75, 3, 0.12, 3 * 21.6, SEPYA, 7.11, 40) + "</g>",
+        f'<rect class="g1-kutu" x="636" y="323" width="38" height="38" rx="9" fill="none" stroke="{MUREKKEP}" stroke-width="3"/>',
+        yazi("Raporu gönder", 692, 355, 38, MUREKKEP),
+        yazma("g1-ortu", 692, 318, 50, 7.25, 13, 0.065, 253 * pay, SEPYA, 8.245, 40)]
+    # Görev 2: Enter ile liste sürer.
+    goster("g2", 8.345, 99)
+    pencere += [f'<g class="g2"><rect x="636" y="403" width="38" height="38" rx="9" fill="none" stroke="{MUREKKEP}" stroke-width="3"/>'
+                + yazi("Sunumu hazırla", 692, 435, 38, MUREKKEP)
+                + yazma("g2-ortu", 692, 398, 50, 8.445, 14, 0.065, 266 * pay, SEPYA, 9.655, 40) + "</g>"]
+    # İşaretçi ilk kutuya gidip tıklar: kutu dolar, üstü çizilir.
+    tik = 10.0
+    s.kareler("g1-dolu", [(0, {"opacity": 0}), (tik, {"opacity": 0}), (tik + 0.18, {"opacity": 1}), (T, {"opacity": 1})], azalt=False)
+    s.kareler("g1-cizik", [(0, {"transform": "scaleX(0)"}), (tik + 0.1, {"transform": "scaleX(0)"}),
+                           (tik + 0.45, {"transform": "scaleX(1)"}), (T, {"transform": "scaleX(1)"})], azalt=False)
+    s.css.append(".g1-cizik { transform-box: fill-box; transform-origin: left center; }")
+    pencere += [f'<g class="g1-dolu"><rect x="634.5" y="321.5" width="41" height="41" rx="10" fill="{PASTEL["yesil"][1]}"/>'
+                f'<path d="M644 343l7 7 14-15" stroke="{YUZEY}" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>',
+                f'<rect class="g1-cizik" x="692" y="340" width="{253 * 1.04:.0f}" height="3" fill="{MUREKKEP}"/>']
+
+    # 4 · "[[Pro" yazılır, öneri açılır, seçilen sayfa bağa dönüşür.
+    secim = 12.75
+    goster("g3", 11.0, 99)
+    goster("g3-kaynak", 11.0, secim)
+    s.kareler("g3-bag", [(0, {"opacity": 0}), (secim, {"opacity": 0}), (secim + 0.25, {"opacity": 1}), (T, {"opacity": 1})], azalt=False)
+    goster("g3-imlec", secim, 14.0)
+    s.kareler("oneri", [(0, {"opacity": 0, "transform": "translateY(8px) scale(0.97)"}),
+                        (11.85, {"opacity": 0, "transform": "translateY(8px) scale(0.97)"}),
+                        (12.1, {"opacity": 1, "transform": "translateY(0) scale(1)"}),
+                        (secim - 0.05, {"opacity": 1, "transform": "translateY(0) scale(1)"}),
+                        (secim + 0.12, {"opacity": 0, "transform": "translateY(0) scale(1)"}),
+                        (T, {"opacity": 0, "transform": "translateY(0) scale(1)"})], azalt=False)
+    s.css.append(".oneri { transform-box: fill-box; transform-origin: 20px 0; }")
+    bx = 636 + 182                                 # "Ayrıntılar: " genişliği (Helvetica ölçüsü + pay)
+    pencere += [f'<g class="g3">' + yazi("Ayrıntılar:", 636, 529, 38, MUREKKEP)
+                + f'<g class="g3-kaynak gecici">{yazi("[[Pro", bx, 528, 36, MUREKKEP, MONO)}'
+                + yazma("g3-ortu", bx, 492, 50, 11.3, 5, 0.12, 5 * 21.6, SEPYA, secim, 40) + "</g>"
+                + f'<g class="g3-bag">{yazi("Proje Planı", bx, 529, 38, VURGU)}'
+                f'<rect x="{bx}" y="536" width="{185 * 1.04:.0f}" height="2.5" fill="{VURGU}"/></g>'
+                + f'<rect class="g3-imlec gecici" x="{bx + 185 * 1.06 + 8:.0f}" y="501" width="4" height="40" fill="{MUREKKEP}"/>'
+                + "</g>",
+                f'<g class="oneri"><rect x="841" y="552" width="470" height="190" rx="12" fill="{KAGIT}" stroke="{MUREKKEP}" '
+                f'stroke-opacity="0.12"/><rect x="849" y="560" width="454" height="84" rx="8" fill="{SECIM}"/>'
+                + yazi("Proje Planı", 867, 597, 28, MUREKKEP) + yazi("Proje", 867, 625, 19, SOLUK)
+                + yazi("Proje bütçesi", 867, 689, 28, MUREKKEP) + yazi("Proje › Bütçe", 867, 717, 19, SOLUK) + "</g>"]
+    pencere.append("</g>")
+    s.kareler("isaretci", [(0, {"opacity": 0, "transform": "translate(1250px, 880px) scale(1)"}),
+                           (9.2, {"opacity": 0, "transform": "translate(1250px, 880px) scale(1)"}),
+                           (9.3, {"opacity": 1, "transform": "translate(1250px, 880px) scale(1)"}),
+                           (9.95, {"opacity": 1, "transform": "translate(650px, 336px) scale(1)"}),
+                           (tik, {"opacity": 1, "transform": "translate(650px, 336px) scale(0.86)"}),
+                           (tik + 0.14, {"opacity": 1, "transform": "translate(650px, 336px) scale(1)"}),
+                           (10.6, {"opacity": 1, "transform": "translate(650px, 336px) scale(1)"}),
+                           (10.9, {"opacity": 0, "transform": "translate(650px, 336px) scale(1)"}),
+                           (T, {"opacity": 0, "transform": "translate(650px, 336px) scale(1)"})], egri=EASE_IN_OUT, azalt=False)
+    s.gir_cik("yazi3", 7.0, 10.75, kayma="translateY(18px)")
+    s.gir_cik("yazi4", 11.1, 14.1, kayma="translateY(18px)")
+    govde.append('<g class="s3"><g class="pencere">' + "".join(pencere) + "</g>"
+                 '<g class="isaretci"><path d="M7 4.5l20 11.4-8.8 2.3L14.2 27z" fill="#2f2a24" stroke="#f6f2e7" stroke-width="2" '
+                 'stroke-linejoin="round"/></g>'
+                 + yazi("Yazarken biçimlenir, yapılacaklar tek tıkla.", 960, 1002, 40, MUREKKEP, text_anchor="middle", **{"class": "yazi3"})
+                 + yazi(f'Sayfaları <tspan font-family="{MONO}">[[</tspan> ile birbirine bağla.', 960, 1002, 40, MUREKKEP,
+                        text_anchor="middle", **{"class": "yazi4"}) + "</g>")
+
+    # 5 · Dosyalar
+    sahne("s5", 14.7, 17.3)
+    s.gir_cik("dosyalar", 14.75, 99, kayma="translateY(30px) scale(0.97)")
+    s.css.append(".dosyalar { transform-box: fill-box; transform-origin: center; }")
+    dosya = [f'<rect x="410" y="250" width="1100" height="362" rx="16" fill="{KAGIT}" filter="url(#golge)"/>',
+             '<g clip-path="url(#dosya-kirp)">', f'<rect x="410" y="250" width="1100" height="84" fill="{YUZEY}"/>',
+             simge("klasor", 440, 278, 28, SOLUK),
+             yazi(f'Belgeler  ›  NotDefteri  ›  <tspan fill="{MUREKKEP}" font-weight="700">Proje</tspan>', 482, 302, 27, SOLUK),
+             f'<rect x="410" y="333" width="1100" height="1" fill="{MUREKKEP}" fill-opacity="0.1"/>']
+    for i, (sim, ad, aciklama) in enumerate([("sayfa", "index.md", "Sayfanın metni"), ("gorsel", "Görseller", "Eklediğin görseller"),
+                                             ("klasor", "Toplantı notları", "Alt sayfa")]):
+        y0 = 334 + i * 92
+        s.gir_cik(f"d{i}", 15.05 + i * 0.12, 99, kayma="translateY(12px)")
+        dosya.append(f'<g class="d{i}">' + simge(sim, 446, y0 + 29, 34, MUREKKEP) + yazi(escape(ad), 500, y0 + 57, 32, MUREKKEP)
+                     + yazi(escape(aciklama), 1474, y0 + 56, 23, SOLUK, text_anchor="end")
+                     + f'<rect x="410" y="{y0 + 91}" width="1100" height="1" fill="{MUREKKEP}" fill-opacity="0.07"/></g>')
+    dosya += ["</g>", f'<rect x="410.5" y="250.5" width="1099" height="361" rx="16" fill="none" stroke="{MUREKKEP}" stroke-opacity="0.12"/>']
+    s.gir_cik("yazi5", 15.0, 99, kayma="translateY(18px)")
+    govde.append('<g class="s5"><g class="dosyalar">' + "".join(dosya) + "</g>"
+                 + yazi("Notların bilgisayarında sıradan dosyalar olarak kalır.", 960, 1002, 40, MUREKKEP, text_anchor="middle",
+                        **{"class": "yazi5"}) + "</g>")
+
+    # 6 · Kapanış; döngü başa dönmeden önce sayfaya söner.
+    sahne("s6", 17.7, T - 0.45)
+    s.gir_cik("son-ad", 17.75, 99, kayma="translateY(24px)")
+    s.gir_cik("son-slogan", 17.95, 99, kayma="translateY(16px)")
+    s.gir_cik("son-meta", 18.15, 99, kayma="translateY(10px)")
+    govde.append('<g class="s6">'
+                 + yazi("NotDefteri", 960, 490, 176, MUREKKEP, SERIF, text_anchor="middle", font_weight="bold", letter_spacing="-5",
+                        **{"class": "son-ad"})
+                 + yazi(escape(SLOGAN), 960, 606, 46, SOLUK, text_anchor="middle", **{"class": "son-slogan"})
+                 + yazi("MACOS · LINUX  —  GITHUB.COM/OLCAYALKAN/NOTDEFTERI", 960, 706, 26, SOLUK, MONO, text_anchor="middle",
+                        letter_spacing="3", **{"class": "son-meta"}) + "</g>")
+    return s.svg(G, Y, "NotDefteri tanıtımı: yazdığın anda biçimlenen sade bir defter; yapılacaklar, sayfa bağları ve "
+                       "bilgisayarında sıradan dosyalar olarak duran notlar.", "".join(govde))
+
+
 # ───────────────────────────── Kurulum ─────────────────────────────
 
 T_ZEMIN = "#2a251f"
@@ -404,7 +626,7 @@ def kurulum_svg():
 
 
 if __name__ == "__main__":
-    ciktilar = [("baslik.svg", baslik_svg()), ("kurulum.svg", kurulum_svg())]
+    ciktilar = [("baslik.svg", baslik_svg()), ("kurulum.svg", kurulum_svg()), ("tanitim.svg", tanitim_svg())]
     ciktilar += [(f"kart-{ad}.svg", icerik) for ad, icerik in kartlar()]
     for ad, icerik in ciktilar:
         yol = DOCS / ad

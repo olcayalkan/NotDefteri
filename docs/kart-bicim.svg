@@ -10,14 +10,6 @@
   100.000% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d0 { animation: d0 9.0s infinite; }
-@keyframes d0-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  3.889% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  8.889% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  21.111% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  24.444% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes d1 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   22.778% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -27,14 +19,6 @@
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d1 { animation: d1 9.0s infinite; }
-@keyframes d1-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  22.778% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  27.778% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  90.333% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  93.667% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes d2 {
   0.000% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   6.667% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -44,14 +28,6 @@
   100.000% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d2 { animation: d2 9.0s infinite; }
-@keyframes d2-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  6.667% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  11.667% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  23.889% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  27.222% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes d3 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   25.556% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -61,14 +37,6 @@
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d3 { animation: d3 9.0s infinite; }
-@keyframes d3-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  25.556% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  30.556% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  91.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  94.333% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes d4 {
   0.000% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   9.444% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -78,14 +46,6 @@
   100.000% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d4 { animation: d4 9.0s infinite; }
-@keyframes d4-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  9.444% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  14.444% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  26.667% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  30.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes d5 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   28.333% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -95,14 +55,6 @@
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d5 { animation: d5 9.0s infinite; }
-@keyframes d5-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  28.333% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  33.333% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  91.667% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  95.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes cizik {
   0.000% { opacity: 0; transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   40.000% { opacity: 0; transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -113,17 +65,7 @@
   100.000% { opacity: 0; transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .cizik { animation: cizik 9.0s infinite; }
-@keyframes cizik-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  40.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  40.111% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  43.889% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  90.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  93.333% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 [class^=d], .cizik { transform-box: fill-box; } [class^=d] { transform-origin: center; } .cizik { transform-origin: left center; }
-@media (prefers-reduced-motion: reduce) { .d0 { animation-name: d0-a; } .d1 { animation-name: d1-a; } .d2 { animation-name: d2-a; } .d3 { animation-name: d3-a; } .d4 { animation-name: d4-a; } .d5 { animation-name: d5-a; } .cizik { animation-name: cizik-a; } }
 </style>
 <rect x="1" y="1" width="998" height="298" rx="16" fill="#ede7d8" stroke="#2f2a24" stroke-opacity="0.13" stroke-width="1.5"/><filter id="gren" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0 0.11 0 0 0 0.07 0"/></filter><rect width="1000" height="300" rx="16" filter="url(#gren)"/><g class="karo"><rect x="40" y="40" width="44" height="44" rx="11" fill="#f1e3bb"/><g transform="translate(50.0 50.0) scale(1.000)" fill="none" stroke="#86590a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></g></g><text x="40" y="136" font-family="'Iowan Old Style', 'Palatino Linotype', Georgia, serif" font-size="30" fill="#2f2a24" font-weight="bold" letter-spacing="-0.6">Yazarken biçimlenir</text><text x="40" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#5f564a" >İşaretleri yaz, metin anında şekillensin.</text><text x="40" y="194" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#5f564a" >Başlık, kalın, vurgu, uyarı kutusu ve dahası.</text><text x="40" y="270" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#2f5f7f" font-weight="600">Nasıl kullanılır →</text><rect x="430" y="28" width="542" height="244" rx="11" fill="#f6f2e7" stroke="#2f2a24" stroke-opacity="0.08"/><g class="d0 gecici"><g transform="translate(466 92)"><text x="0" y="0" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19"><tspan fill="#857862">## </tspan><tspan fill="#2f2a24">Toplantı notları</tspan></text></g></g><g class="d1"><g transform="translate(466 92)"><text x="0" y="0" font-family="'Iowan Old Style', 'Palatino Linotype', Georgia, serif" font-size="27" fill="#2f2a24" font-weight="bold" letter-spacing="-0.4">Toplantı notları</text></g></g><g class="d2 gecici"><g transform="translate(466 156)"><text x="0" y="0" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19"><tspan fill="#857862">**</tspan><tspan fill="#2f2a24">Karar:</tspan><tspan fill="#857862">**</tspan><tspan fill="#2f2a24"> bütçe </tspan><tspan fill="#857862">==</tspan><tspan fill="#2f2a24">onaylandı</tspan><tspan fill="#857862">==</tspan></text></g></g><g class="d3"><g transform="translate(466 156)"><rect x="120" y="-20" width="96" height="27" rx="4" fill="#f1e3bb"/><text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#2f2a24" ><tspan font-weight="700">Karar:</tspan> bütçe onaylandı</text></g></g><g class="d4 gecici"><g transform="translate(466 220)"><text x="0" y="0" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19"><tspan fill="#857862">&gt; [!💡 sarı] </tspan><tspan fill="#2f2a24">Cuma teslim</tspan></text></g></g><g class="d5"><g transform="translate(466 220)"><rect x="-12" y="-27" width="250" height="40" rx="8" fill="#f1e3bb"/><rect x="-12" y="-27" width="3.5" height="40" rx="1.5" fill="#86590a"/><g transform="translate(4 -18) scale(0.833)" fill="none" stroke="#86590a" stroke-width="2.10" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z"/></g><text x="32" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#2f2a24" >Cuma teslim</text></g></g>
 </svg>

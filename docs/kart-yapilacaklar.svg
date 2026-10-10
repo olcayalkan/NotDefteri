@@ -10,14 +10,6 @@
   100.000% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d0 { animation: d0 8.0s infinite; }
-@keyframes d0-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  6.875% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  12.500% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  26.250% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  30.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes d1 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   28.125% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -27,14 +19,6 @@
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d1 { animation: d1 8.0s infinite; }
-@keyframes d1-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  28.125% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  33.750% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  89.125% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  92.875% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes d2 {
   0.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   45.625% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -44,14 +28,6 @@
   100.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d2 { animation: d2 8.0s infinite; }
-@keyframes d2-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  45.625% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  51.250% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  89.500% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  93.250% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes d3 {
   0.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   2.500% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -61,14 +37,6 @@
   100.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .d3 { animation: d3 8.0s infinite; }
-@keyframes d3-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  2.500% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  8.125% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  89.875% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  93.625% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 @keyframes cizik {
   0.000% { opacity: 0; transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   47.500% { opacity: 0; transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -79,17 +47,7 @@
   100.000% { opacity: 0; transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .cizik { animation: cizik 8.0s infinite; }
-@keyframes cizik-a {
-  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  47.500% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  47.625% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  51.875% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  88.750% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  92.500% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-}
 [class^=d], .cizik { transform-box: fill-box; } [class^=d] { transform-origin: center; } .cizik { transform-origin: left center; }
-@media (prefers-reduced-motion: reduce) { .d0 { animation-name: d0-a; } .d1 { animation-name: d1-a; } .d2 { animation-name: d2-a; } .d3 { animation-name: d3-a; } .cizik { animation-name: cizik-a; } }
 </style>
 <rect x="1" y="1" width="488" height="318" rx="16" fill="#ede7d8" stroke="#2f2a24" stroke-opacity="0.13" stroke-width="1.5"/><filter id="gren" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0 0.11 0 0 0 0.07 0"/></filter><rect width="490" height="320" rx="16" filter="url(#gren)"/><g class="karo"><rect x="32" y="32" width="44" height="44" rx="11" fill="#e0e8d4"/><g transform="translate(42.0 42.0) scale(1.000)" fill="none" stroke="#3f5f36" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></g></g><text x="32" y="108" font-family="'Iowan Old Style', 'Palatino Linotype', Georgia, serif" font-size="27" fill="#2f2a24" font-weight="bold" letter-spacing="-0.6">Yapılacaklar</text><text x="32" y="138" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#5f564a" >Bütün işlerin Ana Sayfa&#x27;da tek listede.</text><text x="32" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#2f5f7f" font-weight="600">Nasıl kullanılır →</text><rect x="24" y="158" width="442" height="108" rx="11" fill="#f6f2e7" stroke="#2f2a24" stroke-opacity="0.08"/><g class="d0 gecici"><g transform="translate(48 220)"><text x="0" y="0" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18"><tspan fill="#857862">- [ ] </tspan><tspan fill="#2f2a24">Raporu gönder</tspan></text></g></g><g class="d1"><g transform="translate(48 220)"><rect x="0" y="-17" width="19" height="19" rx="5" fill="none" stroke="#2f2a24" stroke-width="1.75"/><text x="30" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#2f2a24" >Raporu gönder</text></g></g><g class="d2"><g transform="translate(48 220)"><rect x="0" y="-17" width="19" height="19" rx="5" fill="#3f5f36"/><path d="M4.5 -8 L8.2 -4.5 L14.5 -11.5" stroke="#f6f2e7" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g></g><g class="d3"><g transform="translate(48 220)"><line class="cizik" x1="30" y1="-6" x2="150" y2="-6" stroke="#2f2a24" stroke-width="1.75"/></g></g>
 </svg>
