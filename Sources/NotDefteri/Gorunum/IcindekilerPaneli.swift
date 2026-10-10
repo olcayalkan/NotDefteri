@@ -290,7 +290,11 @@ final class IcindekilerPaneli: NSView {
 
     override func layout() {
         super.layout()
-        kaydirma.frame = bounds.insetBy(dx: 0, dy: dikeyBosluk)
+        // insetBy, yükseklik iki boşluktan azken (açılışta 0×0) sonsuz kökenli .null döner;
+        // Auto Layout bunu sınır aşan kısıt sabiti olarak kırpıyordu (#14).
+        let bosluk = min(dikeyBosluk, bounds.height / 2)
+        kaydirma.frame = NSRect(x: bounds.minX, y: bounds.minY + bosluk,
+                                width: bounds.width, height: bounds.height - bosluk * 2)
 
         let icerikYuksekligi = CGFloat(satirlar.count + (baglantiVerenler.isEmpty ? 0 : baglantiVerenler.count + 1)) * satirYuksekligi
         icerik.frame = NSRect(x: 0, y: 0, width: kaydirma.contentSize.width,

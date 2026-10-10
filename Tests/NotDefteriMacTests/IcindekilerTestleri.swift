@@ -64,4 +64,21 @@ final class IcindekilerTestleri: XCTestCase {
             XCTAssertGreaterThanOrEqual(g.konum, 0)
         }
     }
+
+    /// Açılışta panel 0×0 iken insetBy .null (sonsuz köken) veriyordu; Auto Layout bunu
+    /// "exceeds internal limits" uyarısıyla kırpıyordu (#14). Pencere dışında AppKit sonsuz
+    /// kökeni yok saydığı için kesin çerçeve beklenir.
+    func testBoyutlanmamisPanelSonluCerceveVerir() throws {
+        let beklenen: [(CGFloat, NSRect)] = [
+            (0, NSRect(x: 0, y: 0, width: 30, height: 0)),
+            (10, NSRect(x: 0, y: 5, width: 30, height: 0)),
+            (40, NSRect(x: 0, y: 6, width: 30, height: 28))
+        ]
+        for (yukseklik, kare) in beklenen {
+            let panel = IcindekilerPaneli(frame: NSRect(x: 0, y: 0, width: 30, height: yukseklik))
+            panel.layout()
+            let kaydirma = try XCTUnwrap(panel.subviews.first { $0 is NSScrollView })
+            XCTAssertEqual(kaydirma.frame, kare, "yükseklik \(yukseklik)")
+        }
+    }
 }
