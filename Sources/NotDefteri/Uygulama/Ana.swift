@@ -8,6 +8,9 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        // Panel not ağacını okumadan önce boş, ilk kurulum kökünü rehberle doldur.
+        // Hata, açılışı engellemez; kullanıcı yine boş not defterini kullanabilir.
+        _ = try? ilkKullanimKilavuzunuHazirla()
         temaGorunumunuUygula()
         NSApp.mainMenu = anaMenuyuOlustur(delege: self)
         let p = NotPenceresi()
@@ -47,7 +50,7 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 }
 
-/// Yerel AppKit kontrolleri seçili temayla aynı açık/koyu görünümü kullanır.
+/// Yerel AppKit kontrolleri de özel paletle aynı açık/koyu görünümü kullansın.
 func temaGorunumunuUygula() {
     NSApp.appearance = NSAppearance(named: aktifTema.koyuMu ? .darkAqua : .aqua)
 }

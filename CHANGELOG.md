@@ -10,11 +10,15 @@ and this project adheres to
 
 ### Added
 
+- NotDefteri: macOS not, ana sayfa ve kenar panel sağ tık menülerinde Görünüm → Tema seçimi.
+- NotDefteri: `/table` ve `/tablo` ile tablo ekleme, kaynak Markdown yazılışını koruyan hücre düzenleme.
 - NotDefteri: Terminal teması, kayıtlı tema seçimi için tek seferlik geçiş ve macOS/Linux tema yenilemesi.
 - NotDefteri: Dil etiketi olmayan veya tanınmayan kod bloklarında genel sözdizimi renklendirmesi.
 
 ### Fixed
 
+- NotDefteri: Kod bloğunda boş Enter satırlarını koruma ve Ctrl+Enter ile açık çıkış.
+- NotDefteri: Ekransız Linux testlerinde GTK başlatma sonucunu paylaşarak yanlış pencere oluşturmayı önleme.
 - NotDefteri: Tema değişiminde metin/kod renklerinin güncellenmesi ve Türkçe arama normalizasyonuna uygun önbellek testi beklentileri.
 
 ## [0.15.1] - 2026-04-11

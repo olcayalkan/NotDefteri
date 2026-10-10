@@ -23,7 +23,7 @@ private func tutucuyuYokEt(_ veri: gpointer?) {
     Unmanaged<AnyObject>.fromOpaque(veri).release()
 }
 
-/// GtkGestureClick::pressed (n_press, x, y) köprüdeki imzalara uymaz; kendi çağrısı vardır.
+/// GtkGestureClick::released (n_press, x, y) köprüdeki imzalara uymaz; kendi çağrısı vardır.
 private func basmaCagir(_ jest: gpointer?, _ tikSayisi: Int32, _ x: Double, _ y: Double, _ veri: gpointer?) {
     guard let veri else { return }
     Unmanaged<Tutucu<(Double, Double) -> Void>>.fromOpaque(veri).takeUnretainedValue().calistir(x, y)
@@ -137,6 +137,24 @@ final class LinuxKenarPaneli {
     private var aramaIptal: ZamanlayiciIptal?
     private(set) var icerikOnbellek: [URL: OnbellekGirdisi] = [:]
     private var onbellekNesli = 0
+    private struct AgacIstegi {
+        let kok: URL
+        let eskiSayfalar: [SayfaSecenegi]
+    }
+    private struct AgacSonucu {
+        let dugumler: [AgacDugumu]
+        let notlar: [URL]
+        let sayfalar: [SayfaSecenegi]
+    }
+    // Kuyruk canlı GTK nesnesine erişmez; yeni ağaç yalnızca teslimde ana döngüye geçer.
+    private var bekleyenAgacSonucu: AgacSonucu?
+    private lazy var agacYenileyici = ArkaPlanYenileyici<AgacIstegi, AgacSonucu>(is: { istek in
+        let dugumler = agaciYukle(istek.kok)
+        let notlar = LinuxKenarPaneli.notlariDuzlestir(dugumler)
+        let eskiler = Dictionary(istek.eskiSayfalar.map { ($0.url, $0) }, uniquingKeysWith: { ilk, _ in ilk })
+        let sayfalar = notlar.map { eskiler[$0] ?? SayfaSecenegi(url: $0) }
+        return AgacSonucu(dugumler: dugumler, notlar: notlar, sayfalar: sayfalar)
+    }, teslimiPlanla: { Platform.anaIsParcaciginda($0) })
     private let girdiKuyrugu = DispatchQueue(label: "NotDefteri.kayitGirdisi", qos: .userInitiated)
     /// Tek örnek: açılış temizliği ve çöp penceresi (LinuxCopKutusu) aynı kilidi paylaşır.
     let copKutusu = CopKutusu()
@@ -163,6 +181,7 @@ final class LinuxKenarPaneli {
     }
 
     deinit {
+        agacYenileyici.invalidate()
         aramaIptal?()
     }
 
@@ -206,17 +225,29 @@ final class LinuxKenarPaneli {
     func yenile(secili: URL? = nil) {
         if let secili { acikNotURL = secili }
         sonYenileme = Date()
-        tumKokDugumler = agaciYukle()
-        tumNotlar = notlariDuzlestir(tumKokDugumler)
-        // Yol çözümü pahalı (3.5k notta ~250 ms); değişmeyen sayfa yeniden kurulmaz (macOS sayfaIndeksiniGuncelle).
-        let eskiler = Dictionary(sayfaBaglantilari.sayfalar.map { ($0.url, $0) }, uniquingKeysWith: { ilk, _ in ilk })
-        let sayfalar = tumNotlar.map { eskiler[$0] ?? SayfaSecenegi(url: $0) }
-        if sayfalar != sayfaBaglantilari.sayfalar { sayfaBaglantilari.guncelle(sayfalar) }
+        // Devam eden eski içerik taraması yeni ağaç beklenirken teslim edilmesin.
+        onbellekNesli += 1
+        bekleyenAgacSonucu = nil
+        agacYenileyici.iste(AgacIstegi(kok: notlarKlasoru(), eskiSayfalar: sayfaBaglantilari.sayfalar)) { [weak self] sonuc in
+            guard let self else { return }
+            self.agacSonucunuUygula(sonuc)
+        }
+    }
+
+    private func agacSonucunuUygula(_ sonuc: AgacSonucu) {
+        // Kullanıcı tarama sürerken sürükleme başlatmış olabilir; GTK satırlarını
+        // aktif sürüklemenin altından kaldırma. İptal/bitişte son sonuç teslim edilir.
+        guard surukleme == nil else { bekleyenAgacSonucu = sonuc; return }
+        bekleyenAgacSonucu = nil
+        tumKokDugumler = sonuc.dugumler
+        tumNotlar = sonuc.notlar
+        if sonuc.sayfalar != sayfaBaglantilari.sayfalar { sayfaBaglantilari.guncelle(sonuc.sayfalar) }
         favoriler.olmayanlariDusur()
         sayfaBaglantilari.olmayanSonAcilanlariDusur()
-        let mevcut = Set(tumNotlar)
+        let mevcut = Set(sonuc.notlar)
         icerikOnbellek = icerikOnbellek.filter { mevcut.contains($0.key) }
         onbellegiTazele()
+        // İstek sürerken açılan notun mevcut seçimini kullan.
         filtreUygula()
         veriyiBildir()
     }
@@ -350,7 +381,8 @@ final class LinuxKenarPaneli {
     private func sagTikKur(_ widget: Parca, _ eylem: @escaping (Double, Double) -> Void) {
         let jest = gtk_gesture_click_new()!
         gtk_gesture_single_set_button(OpaquePointer(ham(jest)), 3)
-        g_signal_connect_data(ham(jest), "pressed",
+        // Fare bırakılmadan popup açılırsa release başka yüzeye yönlenebilir.
+        g_signal_connect_data(ham(jest), "released",
                               unsafeBitCast(basmaCagir as @convention(c) (gpointer?, Int32, Double, Double, gpointer?) -> Void,
                                             to: GCallback.self),
                               Unmanaged.passRetained(Tutucu(eylem)).toOpaque(), tutucuyuBirak, GConnectFlags(rawValue: 0))
@@ -562,7 +594,7 @@ final class LinuxKenarPaneli {
         return sonuc
     }
 
-    private func notlariDuzlestir(_ dizi: [AgacDugumu]) -> [URL] {
+    private static func notlariDuzlestir(_ dizi: [AgacDugumu]) -> [URL] {
         dizi.flatMap { ($0.icerikURL.map { [$0] } ?? []) + notlariDuzlestir($0.cocuklar) }
     }
 
@@ -598,6 +630,9 @@ final class LinuxKenarPaneli {
 
     /// `kisaYol`: son açılan satırı; düğüm ağaçtaki örnek olmadığından sabitleme sunulmaz.
     private func menuAc(_ dugum: AgacDugumu, _ hedef: Parca, _ x: Double, _ y: Double, kisaYol: Bool = false) {
+        guard nd_popup_hedefi_hazir(kok) != 0 else { return }
+        var px = x, py = y
+        guard gtk_widget_translate_coordinates(hedef, kok, x, y, &px, &py) != 0 else { return }
         menuyuKapat()
         menuDugumu = dugum
         let model = g_menu_new()!
@@ -617,8 +652,6 @@ final class LinuxKenarPaneli {
         g_object_unref(ham(model))
         // GtkListBoxRow'a bağlanan menü "kenar" eylemlerini bulamıyor, tüm öğeler devre dışı
         // görünüyordu; menü eylem grubunun kurulduğu kenar panele bağlanır, konum ona çevrilir.
-        var px = x, py = y
-        gtk_widget_translate_coordinates(hedef, kok, x, y, &px, &py)
         gtk_widget_set_parent(menu, kok)
         let popover: UnsafeMutablePointer<GtkPopover> = GtkKoprusu.gtkIsaretci(ham(menu))
         gtk_popover_set_has_arrow(popover, 0)
@@ -637,6 +670,7 @@ final class LinuxKenarPaneli {
     private func menuyuKapat(_ yalnizca: UnsafeMutablePointer<GtkWidget>? = nil) {
         guard let menu = acikMenu, yalnizca == nil || yalnizca == menu else { return }
         acikMenu = nil
+        gtk_popover_popdown(GtkKoprusu.gtkIsaretci(ham(menu)))
         gtk_widget_unparent(menu)
     }
 
@@ -712,6 +746,10 @@ final class LinuxKenarPaneli {
                Tutucu<() -> Void> { [weak self] in
                    self?.surukleme = nil
                    self?.tasimaOnbellegi = nil
+                   Platform.anaIsParcaciginda { [weak self] in
+                       guard let self, let sonuc = self.bekleyenAgacSonucu else { return }
+                       self.agacSonucunuUygula(sonuc)
+                   }
                })
         gtk_widget_add_controller(widget, kaynak)
     }
@@ -1045,6 +1083,8 @@ final class LinuxKenarPaneli {
             hataGoster("Sabitlenemedi", "Sıra kaydı yazılamadı.")
             return
         }
+        // Tarama beklenirken aynı satıra ikinci tıklama güncel durumu görmeli.
+        dugum.sabit.toggle()
         yenile()
     }
 

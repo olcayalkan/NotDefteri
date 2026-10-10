@@ -62,6 +62,63 @@ enum LinuxDiyalog {
               tur: hata ? GTK_MESSAGE_ERROR : GTK_MESSAGE_INFO) { _ in tamam() }
     }
 
+    /// İki küçük sayı alanı gereken komutlar için ortak, bloklamayan pencere.
+    static func ikiTamsayiGir(ust: Ust, baslik: String, aciklama: String,
+                              ilk: Int = 3, ikinci: Int = 3,
+                              yanit: @escaping (Int, Int) -> Void) {
+        let diyalog = gtk_window_new()!
+        gtk_widget_add_css_class(diyalog, "notdefteri")
+        gtk_window_set_title(nd_window(diyalog), baslik)
+        gtk_window_set_modal(nd_window(diyalog), 1)
+        gtk_window_set_transient_for(nd_window(diyalog), nd_window(ust))
+        gtk_window_set_resizable(nd_window(diyalog), 0)
+        let kutu = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10)!
+        for kenar in [(gtk_widget_set_margin_top, Int32(16)), (gtk_widget_set_margin_bottom, Int32(16)),
+                      (gtk_widget_set_margin_start, Int32(16)), (gtk_widget_set_margin_end, Int32(16))] {
+            kenar.0(kutu, kenar.1)
+        }
+        let aciklamaEtiketi = gtk_label_new(aciklama)!
+        gtk_label_set_wrap(nd_label(aciklamaEtiketi), 1)
+        gtk_label_set_xalign(nd_label(aciklamaEtiketi), 0)
+        gtk_box_append(nd_box(kutu), aciklamaEtiketi)
+        let satir = gtk_entry_new()!, sutun = gtk_entry_new()!
+        gtk_editable_set_text(OpaquePointer(satir), String(ilk))
+        gtk_editable_set_text(OpaquePointer(sutun), String(ikinci))
+        for (ad, alan) in [("Satır (başlık dahil)", satir), ("Sütun", sutun)] {
+            let satirKutusu = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10)!
+            let etiket = gtk_label_new(ad)!
+            gtk_label_set_xalign(nd_label(etiket), 0)
+            gtk_widget_set_hexpand(etiket, 1)
+            gtk_widget_set_size_request(alan, 82, -1)
+            gtk_box_append(nd_box(satirKutusu), etiket)
+            gtk_box_append(nd_box(satirKutusu), alan)
+            gtk_box_append(nd_box(kutu), satirKutusu)
+        }
+        let dugmeler = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8)!
+        gtk_widget_set_halign(dugmeler, GTK_ALIGN_END)
+        let vazgec = gtk_button_new_with_label("Vazgeç")!
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(vazgec), "clicked") { gtk_window_destroy(nd_window(diyalog)) }
+        gtk_box_append(nd_box(dugmeler), vazgec)
+        let ekle = gtk_button_new_with_label("Ekle")!
+        let onayla: () -> Void = {
+            let satirMetni = String(cString: gtk_editable_get_text(OpaquePointer(satir)))
+            let sutunMetni = String(cString: gtk_editable_get_text(OpaquePointer(sutun)))
+            guard let satirSayisi = Int(satirMetni.trimmingCharacters(in: .whitespaces)),
+                  let sutunSayisi = Int(sutunMetni.trimmingCharacters(in: .whitespaces)) else { return }
+            gtk_window_destroy(nd_window(diyalog))
+            Platform.anaIsParcaciginda { yanit(satirSayisi, sutunSayisi) }
+        }
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(ekle), "clicked") { onayla() }
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(satir), "activate") { onayla() }
+        GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(sutun), "activate") { onayla() }
+        gtk_box_append(nd_box(dugmeler), ekle)
+        gtk_box_append(nd_box(kutu), dugmeler)
+        gtk_window_set_child(nd_window(diyalog), kutu)
+        gtk_window_present(nd_window(diyalog))
+        gtk_widget_grab_focus(satir)
+        gtk_editable_select_region(OpaquePointer(satir), 0, -1)
+    }
+
     /// Dosya aç. İptalde ve seçilemeyen dosyada `yanit(nil)`.
     static func dosyaAc(ust: Ust, baslik: String = "Aç", yanit: @escaping (URL?) -> Void) {
         sec(ust: ust, baslik: baslik, eylem: GTK_FILE_CHOOSER_ACTION_OPEN, kabul: "Aç", ad: nil, yanit: yanit)

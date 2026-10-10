@@ -196,7 +196,7 @@ final class LinuxIcindekiler {
 
     private func basliklariGuncelle() {
         let yeni: [Girdi]
-        if let editor, editor.editorEtkin { yeni = basliklariTopla(editor.belge) }
+        if let editor, editor.editorEtkin { yeni = editor.belgeyiOku { basliklariTopla($0) } }
         else { yeni = [] }
         if girdiler != yeni {
             etkinligiAyarla(nil)
@@ -325,12 +325,15 @@ final class LinuxIcindekiler {
     /// Disk taraması yalnızca açılış/kayıtta; eski işler not değişiminde uygulanmaz.
     private func geriBaglantilariTazele() {
         bagNesli += 1
-        guard let hedef = editor?.acikURL else { return }
+        guard let editor, editor.editorEtkin, let hedef = editor.acikURL else { return }
         let nesil = bagNesli, eskiBaglar = bagOnbellegi, eskiSayfalar = sayfaOnbellegi
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let sonuc = Self.geriBagSonucu(hedef, eskiBaglar: eskiBaglar, eskiSayfalar: eskiSayfalar)
             Platform.anaIsParcaciginda { [weak self] in
                 guard let self, self.bagNesli == nesil, self.editor?.acikURL == hedef else { return }
+                // Eski taramalar yeni adlandırılmış yollar için artık geçersizdir.
+                // Yalnızca hâlâ güncel işin gerçek okuma hatalarını raporla.
+                for hata in sonuc.hatalar { FileHandle.standardError.write(Data(hata.utf8)) }
                 self.bagOnbellegi = sonuc.baglar
                 self.sayfaOnbellegi = sonuc.sayfalar
                 self.baglariGuncelle(sonuc.verenler)
@@ -340,11 +343,12 @@ final class LinuxIcindekiler {
 
     private static func geriBagSonucu(_ hedef: URL, eskiBaglar: [URL: OnbellekGirdisi],
                                       eskiSayfalar: [URL: SayfaSecenegi])
-        -> (baglar: [URL: OnbellekGirdisi], sayfalar: [URL: SayfaSecenegi], verenler: [SayfaSecenegi]) {
+        -> (baglar: [URL: OnbellekGirdisi], sayfalar: [URL: SayfaSecenegi], verenler: [SayfaSecenegi], hatalar: [String]) {
         let sayfalar = notlariDuzlestir(agaciYukle()).map { eskiSayfalar[$0] ?? SayfaSecenegi(url: $0) }
         let indeks = SayfaBaglantilari()
         indeks.guncelle(sayfalar)
         var baglar: [URL: OnbellekGirdisi] = [:]
+        var hatalar: [String] = []
         for sayfa in sayfalar {
             let tarih = degistirilmeTarihi(URL(fileURLWithPath: sayfa.url.path))
             if let eski = eskiBaglar[sayfa.url], eski.tarih == tarih { baglar[sayfa.url] = eski }
@@ -353,14 +357,18 @@ final class LinuxIcindekiler {
                     let metin = try String(contentsOf: sayfa.url, encoding: .utf8)
                     baglar[sayfa.url] = onbellekGirdisiUret(metin, tarih: tarih)
                 } catch {
-                    FileHandle.standardError.write(Data("[NotDefteri] Geri bağlantı okunamadı (\(sayfa.url.path)): \(error.localizedDescription)\n".utf8))
+                    // Ağaç taramasıyla okuma arasında silinme/yeniden adlandırma olağandır.
+                    // İzin, kodlama ve diğer gerçek hatalar sessizce yutulmaz.
+                    let ns = error as NSError
+                    if ns.domain == NSCocoaErrorDomain && ns.code == NSFileReadNoSuchFileError { continue }
+                    hatalar.append("[NotDefteri] Geri bağlantı okunamadı (\(sayfa.url.path)): \(error.localizedDescription)\n")
                 }
             }
         }
         let verenler = sayfalar.filter { sayfa in
             baglar[sayfa.url]?.bagHedefleri.contains { indeks.coz($0) == hedef } ?? false
         }.sorted { $0.yol.localizedStandardCompare($1.yol) == .orderedAscending }
-        return (baglar, Dictionary(sayfalar.map { ($0.url, $0) }, uniquingKeysWith: { ilk, _ in ilk }), verenler)
+        return (baglar, Dictionary(sayfalar.map { ($0.url, $0) }, uniquingKeysWith: { ilk, _ in ilk }), verenler, hatalar)
     }
 
     private static func notlariDuzlestir(_ dugumler: [AgacDugumu]) -> [URL] {

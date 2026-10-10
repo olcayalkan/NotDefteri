@@ -78,6 +78,8 @@ extension NotPenceresi {
             metinGorunumu.menuBlogunuUygula(MetinBlogu(tur: tur), komutAraligi: aralik)
         case .kod:
             metinGorunumu.kodDilSeciminiBaslat(aralik)
+        case .tablo:
+            tabloEklemePenceresiniAc(aralik)
         case .sayfa, .gorsel:
             guard metinGorunumu.textStorage != nil else { return }
             metinGorunumu.blokDuzenle(aralik, yeni: NSAttributedString(),
@@ -98,6 +100,45 @@ extension NotPenceresi {
             }
         }
         puntoGostergesiniGuncelle()
+    }
+
+    private func tabloEklemePenceresiniAc(_ aralik: NSRange) {
+        let uyari = NSAlert()
+        uyari.messageText = "Tablo ekle"
+        uyari.informativeText = "Başlık satırı dahil satır ve sütun sayısını girin."
+        uyari.addButton(withTitle: "Ekle")
+        uyari.addButton(withTitle: "Vazgeç")
+        let satir = NSTextField(string: "3")
+        let sutun = NSTextField(string: "3")
+        let kutu = NSStackView()
+        kutu.orientation = .vertical
+        kutu.alignment = .leading
+        kutu.spacing = 8
+        for (etiket, alan) in [("Satır (başlık dahil)", satir), ("Sütun", sutun)] {
+            let satirKutusu = NSStackView(views: [NSTextField(labelWithString: etiket), alan])
+            satirKutusu.orientation = .horizontal
+            satirKutusu.spacing = 12
+            alan.frame.size = NSSize(width: 72, height: 24)
+            kutu.addArrangedSubview(satirKutusu)
+        }
+        uyari.accessoryView = kutu
+        uyari.beginSheetModal(for: self) { [weak self] sonuc in
+            guard let self, sonuc == .alertFirstButtonReturn,
+                  let satirSayisi = Int(satir.stringValue.trimmingCharacters(in: .whitespaces)),
+                  let sutunSayisi = Int(sutun.stringValue.trimmingCharacters(in: .whitespaces)),
+                  let markdown = tabloMarkdownUret(satir: satirSayisi, sutun: sutunSayisi) else {
+                return
+            }
+            guard let depo = self.metinGorunumu.textStorage, NSMaxRange(aralik) <= depo.length,
+                  (depo.string as NSString).substring(with: aralik).hasPrefix("/") else { return }
+            let taban = self.mevcutDosyaURL.map(sayfaKlasoru) ?? notlarKlasoru()
+            let yeni = self.metinGorunumu.belgeAdaptoru.gorunumluBelge(markdowndenAttributedStringUret(markdown, taban: taban))
+            let ilk = tabloIlkHucreAraligi(sutun: sutunSayisi)
+            self.metinGorunumu.blokDuzenle(aralik, yeni: yeni,
+                                           secim: NSRange(location: aralik.location + ilk.location, length: ilk.length),
+                                           yazim: self.metinGorunumu.typingAttributes)
+            self.puntoGostergesiniGuncelle()
+        }
     }
 
     func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {

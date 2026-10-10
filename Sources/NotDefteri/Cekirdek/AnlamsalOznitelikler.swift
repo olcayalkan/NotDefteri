@@ -38,6 +38,13 @@ package let kMarkdownKaynakAnahtari = NSAttributedString.Key("markdownKaynak") /
 package let kBlokIsaretiAnahtari = NSAttributedString.Key("blokIsareti") // Bool: görünen/görünmez önek; yazılmaz
 package let kBosKodSatiriAnahtari = NSAttributedString.Key("bosKodSatiri") // Bool: boş kod satırı; yazılmaz
 package let kKacisliKoseParantezAnahtari = NSAttributedString.Key("kacisliKoseParantez") // Bool: literal [
+// String: TabloSatiriTuru raw value (baslik/ayirac/govde). Tablo Markdown olarak kaydolur;
+// bu anahtar yalnızca iki platformdaki hizalı görünümü üretir.
+package let kTabloSatiriAnahtari = NSAttributedString.Key("tabloSatiri")
+// String: yalnızca kutulu editör görünümündeki bir tabloyu tanımlar. Kayda yazılmaz.
+package let kTabloGorselAnahtari = NSAttributedString.Key("tabloGorsel")
+// [String: String]: özgün Markdown ve bağımsız hücre modeli.
+package let kTabloModeliAnahtari = NSAttributedString.Key("tabloModeli")
 
 package func anlamsalGorselBoyutuGecerliMi(en: Double, boy: Double) -> Bool {
     en.isFinite && boy.isFinite && (1...10_000).contains(en) && (1...10_000).contains(boy)
