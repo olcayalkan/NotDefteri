@@ -1,22 +1,11 @@
 <p align="center">
-  <img src="docs/baslik.svg" width="100%"
+  <img src="docs/baslik.gif" width="100%"
        alt="NotDefteri — Notların, yapılacakların ve fikirlerin için sade bir defter, macOS ve Linux'ta. Yazarken biçimlenir, yapılacaklar, görseller, sayfa ağacı, kendi dosyaların.">
 </p>
 
 <p align="center">
   <a href="docs/tanitim.mp4"><img src="docs/tanitim.gif" width="100%" alt="20 saniyelik tanıtım: ## Bugün yazılıp başlığa dönüşüyor; uygulama penceresinde yapılacaklar yazılıp işaretleniyor, [[ ile sayfa bağı kuruluyor; notların Belgeler › NotDefteri klasöründe sıradan dosyalar olarak durduğu gösteriliyor."></a>
 </p>
-
-<p align="center">
-  <a href="docs/tanitim.mp4"><img src="docs/tanitim-kapak.jpg" width="320" height="180" alt="Sesli tanıtım videosunu izle"></a><br>
-  <sub><a href="docs/tanitim.mp4">Sesli videoyu izle (MP4, 20&nbsp;sn)</a></sub>
-</p>
-
-Notların bilgisayarındaki **Belgeler › NotDefteri** klasöründe sıradan metin dosyaları olarak durur.
-Uygulamayı silsen bile notların yerinde kalır; Obsidian, VS Code ya da herhangi bir metin
-düzenleyiciyle açılabilir.
-
-**macOS** ve **Linux**'ta çalışır · Yazmayı bıraktığında kendiliğinden kaydeder · Silinen sayfalar 30&nbsp;gün çöp kutusunda bekler
 
 ---
 
@@ -25,18 +14,18 @@ düzenleyiciyle açılabilir.
 Bir karta tıklayınca nasıl kullanıldığını anlatan bölüme gidersin.
 
 <p align="center">
-  <a href="#yazarken-biçimlendirme"><img src="docs/kart-bicim.svg" width="100%" alt="Yazarken biçimlenir: işaretleri yaz, metin anında şekillensin. Nasıl kullanıldığına git."></a>
+  <a href="#yazarken-biçimlendirme"><img src="docs/kart-bicim.gif" width="100%" alt="Yazarken biçimlenir: işaretleri yaz, metin anında şekillensin. Nasıl kullanıldığına git."></a>
 </p>
 <p align="center">
-  <a href="#yapılacaklar"><img src="docs/kart-yapilacaklar.svg" width="49%" alt="Yapılacaklar: bütün işlerin Ana Sayfa'da tek listede. Nasıl kullanıldığına git."></a>
-  <a href="#görsel-ekleme"><img src="docs/kart-gorseller.svg" width="49%" alt="Görseller: sürükle bırak, görsel sayfada görünsün. Nasıl kullanıldığına git."></a>
+  <a href="#yapılacaklar"><img src="docs/kart-yapilacaklar.gif" width="49%" alt="Yapılacaklar: bütün işlerin Ana Sayfa'da tek listede. Nasıl kullanıldığına git."></a>
+  <a href="#görsel-ekleme"><img src="docs/kart-gorseller.gif" width="49%" alt="Görseller: sürükle bırak, görsel sayfada görünsün. Nasıl kullanıldığına git."></a>
 </p>
 <p align="center">
-  <a href="#sayfa-oluşturma"><img src="docs/kart-agac.svg" width="49%" alt="Sayfa ağacı: alt sayfalar ekle, sürükleyerek düzenle. Nasıl kullanıldığına git."></a>
-  <a href="#notlar-nerede-saklanıyor"><img src="docs/kart-dosyalar.svg" width="49%" alt="Notlar senin: bilgisayarında sıradan dosyalar olarak durur. Nerede saklandığına git."></a>
+  <a href="#sayfa-oluşturma"><img src="docs/kart-agac.gif" width="49%" alt="Sayfa ağacı: alt sayfalar ekle, sürükleyerek düzenle. Nasıl kullanıldığına git."></a>
+  <a href="#notlar-nerede-saklanıyor"><img src="docs/kart-dosyalar.gif" width="49%" alt="Notlar senin: bilgisayarında sıradan dosyalar olarak durur. Nerede saklandığına git."></a>
 </p>
 <p align="center">
-  <a href="#diğer-özellikler"><img src="docs/kart-fazlasi.svg" width="100%" alt="Daha fazlası: hızlı bulucu, sayfa bağları, sayfa geçmişi, çöp kutusu, dışa aktarma ve otomatik kayıt. Tüm özelliklere git."></a>
+  <a href="#diğer-özellikler"><img src="docs/kart-fazlasi.gif" width="100%" alt="Daha fazlası: hızlı bulucu, sayfa bağları, sayfa geçmişi, çöp kutusu, dışa aktarma ve otomatik kayıt. Tüm özelliklere git."></a>
 </p>
 
 ### Diğer özellikler
@@ -60,7 +49,7 @@ Bir karta tıklayınca nasıl kullanıldığını anlatan bölüme gidersin.
 ## Kurulum ve Çalıştırma
 
 <p align="center">
-  <img src="docs/kurulum.svg" width="100%"
+  <img src="docs/kurulum.gif" width="100%"
        alt="Terminalde kurulum: git clone ile depoyu indir, cd NotDefteri, ./scripts/kisayol-kur.sh ile kısayolu kur, ardından not yazınca uygulama derlenip açılır.">
 </p>
 
