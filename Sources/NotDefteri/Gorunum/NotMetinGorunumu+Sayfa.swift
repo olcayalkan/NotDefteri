@@ -59,6 +59,7 @@ extension NotMetinGorunumu {
             yaziOlcegiUygulaniyor = false
         }
         yazimOlceginiGuncelle()
+        tabloYoneticisi.konumlandir()
     }
 
     /// Yazım görünümü (ölçekli font) güncel anlamsaldan yeniden türetilir.

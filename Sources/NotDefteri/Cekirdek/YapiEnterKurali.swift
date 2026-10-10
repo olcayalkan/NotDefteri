@@ -9,13 +9,31 @@ package struct YapiEnterDegisimi {
 
 /// Yalnızca ilgili paragraf/blok ve komşu liste okunur; girdi değiştirilmez.
 /// Boş satırın işareti depoda kalır: karar yazım özniteliklerine bağlı değildir.
-package func yapiEnterKurali(_ belge: NSAttributedString, imlec: NSRange) -> YapiEnterDegisimi? {
+package func yapiEnterKurali(_ belge: NSAttributedString, imlec: NSRange, koddanCik: Bool = false) -> YapiEnterDegisimi? {
     guard imlec.location >= 0, imlec.length >= 0, imlec.location <= belge.length,
           imlec.length <= belge.length - imlec.location, belge.length > 0 else { return nil }
     let ns = (belge as? NSMutableAttributedString)?.mutableString ?? (belge.string as NSString)
     let paragraf = ns.paragraphRange(for: NSRange(location: imlec.location, length: 0))
     let konum = min(paragraf.location, belge.length - 1)
     let kod = belge.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String]
+    if koddanCik {
+        // Açık çıkış her konumdan kutunun altına gider; gövdeyi ve boş satırları korur.
+        guard var kod, imlec.length == 0 else { return nil }
+        var tam = NSRange()
+        _ = belge.attribute(kKodBloguAnahtari, at: konum, longestEffectiveRange: &tam,
+                            in: NSRange(location: 0, length: belge.length))
+        let yeni = NSMutableAttributedString(attributedString: belge.attributedSubstring(from: tam))
+        if (kod["kapanis"] ?? "").isEmpty {
+            kod["kapanis"] = (kodBloguAyiraci(kod["acilis"] ?? "") ?? "```") + "\n"
+            yeni.addAttribute(kKodBloguAnahtari, value: kod, range: NSRange(location: 0, length: yeni.length))
+        }
+        if !yeni.string.hasSuffix("\n") {
+            yeni.append(NSAttributedString(string: "\n", attributes: yeni.attributes(at: yeni.length - 1, effectiveRange: nil)))
+        }
+        let hedef = tam.location + yeni.length
+        yeni.append(NSAttributedString(string: "\n"))
+        return YapiEnterDegisimi(aralik: tam, metin: yeni, imlec: hedef, yazim: [:])
+    }
     let blok = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))
     let baslik = paragraf.length > 0 ? belge.attribute(kBaslikSeviyesiAnahtari, at: konum, effectiveRange: nil) : nil
     guard kod != nil || blok != nil || baslik != nil else { return nil }
@@ -24,7 +42,7 @@ package func yapiEnterKurali(_ belge: NSAttributedString, imlec: NSRange) -> Yap
     let eski = belge.attributedSubstring(from: paragraf)
     let isaret = blokIsaretiUzunlugu(eski)
     let bos = kodBloguGovdesi(eski).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    let cik = bos && baslik == nil && blok?.tur != .ayirici
+    let cik = kod == nil && bos && baslik == nil && blok?.tur != .ayirici
     var kapsam = paragraf
     if kod != nil || blok?.tur == .uyari {
         var tam = NSRange()

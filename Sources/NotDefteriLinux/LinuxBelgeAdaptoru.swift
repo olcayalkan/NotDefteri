@@ -51,6 +51,14 @@ final class LinuxBelgeAdaptoru {
         etiket("soluk", [("foreground", .metin("rgba(128,128,128,0.9)"))])
         etiket("mono", [("family", .metin("monospace"))])
         etiket("kodArka", [("background", .metin("rgba(0,0,0,0.08)"))])
+        etiket("tablo", [("background", .metin("rgba(0,0,0,0.075)")), ("left-margin", .tam(14)),
+                          ("pixels-above-lines", .tam(0)), ("pixels-below-lines", .tam(0))])
+        etiket("tabloBaslik", [("background", .metin("rgba(0,0,0,0.20)"))])
+        etiket("tabloAlternatif", [("background", .metin("rgba(0,0,0,0.035)"))])
+        etiket("tabloCerceve", [("foreground", .metin("rgba(0,0,0,0.62)"))])
+        etiket("tabloSarmaYok", [
+            ("wrap-mode", .sayim(gtk_wrap_mode_get_type(), Int32(GTK_WRAP_NONE.rawValue)))
+        ])
         etiket("kod-girinti", [("left-margin", .tam(24)), ("indent", .tam(0))])
         etiket("vurgu", [("background", .metin("rgba(255,204,0,0.3)"))])
         // macOS: web bağlantısı metin renginde altı çizili, sayfa bağı systemBlue altı çizili.
@@ -71,9 +79,17 @@ final class LinuxBelgeAdaptoru {
         let metin = LinuxTema.metinRengi
         let soluk = koyu ? "rgba(242,240,247,0.55)" : "rgba(0,0,0,0.45)"
         let kodArka = koyu ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"
+        let tabloArka = koyu ? "rgba(255,255,255,0.075)" : "rgba(0,0,0,0.075)"
+        let tabloBaslik = koyu ? "rgba(255,255,255,0.20)" : "rgba(0,0,0,0.20)"
+        let tabloAlternatif = koyu ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.035)"
+        let tabloCerceve = koyu ? "rgba(242,240,247,0.62)" : "rgba(0,0,0,0.62)"
         let ayirici = koyu ? "rgba(242,240,247,0.45)" : "rgba(128,128,128,0.45)"
         if let tag = etiketler["soluk"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(soluk)) }
         if let tag = etiketler["kodArka"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "background", .metin(kodArka)) }
+        if let tag = etiketler["tablo"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "background", .metin(tabloArka)) }
+        if let tag = etiketler["tabloBaslik"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "background", .metin(tabloBaslik)) }
+        if let tag = etiketler["tabloAlternatif"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "background", .metin(tabloAlternatif)) }
+        if let tag = etiketler["tabloCerceve"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(tabloCerceve)) }
         if let tag = etiketler["baglanti"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(metin)) }
         if let tag = etiketler["ayirici"] { gNesneOzelligi(UnsafeMutableRawPointer(tag), "paragraph-background", .metin(ayirici)) }
     }
@@ -254,8 +270,16 @@ final class LinuxBelgeAdaptoru {
         if soluk { adlar.append("soluk") }
         if soluk || o[kUstuCiziliAnahtari] as? Bool == true { adlar.append("ustuCizili") }
         let satirIciKod = o[kSatirIciKodAnahtari] as? Bool == true
-        if satirIciKod || kod { adlar.append("mono") }
+        let tablo = o[kTabloSatiriAnahtari] as? String
+        if satirIciKod || kod || tablo != nil { adlar.append("mono") }
         if satirIciKod { adlar.append("kodArka") }
+        if let tablo {
+            adlar.append("tablo")
+            adlar.append("tabloSarmaYok")
+            if tablo == TabloSatiriTuru.baslik.rawValue { adlar.append("tabloBaslik") }
+            if tablo == TabloSatiriTuru.govdeAlternatif.rawValue { adlar.append("tabloAlternatif") }
+            if tablo == TabloSatiriTuru.cerceve.rawValue { adlar.append("tabloCerceve") }
+        }
         if kod { adlar.append("kod-girinti") }
         if o[kVurguAnahtari] as? Bool == true { adlar.append("vurgu") }
         if o[kSayfaBagiAnahtari] != nil { adlar.append("sayfaBagi") }

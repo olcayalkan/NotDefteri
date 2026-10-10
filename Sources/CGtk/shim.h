@@ -8,6 +8,21 @@
 #include <gdk/x11/gdkx.h>
 #endif
 
+/* Yerleşim/yüzey hazır değilken popup konumlandırma istemeyin. Monitör nesnesi
+ * saklanmaz: ekran takılıp çıkarıldığında her çağrıda yeniden sorgulanır.
+ * Bu kontrol GTK/backend içindeki yarışları onarmaz; geçersiz açılışı önler. */
+static inline gboolean nd_popup_hedefi_hazir(GtkWidget *widget) {
+    if (!widget || !gtk_widget_get_mapped(widget) ||
+        gtk_widget_get_width(widget) <= 0 || gtk_widget_get_height(widget) <= 0)
+        return FALSE;
+    GtkNative *native = gtk_widget_get_native(widget);
+    if (!native) return FALSE;
+    GdkSurface *surface = gtk_native_get_surface(native);
+    if (!surface || gdk_surface_is_destroyed(surface)) return FALSE;
+    GdkMonitor *monitor = gdk_display_get_monitor_at_surface(gdk_surface_get_display(surface), surface);
+    return monitor && gdk_monitor_is_valid(monitor);
+}
+
 /* İmzalar ayrı tutulur: notify gibi sinyallerin veri argümanı üçüncüdür. */
 static inline gulong nd_signal_connect_void(gpointer instance, const gchar *signal,
                                            void (*callback)(gpointer, gpointer),

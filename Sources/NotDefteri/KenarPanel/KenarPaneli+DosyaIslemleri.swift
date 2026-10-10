@@ -156,6 +156,7 @@ extension KenarPaneli {
 
     /// Dönüştürme seçeneği yalnızca eski düzendeki düz notlarda görünür.
     func menuNeedsUpdate(_ menu: NSMenu) {
+        gorunumBaglamMenusunuEkle(menu, hedef: window as? NotPenceresi)
         let sabitlenebilir = tiklananDugum().map { !kisaYolMu($0) } ?? false
         for oge in menu.items where oge.action == #selector(sabitleTiklandi) {
             // Süzülmüş ağaçta düğümler kopyadır; sabit durumu güvenilir değil.

@@ -38,7 +38,8 @@ final class KodVurgulayiciTestleri: XCTestCase {
     /// Metin ya da yorum içindeki anahtar kelime ayrıca renklenmemeli.
     func testMetinIcindekiKelimeAyriTokenOlmaz() {
         let parcalar = tokenlar(#"print("return if else")"#, "swift").map(\.0)
-        XCTAssertEqual(parcalar, [#""return if else""#])
+        XCTAssertEqual(parcalar, ["print", #""return if else""#])
+        XCTAssertEqual(tur("print", #"print("return if else")"#, "swift"), .fonksiyon)
     }
 
     func testPythonYorumuVeUcluTirnak() {

@@ -173,6 +173,11 @@ extension NotPenceresi {
         sender.menu?.items.forEach { oge in
             oge.state = (oge.representedObject as? Int) == index ? .on : .off
         }
+        if let anaTema = NSApp.mainMenu?.item(withTitle: "Görünüm")?.submenu?.item(withTitle: "Tema")?.submenu {
+            for oge in anaTema.items {
+                oge.state = (oge.representedObject as? Int) == index ? .on : .off
+            }
+        }
         temaGorunumunuUygula()
         temaUygulaTumUI()
     }

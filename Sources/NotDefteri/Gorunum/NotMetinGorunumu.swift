@@ -38,7 +38,7 @@ final class NotMetinGorunumu: NSTextView {
     var hamYapistirmaModu = false
     var blokDuzenleniyor = false
     var sayfaYukleniyor = false {
-        didSet { if sayfaYukleniyor { kodDurumunuSifirla(); bekleyenBagBoyamasi = nil } }
+        didSet { if sayfaYukleniyor { tabloYoneticisi.kapat(kaydet: false); kodDurumunuSifirla(); bekleyenBagBoyamasi = nil } }
     }
     var baglarGuncelleniyor = false
     let sayfaBulucusu = HizliBulucu()
@@ -68,6 +68,7 @@ final class NotMetinGorunumu: NSTextView {
     let kodAraclari = KodBloguAraclari()
     let katlama = KatlamaDurumu()
     let belgeAdaptoru = MacBelgeAdaptoru()
+    lazy var tabloYoneticisi = MacTabloYoneticisi(gorunum: self)
 
     /// Kod yazım özniteliklerini anlamsal yazar; görünüm her atamada adaptörden türetilir.
     override var typingAttributes: [NSAttributedString.Key: Any] {
@@ -130,6 +131,9 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func keyDown(with event: NSEvent) {
+        if isEditable, !hasMarkedText(), [36, 76].contains(event.keyCode),
+           event.modifierFlags.intersection([.command, .control, .option, .shift]) == .control,
+           bloktaYeniSatir(koddanCik: true) { return }
         if window?.firstResponder === self, katlamaKisayolunuUygula(event) { return }
         secimCubugu.gizle()
         if sayfaBulucusu.gorunur, !hasMarkedText(), event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
@@ -193,6 +197,7 @@ final class NotMetinGorunumu: NSTextView {
 
     override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
         bagSonrasiImlec = nil
+        guard tabloYoneticisi.degisikligeIzinVer(affectedCharRange, metin: replacementString) else { return false }
         let izin = super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
         kullaniciYazimi = izin && !blokDuzenleniyor && undoManager?.isUndoing != true && undoManager?.isRedoing != true
         if izin { blokCerceveleriniKirlet(affectedCharRange) }
@@ -212,6 +217,7 @@ final class NotMetinGorunumu: NSTextView {
             setSelectedRange(NSRange(location: imlec, length: 0))
         }
         super.didChangeText()
+        tabloYoneticisi.yenile()
         blokCerceveleriniKirlet(selectedRange())
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -227,6 +233,7 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
+        tabloYoneticisi.kapat(kaydet: false)
         yuzerGorunumleriGizle()
         super.viewWillMove(toWindow: newWindow)
     }
@@ -390,6 +397,11 @@ final class NotMetinGorunumu: NSTextView {
         }
     }
 
+    override func layout() {
+        super.layout()
+        tabloYoneticisi.konumlandir()
+    }
+
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
         uyariKutulariniCiz(rect)
@@ -398,6 +410,7 @@ final class NotMetinGorunumu: NSTextView {
 
     override func mouseDown(with event: NSEvent) {
         let nokta = convert(event.locationInWindow, from: nil)
+        if tabloYoneticisi.hucreyiAc(konum: characterIndexForInsertion(at: nokta)) { return }
         if katlamaIsaretiniTikla(nokta) { return }
         if yapilacakKutusunuDegistir(noktada: nokta) { return }
         if let resim = resimHucresi(noktada: nokta),
@@ -431,9 +444,9 @@ final class NotMetinGorunumu: NSTextView {
         if let depo = textStorage, konum < depo.length,
            MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur == .uyari {
             setSelectedRange(NSRange(location: konum, length: 0))
-            return uyariRenkMenusu()
+            return gorunumBaglamMenusunuEkle(uyariRenkMenusu(), hedef: window as? NotPenceresi)
         }
-        return super.menu(for: event)
+        return gorunumBaglamMenusunuEkle(super.menu(for: event) ?? NSMenu(), hedef: window as? NotPenceresi)
     }
 
     private func resimImleciniGuncelle(noktada nokta: NSPoint, olay: NSEvent) {

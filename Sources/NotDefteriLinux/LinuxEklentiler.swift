@@ -5,6 +5,7 @@ enum LinuxEklentiler {
         LinuxMenuler.kur(pencere: pencere, editor: editor, panel: panel)
         LinuxBlokMenusu.kur(pencere: pencere, editor: editor)
         LinuxGorseller.kur(pencere: pencere, editor: editor)
+        LinuxTablolar.kur(editor: editor)
         LinuxKodVeUyari.kur(pencere: pencere, editor: editor)
         LinuxKatlama.kur(pencere: pencere, editor: editor)
         LinuxCopKutusu.kur(pencere: pencere, editor: editor, panel: panel)
