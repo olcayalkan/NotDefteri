@@ -1,227 +1,263 @@
-# Not Defteri
+<p align="center">
+  <img src="docs/baslik.svg" width="100%"
+       alt="NotDefteri — A simple notebook for your notes, to-dos and ideas, for macOS and Linux. Formats as you type, to-dos, images, page tree, your own files.">
+</p>
 
-macOS ve Linux için sade, hızlı, Markdown tabanlı bir not uygulaması.
-
-Notlar sıradan `.md` dosyaları olarak diskte durur. Uygulamayı silsen de notların
-okunabilir kalır; Obsidian, VS Code ya da herhangi bir metin düzenleyiciyle açılabilir.
-
-- **macOS:** saf AppKit, bağımlılık yok
-- **Linux:** GTK 4 (Ubuntu 22.04'te denendi)
-- **Dil:** Swift 5.9, SwiftPM
+<p align="center">
+  <a href="docs/tanitim.mp4"><img src="docs/tanitim.svg" width="100%" alt="17-second intro: in the app window, to-dos are typed and checked off, a page link is created with [[, and the notes are shown as plain files in the Documents › NotDefteri folder."></a>
+</p>
 
 ---
 
-## Özellikler
+## Features
 
-- **Sayfa ağacı.** Her sayfanın altında alt sayfalar olabilir. Sürükle-bırakla taşınır ve sıralanır.
-- **Biçimli düzenleme.** Kalın, italik, üstü çizili, satır içi kod, vurgu, başlıklar, listeler,
-  yapılacaklar, alıntı, kod bloğu, uyarı kutusu, ayırıcı, görsel.
-- **`/` blok menüsü.** Satır başında `/` yazınca blok türü seçilir.
-- **Sayfa bağları.** `[[Sayfa adı]]` yazınca diğer sayfaya bağ kurulur. Sayfa taşınıp
-  adlandırılınca bağlar kendiliğinden güncellenir. Her sayfanın altında ona bağ veren sayfalar listelenir.
-- **İçindekiler.** Sağ kenarda başlıklardan oluşan yüzen bir panel. Okuduğun bölüm vurgulanır,
-  tıklayınca o başlığa gider.
-- **Hızlı sayfa bulucu** (`⌘P` / `Ctrl+P`): Türkçe karakterlere duyarsız arama
-  ("istanbul" yazınca "İstanbul" da bulunur).
-- **Ana Sayfa.** Son açılan sayfalar, tüm notlardaki bekleyen yapılacaklar, hızlı eylemler
-  (yeni sayfa, günlük not, şablondan sayfa).
-- **Otomatik kayıt.** Yazmayı bıraktıktan 5 sn sonra kaydeder; kapatırken de kaydeder.
-- **Sayfa geçmişi.** Sayfanın eski sürümlerine dönülebilir.
-- **Çöp kutusu.** Silinen sayfalar 30 gün boyunca geri yüklenebilir.
-- **Dışa aktarma.** PDF, tek dosya HTML ya da Markdown.
-- **Katlama.** Başlıkların altındaki bölümler katlanabilir.
-- **Kağıt temaları.** Sepya, Yeşilimsi Kağıt, Gri Kağıt, Krem.
-- **Pencereyi üstte tutma (📌).** Pencere diğer pencerelerin üstünde kalır.
+Click a card to jump to the section that explains how to use it.
 
----
+<p align="center">
+  <a href="#formatting-as-you-type"><img src="docs/kart-bicim.svg" width="100%" alt="Formats as you type: type the marks, the text takes shape instantly. Go to how it works."></a>
+</p>
+<p align="center">
+  <a href="#to-dos"><img src="docs/kart-yapilacaklar.svg" width="49%" alt="To-dos: all your tasks in one list on the Home page. Go to how it works."></a>
+  <a href="#adding-images"><img src="docs/kart-gorseller.svg" width="49%" alt="Images: drag and drop, the image shows up on the page. Go to how it works."></a>
+</p>
+<p align="center">
+  <a href="#creating-pages"><img src="docs/kart-agac.svg" width="49%" alt="Page tree: add sub-pages and reorder them by dragging. Go to how it works."></a>
+  <a href="#where-are-notes-stored"><img src="docs/kart-dosyalar.svg" width="49%" alt="Your own files: notes stay on your computer as plain files. Go to where they are stored."></a>
+</p>
+<p align="center">
+  <a href="#more-features"><img src="docs/kart-fazlasi.svg" width="100%" alt="And more: quick finder, page links, page history, trash, export and autosave. Go to all features."></a>
+</p>
 
-## Kurulum ve Çalıştırma
+### More features
+
+- **Quick finder** (`⌘P` / `Ctrl+P`): type part of a page name and jump to it. It ignores Turkish letter
+  differences (typing “istanbul” also finds “İstanbul”).
+- **Home page.** Recently opened pages, your open tasks, and one-click new page, daily note or template.
+- **Page links.** Type `[[` to get page suggestions and jump to the chosen page in one click.
+  Links update themselves when a page is moved or renamed.
+- **Block menu.** Type `/` at the start of a line for headings, lists, quotes, callouts and more.
+- **Table of contents.** Long pages get a heading list on the right edge; the section you are reading
+  is highlighted, and clicking a heading jumps to it.
+- **Autosave.** Saves 5&nbsp;seconds after you stop typing, and again when you close the app.
+- **Page history.** Go back to an earlier version of a page.
+- **Trash.** Deleted pages can be restored for 30&nbsp;days.
+- **Export.** Save a page as PDF, a web page or plain text.
+- **Section folding.** Fold the content under a heading to tidy up long pages.
+- **Paper themes.** Sepia, Greenish Paper, Gray Paper, Cream.
+- **Keep on top.** The pin button keeps the window above other windows.
+
+## Installation
+
+<p align="center">
+  <img src="docs/kurulum.svg" width="100%"
+       alt="Installation in the terminal: clone the repository with git clone, cd NotDefteri, install the shortcut with ./scripts/kisayol-kur.sh, then type not to build and open the app.">
+</p>
+
+**Quick install (macOS).** Copy the commands and paste them into the terminal:
+
+```bash
+git clone https://github.com/olcayalkan/NotDefteri.git
+cd NotDefteri
+./scripts/kisayol-kur.sh
+not
+```
+
+For Linux, see the [Linux](#linux-ubuntu-2204) section below.
 
 ### macOS
 
-Gerekenler: macOS 12+, Xcode ya da Xcode Command Line Tools (Swift 5.9+).
+Requirements: macOS 12+, Xcode or the Xcode Command Line Tools (Swift 5.9+).
 
 ```bash
-git clone <depo-adresi> NotDefteri
+git clone https://github.com/olcayalkan/NotDefteri.git NotDefteri
 cd NotDefteri
 swift run
 ```
 
-Ya da yardımcı betikle:
+Or use the helper script:
 
 ```bash
-./calistir.sh        # derle (gerekiyorsa) ve aç — uygulama zaten açıksa öne getirir
-./calistir.sh -r     # optimize (release) derleme ile aç
-./calistir.sh -t     # önce testleri çalıştır, geçerse aç
-./calistir.sh -d     # baştan temiz derleme
+./calistir.sh        # build (if needed) and open — brings the app to the front if it is already open
+./calistir.sh -r     # open with an optimized (release) build
+./calistir.sh -t     # run the tests first, open only if they pass
+./calistir.sh -d     # clean build from scratch
 ```
 
-Girişte kendiliğinden açılması için: **Not Defteri menüsü → Girişte Otomatik Başlat**.
+To open the app automatically at login: **Not Defteri menu → Girişte Otomatik Başlat** (Launch at login).
 
-### Terminal kısayolu: `not`
+### Terminal shortcut: `not`
 
-Linux'ta `linux-kur.sh` bunu kendisi kurar. macOS'ta bir kez kurduktan sonra terminalde
-yalnızca `not` yazınca uygulama açılır (gerekiyorsa önce derlenir):
+On Linux, `linux-kur.sh` sets this up for you. On macOS, install it once; after that, typing `not`
+in the terminal opens the app (building it first if needed):
 
 ```bash
 ./scripts/kisayol-kur.sh
 ```
 
-| Komut | Ne yapar |
+| Command | What it does |
 |---|---|
-| `not` | Derle (gerekiyorsa) ve aç |
-| `not -r` | Optimize (release) derlemeyle aç |
-| `not -t` | Önce testleri çalıştır, geçerse aç |
-| `not -d` | Baştan temiz derle ve aç |
+| `not` | Build (if needed) and open |
+| `not -r` | Open with an optimized (release) build |
+| `not -t` | Run the tests first, open only if they pass |
+| `not -d` | Clean build from scratch and open |
 
-Kısayol `~/.local/bin/not` dosyasıdır ve bu klasördeki `calistir.sh`'yi çağırır.
-`~/.local/bin` PATH'te değilse `~/.zshrc` (macOS) ya da `~/.bashrc` (Linux) dosyasına bir satır eklenir.
-Linux'ta `calistir.sh` kendiliğinden `scripts/linux-calistir.sh`'ye geçer.
+The shortcut is the file `~/.local/bin/not`, and it calls `calistir.sh` in this folder.
+If `~/.local/bin` is not on your PATH, a line is added to `~/.zshrc` (macOS) or `~/.bashrc` (Linux).
+On Linux, `calistir.sh` hands over to `scripts/linux-calistir.sh` automatically.
 
 ### Linux (Ubuntu 22.04)
 
-Tek komut. Her şeyi o kurar: GTK 4 paketleri, Swift, derleme, `not` komutu, uygulama menüsü girdisi.
-Sonunda uygulamayı açar.
+One command installs everything: the GTK 4 packages, Swift, the build, the `not` command and an
+app menu entry. It opens the app when it is done.
 
 ```bash
-git clone <depo-adresi> ~/NotDefteri
+git clone https://github.com/olcayalkan/NotDefteri.git ~/NotDefteri
 ~/NotDefteri/scripts/linux-kur.sh
 ```
 
-Bundan sonra terminalde yalnızca:
+After that, just type this in the terminal:
 
 ```bash
 not
 ```
 
-Uygulama menüsünde de **Office → Not Defteri** olarak durur.
+The app also appears in the app menu under **Office → Not Defteri**.
 
-Güncellemek için `git pull` yapıp yine `not` yazman yeterli; kod değiştiyse kendisi derler
-(ilk kurulumdaki tam derleme birkaç dakika sürer, sonrakiler birkaç saniye).
+To update, run `git pull` and type `not` again; it rebuilds itself if the code changed
+(the first full build takes a few minutes, later ones a few seconds).
 
-> **Not:** Pencereyi üstte tutma (📌) Wayland oturumlarında da çalışır (Zorin, Ubuntu GNOME): Wayland bu
-> isteği desteklemediği için uygulama XWayland üzerinden açılır. İstemezsen `GDK_BACKEND=wayland not` ile başlat.
-
----
-
-## Kullanım
-
-### Sayfa oluşturma
-
-- Başlık çubuğundaki **yeni sayfa** düğmesi, seçili sayfanın yanına yeni bir sayfa ekler.
-- Kenar panelde sayfaya **sağ tıklayınca**: alt sayfa ekle, yanına sayfa ekle, yeniden adlandır,
-  sabitle (📌), sil.
-- Yeni sayfanın adı ilk satırdan otomatik alınır; ilk satırı değiştirdikçe ad da değişir.
-
-### Yazarken biçimlendirme
-
-- **Metin seçince** üstünde bir biçim çubuğu çıkar: Kalın, İtalik, Çizili, Kod, Vurgu, Bağlantı.
-- **Satır başında `/`** yazınca blok menüsü açılır: Başlık 1/2/3, Madde listesi, Numaralı liste,
-  Yapılacak, Alıntı, Kod bloğu, Ayırıcı, Alt sayfa, Görsel, Uyarı kutusu (gri, mavi, sarı,
-  kırmızı, yeşil). Yazarak süzülür, `Enter` ile seçilir.
-- Kenar paneldeki **B1 / B2 / B3 / Aa** düğmeleri satırı başlığa ya da düz metne çevirir.
-  **A− / A+** seçili metnin puntosunu değiştirir.
-- Markdown sözdizimi de çalışır: `# `, `- `, `1. `, `- [ ] `, `> `, ` ``` ` vb.
-
-### Sayfalar arası bağ
-
-`[[` yazınca sayfa önerileri çıkar. Seçince `[[Sayfa adı]]` bağı oluşur; tıklayınca o sayfa açılır.
-Olmayan bir sayfaya bağ verirsen, tıklayınca sayfayı oluşturmayı önerir.
-
-### Görsel ekleme
-
-Görseli editöre yapıştır ya da sürükle. Dosya sayfanın `Görseller/` klasörüne kopyalanır.
-Görselin köşesinden sürükleyerek boyutunu değiştirebilirsin.
-
-### Yapılacaklar
-
-`- [ ] iş` satırları **Ana Sayfa**'da toplanır. Oradan işaretlediğin iş, kendi sayfasında da
-tamamlandı olarak işaretlenir.
+> **Note:** Keep on top (📌) also works in Wayland sessions (Zorin, Ubuntu GNOME). Wayland does not
+> support this request, so the app opens through XWayland. To avoid that, start it with `GDK_BACKEND=wayland not`.
 
 ---
 
-## Klavye Kısayolları
+## Usage
 
-Linux'ta `⌘` yerine `Ctrl`, `⌥` yerine `Alt` kullanılır. Tam liste: **Yardım → Klavye kısayolları** (`⌘/`).
+The app's interface is currently in Turkish. Where this guide names a menu or button, the Turkish
+label is shown alongside the English one.
 
-| İşlem | macOS | Linux |
+### Creating pages
+
+- The **new page** button in the title bar adds a page next to the selected one.
+- **Right-click** a page in the sidebar to add a sub-page, add a page next to it, rename it,
+  pin it (📌) or delete it.
+- A new page takes its name from its first line; the name changes as you edit that line.
+
+### Formatting as you type
+
+- **Select text** to get a formatting bar above it: bold, italic, strikethrough, code, highlight, link.
+- **Type `/` at the start of a line** to open the block menu: heading 1/2/3, bulleted list, numbered list,
+  to-do, quote, code block, divider, sub-page, image, callout (gray, blue, yellow, red, green).
+  Type to filter, press `Enter` to choose.
+- The **B1 / B2 / B3 / Aa** buttons in the sidebar turn a line into a heading or back into plain text.
+  **A− / A+** change the font size of the selected text.
+- Markdown syntax works too: `# `, `- `, `1. `, `- [ ] `, `> `, ` ``` ` and so on.
+
+### Linking pages
+
+Type `[[` to get page suggestions. Choosing one creates a `[[Page name]]` link; clicking it opens that page.
+If you link to a page that does not exist yet, clicking the link offers to create it.
+
+### Adding images
+
+Paste or drag an image into the editor. The file is copied into the page's `Görseller/` (images) folder.
+Drag the image's corner to resize it.
+
+### To-dos
+
+`- [ ] task` lines are collected on the **Home page**. A task you check off there is also checked off
+on its own page.
+
+---
+
+## Keyboard shortcuts
+
+On Linux, use `Ctrl` instead of `⌘` and `Alt` instead of `⌥`. Full list: **Yardım → Klavye kısayolları**
+(Help → Keyboard shortcuts, `⌘/`).
+
+| Action | macOS | Linux |
 |---|---|---|
-| Hızlı sayfa bulucu | `⌘P` | `Ctrl+P` |
-| Ana Sayfa | `⇧⌘H` | `Ctrl+Shift+H` |
-| Kaydet | `⌘S` | `Ctrl+S` |
-| Geri al / Yinele | `⌘Z` / `⌘Y` | `Ctrl+Z` / `Ctrl+Y` |
-| Kalın / İtalik | `⌘B` / `⌘I` | `Ctrl+B` / `Ctrl+I` |
-| Üstü çizili | `⇧⌘X` | `Ctrl+Shift+X` |
-| Satır içi kod | `⌘E` | `Ctrl+E` |
-| Vurgu | `⌥⌘H` | `Ctrl+Alt+H` |
-| Bağlantı | `⌘K` | `Ctrl+K` |
-| Bul / Bul ve değiştir | `⌘F` / `⌥⌘F` | `Ctrl+F` / `Ctrl+Alt+F` |
-| Sonrakini bul | `⌘G` | `Ctrl+G` |
-| Kaynak biçimiyle yapıştır | `⇧⌘V` | `Ctrl+Shift+V` |
-| Önceki / sonraki not | `⌘[` / `⌘]` | `Ctrl+[` / `Ctrl+]` |
-| Bölümü katla / aç | `⌥⌘[` / `⌥⌘]` | `Ctrl+Alt+[` / `Ctrl+Alt+]` |
-| Tümünü katla / aç | `⇧⌥⌘[` / `⇧⌥⌘]` | `Ctrl+Alt+Shift+[` / `]` |
-| Puntoyu büyüt / küçült | `⌘*` / `⌘-` | `Ctrl+*` / `Ctrl+-` |
-| Sayfa geçmişi | `⌥⌘Y` | `Ctrl+Alt+Y` |
-| PDF olarak dışa aktar | `⇧⌘E` | `Ctrl+Shift+E` |
-| Tam ekran | `⌃⌘F` | `F11` |
-| Kenar paneli | — | `Ctrl+\` |
-| İçindekiler paneli | — | `Ctrl+Shift+\` |
-| Çıkış | `⌘Q` | `Ctrl+Q` |
+| Quick finder | `⌘P` | `Ctrl+P` |
+| Home page | `⇧⌘H` | `Ctrl+Shift+H` |
+| Save | `⌘S` | `Ctrl+S` |
+| Undo / Redo | `⌘Z` / `⌘Y` | `Ctrl+Z` / `Ctrl+Y` |
+| Bold / Italic | `⌘B` / `⌘I` | `Ctrl+B` / `Ctrl+I` |
+| Strikethrough | `⇧⌘X` | `Ctrl+Shift+X` |
+| Inline code | `⌘E` | `Ctrl+E` |
+| Highlight | `⌥⌘H` | `Ctrl+Alt+H` |
+| Link | `⌘K` | `Ctrl+K` |
+| Find / Find and replace | `⌘F` / `⌥⌘F` | `Ctrl+F` / `Ctrl+Alt+F` |
+| Find next | `⌘G` | `Ctrl+G` |
+| Paste with source formatting | `⇧⌘V` | `Ctrl+Shift+V` |
+| Previous / next note | `⌘[` / `⌘]` | `Ctrl+[` / `Ctrl+]` |
+| Fold / unfold section | `⌥⌘[` / `⌥⌘]` | `Ctrl+Alt+[` / `Ctrl+Alt+]` |
+| Fold / unfold all | `⇧⌥⌘[` / `⇧⌥⌘]` | `Ctrl+Alt+Shift+[` / `]` |
+| Increase / decrease font size | `⌘*` / `⌘-` | `Ctrl+*` / `Ctrl+-` |
+| Page history | `⌥⌘Y` | `Ctrl+Alt+Y` |
+| Export as PDF | `⇧⌘E` | `Ctrl+Shift+E` |
+| Full screen | `⌃⌘F` | `F11` |
+| Sidebar | — | `Ctrl+\` |
+| Table of contents | — | `Ctrl+Shift+\` |
+| Quit | `⌘Q` | `Ctrl+Q` |
 
 ---
 
-## Notlar Nerede Saklanıyor?
+## Where are notes stored?
 
-Tüm notlar **`~/Documents/NotDefteri/`** klasöründedir. Her sayfa bir klasördür:
+All notes live in the **`~/Documents/NotDefteri/`** folder. Every page is a folder:
 
 ```
 ~/Documents/NotDefteri/
-├── Proje/
-│   ├── index.md          ← sayfanın içeriği
-│   ├── Görseller/        ← sayfaya eklenen görseller
-│   └── Toplantı Notları/ ← alt sayfa
+├── Project/
+│   ├── index.md          ← the page's content
+│   ├── Görseller/        ← images added to the page
+│   └── Meeting notes/    ← sub-page
 │       └── index.md
-└── Günlük/
+└── Journal/
     └── index.md
 ```
 
-- Dosyalar düz Markdown'dır. Uygulama tanımadığı sözdizimini (tablo, wikilink, frontmatter…)
-  biçimli göstermese de **olduğu gibi korur**.
-- Markdown'a iki küçük ek vardır: punto için `<punto=16>metin</punto>`, görsel boyutu için
-  `![](resim.png){320x240}`.
-- Klasörü Git ile yedekleyebilir, Dropbox/iCloud ile eşitleyebilirsin.
-- Gizli `.sira.json` dosyaları kenar paneldeki elle sıralamayı, `.cop` klasörü çöp kutusunu tutar.
+- The files are plain Markdown. Syntax the app does not recognize (tables, wikilinks, frontmatter…)
+  is not shown formatted, but it is **kept exactly as written**.
+- There are two small Markdown extensions: `<punto=16>text</punto>` for font size and
+  `![](image.png){320x240}` for image size.
+- You can back up the folder with Git or sync it with Dropbox or iCloud.
+- Hidden `.sira.json` files store the manual order in the sidebar; the `.cop` folder holds the trash.
 
 ---
 
-## Sorun Giderme
+## Troubleshooting
 
-| Sorun | Çözüm |
+| Problem | Solution |
 |---|---|
-| Linux: `not` bulunamadı ya da "Swift bulunamadı" | `~/NotDefteri/scripts/linux-kur.sh` komutunu (yeniden) çalıştır |
-| Linux: uygulama açılmıyor ya da çöküyor | Günlüğe bak: `~/.local/state/NotDefteri/` altındaki en yeni `.log` dosyası |
-| Linux: ilk açılış çok uzun sürdü | İlk derleme tam derlemedir (birkaç dakika). Sonraki açılışlar ~1,5 sn |
-| Uygulama ikinci kez açılmıyor | Tek pencereli çalışır; açıkken tekrar başlatınca mevcut pencere öne gelir |
-| Bir not açılmadı ya da kaydedilmedi | Uygulama uyarı gösterir ve kapanmayı engeller. Yazdıkların pencerede durur, kopyalayıp yedekle |
+| Linux: `not` not found, or "Swift not found" | Run `~/NotDefteri/scripts/linux-kur.sh` (again) |
+| Linux: the app does not open or crashes | Check the log: the newest `.log` file in `~/.local/state/NotDefteri/` |
+| Linux: the first launch took very long | The first build is a full build (a few minutes). Later launches take about 1.5&nbsp;s |
+| The app does not open a second time | It runs as a single window; starting it again brings the open window to the front |
+| A note did not open or was not saved | The app shows a warning and prevents closing. What you typed stays in the window; copy it to back it up |
 
 ---
 
-## Geliştirme
+## Development
+
+- **macOS:** pure AppKit, no third-party dependencies
+- **Linux:** GTK 4 (tested on Ubuntu 22.04)
+- **Language:** Swift 5.9, SwiftPM
+- **File format:** Markdown (`.md`); each page is an `index.md` in its own folder
 
 ```bash
-swift build          # derle
-swift test           # testleri çalıştır
+swift build          # build
+swift test           # run the tests
 ```
 
-| Klasör | İçerik |
+| Folder | Contents |
 |---|---|
-| `Sources/NotDefteri/Cekirdek/` | Platformdan bağımsız mantık: Markdown çevirici, sayfa ağacı, kayıt, arama (iki platform ortak) |
-| `Sources/NotDefteri/` (diğerleri) | macOS arayüzü (AppKit) |
-| `Sources/NotDefteriLinux/` | Linux arayüzü (GTK 4) |
-| `Sources/CGtk/` | GTK için C köprüsü |
-| `Tests/` | Çekirdek ve macOS testleri |
-| `06_Metadata/` | Kod haritası ve mimari kararlar. Kodu okumadan önce buraya bak |
+| `Sources/NotDefteri/Cekirdek/` | Platform-independent logic: Markdown converter, page tree, saving, search (shared by both platforms) |
+| `Sources/NotDefteri/` (the rest) | macOS interface (AppKit) |
+| `Sources/NotDefteriLinux/` | Linux interface (GTK 4) |
+| `Sources/CGtk/` | C bridge for GTK |
+| `Tests/` | Core and macOS tests |
+| `06_Metadata/` | Code map and architecture decisions. Read these before the code |
 
-Kod kuralları (Türkçe tanımlayıcılar, katmanlar, yorum tarzı) için `CLAUDE.md` ve
-`06_Metadata/Mimari-Kararlar.md` dosyalarına bak.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and code conventions
+(Turkish identifiers, layers, comment style).

@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="380" viewBox="0 0 1000 380" role="img" aria-label="Installation: clone the repository, install the shortcut, type not to open the app"><title>Installation: clone the repository, install the shortcut, type not to open the app</title>
+<style>
+.gecici { opacity: 0; }
+@keyframes s0 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  4.402% { opacity: 0; animation-timing-function: linear; }
+  4.409% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s0 { animation: s0 13.63s infinite; }
+@keyframes o0 { 0% { transform: translateX(0); } 4.402% { transform: translateX(0); animation-timing-function: steps(54, end); } 22.230% { transform: translateX(518.4px); } 100% { transform: translateX(518.4px); } }
+.o0 { animation: o0 13.63s infinite; }
+@keyframes i0 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  4.402% { opacity: 0; animation-timing-function: linear; }
+  4.409% { opacity: 1; animation-timing-function: linear; }
+  25.899% { opacity: 1; animation-timing-function: linear; }
+  25.906% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.i0 { animation: i0 13.63s infinite; }
+@keyframes s1 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  25.899% { opacity: 0; animation-timing-function: linear; }
+  25.906% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s1 { animation: s1 13.63s infinite; }
+@keyframes s2 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  30.301% { opacity: 0; animation-timing-function: linear; }
+  30.308% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s2 { animation: s2 13.63s infinite; }
+@keyframes o2 { 0% { transform: translateX(0); } 30.301% { transform: translateX(0); animation-timing-function: steps(13, end); } 34.593% { transform: translateX(124.8px); } 100% { transform: translateX(124.8px); } }
+.o2 { animation: o2 13.63s infinite; }
+@keyframes i2 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  30.301% { opacity: 0; animation-timing-function: linear; }
+  30.308% { opacity: 1; animation-timing-function: linear; }
+  38.261% { opacity: 1; animation-timing-function: linear; }
+  38.269% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.i2 { animation: i2 13.63s infinite; }
+@keyframes s3 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  38.261% { opacity: 0; animation-timing-function: linear; }
+  38.269% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s3 { animation: s3 13.63s infinite; }
+@keyframes o3 { 0% { transform: translateX(0); } 38.261% { transform: translateX(0); animation-timing-function: steps(24, end); } 46.185% { transform: translateX(230.4px); } 100% { transform: translateX(230.4px); } }
+.o3 { animation: o3 13.63s infinite; }
+@keyframes i3 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  38.261% { opacity: 0; animation-timing-function: linear; }
+  38.269% { opacity: 1; animation-timing-function: linear; }
+  49.120% { opacity: 1; animation-timing-function: linear; }
+  49.127% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.i3 { animation: i3 13.63s infinite; }
+@keyframes s4 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  49.120% { opacity: 0; animation-timing-function: linear; }
+  49.127% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s4 { animation: s4 13.63s infinite; }
+@keyframes s5 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  54.989% { opacity: 0; animation-timing-function: linear; }
+  54.996% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s5 { animation: s5 13.63s infinite; }
+@keyframes o5 { 0% { transform: translateX(0); } 54.989% { transform: translateX(0); animation-timing-function: steps(3, end); } 55.979% { transform: translateX(28.8px); } 100% { transform: translateX(28.8px); } }
+.o5 { animation: o5 13.63s infinite; }
+@keyframes i5 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  54.989% { opacity: 0; animation-timing-function: linear; }
+  54.996% { opacity: 1; animation-timing-function: linear; }
+  58.180% { opacity: 1; animation-timing-function: linear; }
+  58.188% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.i5 { animation: i5 13.63s infinite; }
+@keyframes s6 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  58.180% { opacity: 0; animation-timing-function: linear; }
+  58.188% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s6 { animation: s6 13.63s infinite; }
+@keyframes s7 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  68.452% { opacity: 0; animation-timing-function: linear; }
+  68.459% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s7 { animation: s7 13.63s infinite; }
+@keyframes s8 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  70.653% { opacity: 0; animation-timing-function: linear; }
+  70.660% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s8 { animation: s8 13.63s infinite; }
+@keyframes s9 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  74.321% { opacity: 0; animation-timing-function: linear; }
+  74.329% { opacity: 1; animation-timing-function: linear; }
+  95.598% { opacity: 1; animation-timing-function: linear; }
+  98.533% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.s9 { animation: s9 13.63s infinite; }
+</style>
+<rect width="1000" height="380" rx="14" fill="#2a251f"/><path d="M0 14a14 14 0 0 1 14-14h972a14 14 0 0 1 14 14v26H0z" fill="#36302a"/><circle cx="24" cy="20" r="6" fill="#e0645a"/><circle cx="44" cy="20" r="6" fill="#e3b341"/><circle cx="64" cy="20" r="6" fill="#5fb05a"/><text x="500.0" y="25" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#a89a80" text-anchor="middle" font-weight="500">Terminal — NotDefteri</text><g class="s0"><text x="34" y="82" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b" >$ </text><text x="53.2" y="82" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="518.4" lengthAdjust="spacingAndGlyphs">git clone https://github.com/olcayalkan/NotDefteri.git</text><g class="o0" transform="translate(518.4 0)"><rect x="53.2" y="65" width="522.4" height="23" fill="#2a251f"/><rect class="i0 gecici" x="53.2" y="67" width="9" height="19" fill="#ece4cf"/></g></g><g class="s1"><text x="34" y="109" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="268.8" lengthAdjust="spacingAndGlyphs">Cloning into &#x27;NotDefteri&#x27;...</text></g><g class="s2"><text x="34" y="136" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b" >$ </text><text x="53.2" y="136" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="124.8" lengthAdjust="spacingAndGlyphs">cd NotDefteri</text><g class="o2" transform="translate(124.8 0)"><rect x="53.2" y="119" width="128.8" height="23" fill="#2a251f"/><rect class="i2 gecici" x="53.2" y="121" width="9" height="19" fill="#ece4cf"/></g></g><g class="s3"><text x="34" y="163" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b" >$ </text><text x="53.2" y="163" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="230.4" lengthAdjust="spacingAndGlyphs">./scripts/kisayol-kur.sh</text><g class="o3" transform="translate(230.4 0)"><rect x="53.2" y="146" width="234.4" height="23" fill="#2a251f"/><rect class="i3 gecici" x="53.2" y="148" width="9" height="19" fill="#ece4cf"/></g></g><g class="s4"><text x="34" y="190" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a9c48a" textLength="412.8" lengthAdjust="spacingAndGlyphs">Installed. Just type &#x27;not&#x27; in the terminal.</text></g><g class="s5"><text x="34" y="217" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b" >$ </text><text x="53.2" y="217" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="28.8" lengthAdjust="spacingAndGlyphs">not</text><g class="o5" transform="translate(28.8 0)"><rect x="53.2" y="200" width="32.8" height="23" fill="#2a251f"/><rect class="i5 gecici" x="53.2" y="202" width="9" height="19" fill="#ece4cf"/></g></g><g class="s6"><text x="34" y="244" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="105.6" lengthAdjust="spacingAndGlyphs">Building...</text></g><g class="s7"><text x="34" y="271" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a89a80" textLength="230.4" lengthAdjust="spacingAndGlyphs">Build complete! (41.20s)</text></g><g class="s8"><text x="34" y="298" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="115.2" lengthAdjust="spacingAndGlyphs">Launching...</text></g><g class="s9"><text x="34" y="325" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a9c48a" textLength="470.4" lengthAdjust="spacingAndGlyphs">Opened (pid 4242). Notes: ~/Documents/NotDefteri/</text></g>
+</svg>

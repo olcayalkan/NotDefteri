@@ -1,0 +1,281 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="NotDefteri intro: a simple notebook that formats as you type, with to-dos, page links and notes that stay on your computer as plain files."><title>NotDefteri intro: a simple notebook that formats as you type, with to-dos, page links and notes that stay on your computer as plain files.</title>
+<style>
+.gecici { opacity: 0; }
+@keyframes s2 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  2.632% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  15.205% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  17.544% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.s2 { animation: s2 17.1s infinite; }
+@keyframes a-ad {
+  0.000% { opacity: 0; transform: translateY(24px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  0.292% { opacity: 0; transform: translateY(24px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  2.924% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.a-ad { animation: a-ad 17.1s infinite; }
+@keyframes a-slogan {
+  0.000% { opacity: 0; transform: translateY(16px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  1.754% { opacity: 0; transform: translateY(16px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  4.386% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.a-slogan { animation: a-slogan 17.1s infinite; }
+@keyframes s3 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  17.544% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  20.175% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  63.743% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  66.082% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.s3 { animation: s3 17.1s infinite; }
+@keyframes pencere {
+  0.000% { transform: translateY(30px) scale(0.97); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  17.544% { transform: translateY(30px) scale(0.97); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  20.760% { transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  63.450% { transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  66.082% { transform: translateY(0) scale(0.96); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { transform: translateY(0) scale(0.96); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.pencere { animation: pencere 17.1s infinite; }
+.pencere { transform-box: fill-box; transform-origin: center; }
+@keyframes g1-kaynak {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  19.591% { opacity: 0; animation-timing-function: linear; }
+  19.596% { opacity: 1; animation-timing-function: linear; }
+  21.696% { opacity: 1; animation-timing-function: linear; }
+  21.702% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g1-kaynak { animation: g1-kaynak 17.1s infinite; }
+@keyframes g1-kutu {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  21.696% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  22.807% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.g1-kutu { animation: g1-kutu 17.1s infinite; }
+@keyframes g1-k-ortu { 0% { transform: translateX(0); } 19.591% { transform: translateX(0); animation-timing-function: steps(3, end); } 21.696% { transform: translateX(64.8px); } 100% { transform: translateX(64.8px); } }
+.g1-k-ortu { animation: g1-k-ortu 17.1s infinite; }
+@keyframes g1-k-ortu-i {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  18.129% { opacity: 0; animation-timing-function: linear; }
+  18.135% { opacity: 1; animation-timing-function: linear; }
+  21.696% { opacity: 1; animation-timing-function: linear; }
+  21.702% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g1-k-ortu-i { animation: g1-k-ortu-i 17.1s infinite; }
+@keyframes g1-ortu { 0% { transform: translateX(0); } 22.515% { transform: translateX(0); animation-timing-function: steps(15, end); } 27.339% { transform: translateX(289.3px); } 100% { transform: translateX(289.3px); } }
+.g1-ortu { animation: g1-ortu 17.1s infinite; }
+@keyframes g1-ortu-i {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  21.053% { opacity: 0; animation-timing-function: linear; }
+  21.058% { opacity: 1; animation-timing-function: linear; }
+  28.216% { opacity: 1; animation-timing-function: linear; }
+  28.222% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g1-ortu-i { animation: g1-ortu-i 17.1s infinite; }
+@keyframes g2 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  28.801% { opacity: 0; animation-timing-function: linear; }
+  28.807% { opacity: 1; animation-timing-function: linear; }
+  100.000% { opacity: 1; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g2 { animation: g2 17.1s infinite; }
+@keyframes g2-ortu { 0% { transform: translateX(0); } 29.386% { transform: translateX(0); animation-timing-function: steps(18, end); } 35.175% { transform: translateX(336.6px); } 100% { transform: translateX(336.6px); } }
+.g2-ortu { animation: g2-ortu 17.1s infinite; }
+@keyframes g2-ortu-i {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  27.924% { opacity: 0; animation-timing-function: linear; }
+  27.930% { opacity: 1; animation-timing-function: linear; }
+  36.257% { opacity: 1; animation-timing-function: linear; }
+  36.263% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g2-ortu-i { animation: g2-ortu-i 17.1s infinite; }
+@keyframes g1-dolu {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  38.596% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  39.649% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.g1-dolu { animation: g1-dolu 17.1s infinite; }
+@keyframes g1-cizik {
+  0.000% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  39.181% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  41.228% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.g1-cizik { animation: g1-cizik 17.1s infinite; }
+.g1-cizik { transform-box: fill-box; transform-origin: left center; }
+@keyframes g3 {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  44.444% { opacity: 0; animation-timing-function: linear; }
+  44.450% { opacity: 1; animation-timing-function: linear; }
+  100.000% { opacity: 1; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g3 { animation: g3 17.1s infinite; }
+@keyframes g3-kaynak {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  44.444% { opacity: 0; animation-timing-function: linear; }
+  44.450% { opacity: 1; animation-timing-function: linear; }
+  54.678% { opacity: 1; animation-timing-function: linear; }
+  54.684% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g3-kaynak { animation: g3-kaynak 17.1s infinite; }
+@keyframes g3-bag {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  54.678% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  56.140% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.g3-bag { animation: g3-bag 17.1s infinite; }
+@keyframes g3-imlec {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  54.678% { opacity: 0; animation-timing-function: linear; }
+  54.684% { opacity: 1; animation-timing-function: linear; }
+  61.988% { opacity: 1; animation-timing-function: linear; }
+  61.994% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g3-imlec { animation: g3-imlec 17.1s infinite; }
+@keyframes oneri {
+  0.000% { opacity: 0; transform: translateY(8px) scale(0.97); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  49.415% { opacity: 0; transform: translateY(8px) scale(0.97); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  50.877% { opacity: 1; transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  54.386% { opacity: 1; transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  55.380% { opacity: 0; transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.oneri { animation: oneri 17.1s infinite; }
+.oneri { transform-box: fill-box; transform-origin: 20px 0; }
+@keyframes g3-ortu { 0% { transform: translateX(0); } 46.199% { transform: translateX(0); animation-timing-function: steps(5, end); } 49.708% { transform: translateX(108.0px); } 100% { transform: translateX(108.0px); } }
+.g3-ortu { animation: g3-ortu 17.1s infinite; }
+@keyframes g3-ortu-i {
+  0.000% { opacity: 0; animation-timing-function: linear; }
+  44.737% { opacity: 0; animation-timing-function: linear; }
+  44.743% { opacity: 1; animation-timing-function: linear; }
+  54.678% { opacity: 1; animation-timing-function: linear; }
+  54.684% { opacity: 0; animation-timing-function: linear; }
+  100.000% { opacity: 0; animation-timing-function: linear; }
+}
+.g3-ortu-i { animation: g3-ortu-i 17.1s infinite; }
+@keyframes isaretci {
+  0.000% { opacity: 0; transform: translate(1250px, 880px) scale(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  34.795% { opacity: 0; transform: translate(1250px, 880px) scale(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  35.380% { opacity: 1; transform: translate(1250px, 880px) scale(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  38.304% { opacity: 1; transform: translate(650px, 336px) scale(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  38.596% { opacity: 1; transform: translate(650px, 336px) scale(0.86); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  39.415% { opacity: 1; transform: translate(650px, 336px) scale(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  42.105% { opacity: 1; transform: translate(650px, 336px) scale(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  43.860% { opacity: 0; transform: translate(650px, 336px) scale(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  100.000% { opacity: 0; transform: translate(650px, 336px) scale(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+}
+.isaretci { animation: isaretci 17.1s infinite; }
+@keyframes yazi3 {
+  0.000% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  21.053% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  23.684% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  42.982% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  44.737% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.yazi3 { animation: yazi3 17.1s infinite; }
+@keyframes yazi4 {
+  0.000% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  45.029% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  47.661% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  62.573% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  64.327% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.yazi4 { animation: yazi4 17.1s infinite; }
+@keyframes s5 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  66.082% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  68.713% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  81.287% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  83.626% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.s5 { animation: s5 17.1s infinite; }
+@keyframes dosyalar {
+  0.000% { opacity: 0; transform: translateY(30px) scale(0.97); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  66.374% { opacity: 0; transform: translateY(30px) scale(0.97); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  69.006% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.dosyalar { animation: dosyalar 17.1s infinite; }
+.dosyalar { transform-box: fill-box; transform-origin: center; }
+@keyframes d0 {
+  0.000% { opacity: 0; transform: translateY(12px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  68.129% { opacity: 0; transform: translateY(12px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  70.760% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d0 { animation: d0 17.1s infinite; }
+@keyframes d1 {
+  0.000% { opacity: 0; transform: translateY(12px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  68.830% { opacity: 0; transform: translateY(12px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  71.462% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d1 { animation: d1 17.1s infinite; }
+@keyframes d2 {
+  0.000% { opacity: 0; transform: translateY(12px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  69.532% { opacity: 0; transform: translateY(12px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  72.164% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d2 { animation: d2 17.1s infinite; }
+@keyframes yazi5 {
+  0.000% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  67.836% { opacity: 0; transform: translateY(18px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  70.468% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.yazi5 { animation: yazi5 17.1s infinite; }
+@keyframes s6 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  83.626% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  86.257% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  97.368% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  99.708% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.s6 { animation: s6 17.1s infinite; }
+@keyframes son-ad {
+  0.000% { opacity: 0; transform: translateY(24px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  83.918% { opacity: 0; transform: translateY(24px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  86.550% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.son-ad { animation: son-ad 17.1s infinite; }
+@keyframes son-slogan {
+  0.000% { opacity: 0; transform: translateY(16px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  85.088% { opacity: 0; transform: translateY(16px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  87.719% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.son-slogan { animation: son-slogan 17.1s infinite; }
+@keyframes son-meta {
+  0.000% { opacity: 0; transform: translateY(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  86.257% { opacity: 0; transform: translateY(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  88.889% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  80.117% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.son-meta { animation: son-meta 17.1s infinite; }
+</style>
+<rect width="1920" height="1080" fill="#d6cfba"/><line x1="0" y1="64" x2="1920" y2="64" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="128" x2="1920" y2="128" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="192" x2="1920" y2="192" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="256" x2="1920" y2="256" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="320" x2="1920" y2="320" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="384" x2="1920" y2="384" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="448" x2="1920" y2="448" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="512" x2="1920" y2="512" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="576" x2="1920" y2="576" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="640" x2="1920" y2="640" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="704" x2="1920" y2="704" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="768" x2="1920" y2="768" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="832" x2="1920" y2="832" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="896" x2="1920" y2="896" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="960" x2="1920" y2="960" stroke="#a0947a" stroke-opacity="0.28"/><line x1="0" y1="1024" x2="1920" y2="1024" stroke="#a0947a" stroke-opacity="0.28"/><line x1="140.5" y1="0" x2="140.5" y2="1080" stroke="#be8070" stroke-width="3" stroke-opacity="0.75"/><defs><filter id="golge" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="28" stdDeviation="30" flood-color="#46321a" flood-opacity="0.35"/></filter><clipPath id="pencere-kirp"><rect x="210" y="96" width="1500" height="820" rx="16"/></clipPath><clipPath id="dosya-kirp"><rect x="410" y="250" width="1100" height="362" rx="16"/></clipPath></defs><g class="s2"><text x="214" y="480" font-family="'Iowan Old Style', 'Palatino Linotype', Georgia, serif" font-size="176" fill="#2f2a24" font-weight="bold" letter-spacing="-5" class="a-ad">NotDefteri</text><text x="220" y="610" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="46" fill="#5f564a" class="a-slogan">A simple notebook for your notes, to-dos and ideas.</text></g><g class="s3"><g class="pencere"><rect x="210" y="96" width="1500" height="820" rx="16" fill="#d6cfba" filter="url(#golge)"/><g clip-path="url(#pencere-kirp)"><rect x="210" y="96" width="1500" height="52" fill="#c7bda6"/><circle cx="239" cy="122" r="7" fill="#e0645a"/><circle cx="263" cy="122" r="7" fill="#e3b341"/><circle cx="287" cy="122" r="7" fill="#5fb05a"/><text x="960" y="128" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#5f564a" text-anchor="middle">Project  ›  <tspan fill="#2f2a24" font-weight="600">Meeting notes</tspan></text><rect x="210" y="148" width="330" height="768" fill="#ccc4b0"/><rect x="226" y="170" width="298" height="42" rx="9" fill="#2f2a24" fill-opacity="0.07"/><text x="242" y="198" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="18" fill="#5f564a" >Search…</text><g transform="translate(258 248) scale(0.833)" fill="none" stroke="#2f2a24" stroke-width="2.10" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></g><text x="288" y="265" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#2f2a24" font-weight="400">Home</text><text x="240" y="312" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#5f564a" letter-spacing="0.6">Pages</text><text x="240" y="352" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#5f564a" >▾</text><g transform="translate(258 336) scale(0.833)" fill="none" stroke="#2f2a24" stroke-width="2.10" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.7l2 2.2h7.3A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></g><text x="288" y="353" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#2f2a24" font-weight="400">Project</text><rect x="226" y="370" width="298" height="48" rx="8" fill="#b8ae98"/><text x="270" y="401" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#2f2a24" font-weight="600">Meeting notes</text><text x="270" y="449" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#2f2a24" font-weight="400">Project Plan</text><text x="270" y="497" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#2f2a24" font-weight="400">Budget</text><text x="240" y="544" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#5f564a" >▸</text><g transform="translate(258 528) scale(0.833)" fill="none" stroke="#2f2a24" stroke-width="2.10" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.7l2 2.2h7.3A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></g><text x="288" y="545" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#2f2a24" font-weight="400">Journal</text><g transform="translate(258 576) scale(0.833)" fill="none" stroke="#2f2a24" stroke-width="2.10" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h7.5l4 4v13h-11.5z"/><path d="M14 3.5v4h4"/></g><text x="288" y="593" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#2f2a24" font-weight="400">Reading list</text><text x="636" y="272" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="66" fill="#2f2a24" font-weight="700" letter-spacing="-1">Meeting notes</text><rect x="210.5" y="96.5" width="1499" height="819" rx="16" fill="none" stroke="#2f2a24" stroke-opacity="0.12"/><g class="g1-kaynak gecici"><text x="636" y="354" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="36" fill="#857862" >[] </text><g class="g1-k-ortu" transform="translate(64.8 0)"><rect x="636" y="318" width="76.8" height="50" fill="#d6cfba"/><rect class="g1-k-ortu-i gecici" x="636" y="323.0" width="4" height="40" fill="#2f2a24"/></g></g><rect class="g1-kutu" x="636" y="323" width="38" height="38" rx="9" fill="none" stroke="#2f2a24" stroke-width="3"/><text x="692" y="355" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="38" fill="#2f2a24" >Send the report</text><g class="g1-ortu" transform="translate(289.3 0)"><rect x="692" y="318" width="301.3" height="50" fill="#d6cfba"/><rect class="g1-ortu-i gecici" x="692" y="323.0" width="4" height="40" fill="#2f2a24"/></g><g class="g2"><rect x="636" y="403" width="38" height="38" rx="9" fill="none" stroke="#2f2a24" stroke-width="3"/><text x="692" y="435" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="38" fill="#2f2a24" >Prepare the slides</text><g class="g2-ortu" transform="translate(336.6 0)"><rect x="692" y="398" width="348.6" height="50" fill="#d6cfba"/><rect class="g2-ortu-i gecici" x="692" y="403.0" width="4" height="40" fill="#2f2a24"/></g></g><g class="g1-dolu"><rect x="634.5" y="321.5" width="41" height="41" rx="10" fill="#3f5f36"/><path d="M644 343l7 7 14-15" stroke="#f6f2e7" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g><rect class="g1-cizik" x="692" y="340" width="274" height="3" fill="#2f2a24"/><g class="g3"><text x="636" y="529" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="38" fill="#2f2a24" >Details:</text><g class="g3-kaynak gecici"><text x="782" y="528" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="36" fill="#2f2a24" >[[Pro</text><g class="g3-ortu" transform="translate(108.0 0)"><rect x="782" y="492" width="120.0" height="50" fill="#d6cfba"/><rect class="g3-ortu-i gecici" x="782" y="497.0" width="4" height="40" fill="#2f2a24"/></g></g><g class="g3-bag"><text x="782" y="529" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="38" fill="#2f5f7f" >Project Plan</text><rect x="782" y="536" width="212" height="2.5" fill="#2f5f7f"/></g><rect class="g3-imlec gecici" x="1006" y="501" width="4" height="40" fill="#2f2a24"/></g><g class="oneri"><rect x="805" y="552" width="470" height="190" rx="12" fill="#ede7d8" stroke="#2f2a24" stroke-opacity="0.12"/><rect x="813" y="560" width="454" height="84" rx="8" fill="#b8ae98"/><text x="831" y="597" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="28" fill="#2f2a24" >Project Plan</text><text x="831" y="625" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#5f564a" >Project</text><text x="831" y="689" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="28" fill="#2f2a24" >Project budget</text><text x="831" y="717" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#5f564a" >Project › Budget</text></g></g></g><g class="isaretci"><path d="M7 4.5l20 11.4-8.8 2.3L14.2 27z" fill="#2f2a24" stroke="#f6f2e7" stroke-width="2" stroke-linejoin="round"/></g><text x="960" y="1002" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="40" fill="#2f2a24" text-anchor="middle" class="yazi3">Formats as you type. Check off to-dos in one click.</text><text x="960" y="1002" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="40" fill="#2f2a24" text-anchor="middle" class="yazi4">Link pages with <tspan font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace">[[</tspan></text></g><g class="s5"><g class="dosyalar"><rect x="410" y="250" width="1100" height="362" rx="16" fill="#ede7d8" filter="url(#golge)"/><g clip-path="url(#dosya-kirp)"><rect x="410" y="250" width="1100" height="84" fill="#f6f2e7"/><g transform="translate(440 278) scale(1.167)" fill="none" stroke="#5f564a" stroke-width="1.50" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.7l2 2.2h7.3A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></g><text x="482" y="302" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="27" fill="#5f564a" >Documents  ›  NotDefteri  ›  <tspan fill="#2f2a24" font-weight="700">Project</tspan></text><rect x="410" y="333" width="1100" height="1" fill="#2f2a24" fill-opacity="0.1"/><g class="d0"><g transform="translate(446 363) scale(1.417)" fill="none" stroke="#2f2a24" stroke-width="1.24" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h7.5l4 4v13h-11.5z"/><path d="M14 3.5v4h4"/></g><text x="500" y="391" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="32" fill="#2f2a24" >index.md</text><text x="1474" y="390" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="23" fill="#5f564a" text-anchor="end">The page text</text><rect x="410" y="425" width="1100" height="1" fill="#2f2a24" fill-opacity="0.07"/></g><g class="d1"><g transform="translate(446 455) scale(1.417)" fill="none" stroke="#2f2a24" stroke-width="1.24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17.5l4.8-4.8 3.7 3.7 2.4-2.4 4 3.5"/></g><text x="500" y="483" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="32" fill="#2f2a24" >Images</text><text x="1474" y="482" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="23" fill="#5f564a" text-anchor="end">Images you added</text><rect x="410" y="517" width="1100" height="1" fill="#2f2a24" fill-opacity="0.07"/></g><g class="d2"><g transform="translate(446 547) scale(1.417)" fill="none" stroke="#2f2a24" stroke-width="1.24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.7l2 2.2h7.3A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></g><text x="500" y="575" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="32" fill="#2f2a24" >Meeting notes</text><text x="1474" y="574" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="23" fill="#5f564a" text-anchor="end">Sub-page</text><rect x="410" y="609" width="1100" height="1" fill="#2f2a24" fill-opacity="0.07"/></g></g><rect x="410.5" y="250.5" width="1099" height="361" rx="16" fill="none" stroke="#2f2a24" stroke-opacity="0.12"/></g><text x="960" y="1002" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="40" fill="#2f2a24" text-anchor="middle" class="yazi5">Your notes stay on your computer as plain files.</text></g><g class="s6"><text x="960" y="490" font-family="'Iowan Old Style', 'Palatino Linotype', Georgia, serif" font-size="176" fill="#2f2a24" text-anchor="middle" font-weight="bold" letter-spacing="-5" class="son-ad">NotDefteri</text><text x="960" y="606" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="46" fill="#5f564a" text-anchor="middle" class="son-slogan">A simple notebook for your notes, to-dos and ideas.</text><text x="960" y="706" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="26" fill="#5f564a" text-anchor="middle" letter-spacing="3" class="son-meta">MACOS · LINUX  —  GITHUB.COM/OLCAYALKAN/NOTDEFTERI</text></g>
+</svg>
