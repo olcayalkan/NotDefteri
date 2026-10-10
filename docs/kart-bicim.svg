@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="300" viewBox="0 0 1000 300" role="img" aria-label="Formats as you type: Type the marks, the text takes shape instantly. Headings, bold, highlights, callouts and more."><title>Formats as you type: Type the marks, the text takes shape instantly. Headings, bold, highlights, callouts and more.</title>
+<style>
+.gecici { opacity: 0; }
+@keyframes d0 {
+  0.000% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  3.889% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  8.889% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  21.111% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  24.444% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d0 { animation: d0 9.0s infinite; }
+@keyframes d1 {
+  0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  22.778% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  27.778% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.333% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.667% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d1 { animation: d1 9.0s infinite; }
+@keyframes d2 {
+  0.000% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  6.667% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  11.667% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  23.889% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  27.222% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d2 { animation: d2 9.0s infinite; }
+@keyframes d3 {
+  0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  25.556% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  30.556% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.000% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  94.333% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d3 { animation: d3 9.0s infinite; }
+@keyframes d4 {
+  0.000% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  9.444% { opacity: 0; transform: translateX(10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  14.444% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  26.667% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  30.000% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-10px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d4 { animation: d4 9.0s infinite; }
+@keyframes d5 {
+  0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  28.333% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  33.333% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.667% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  95.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d5 { animation: d5 9.0s infinite; }
+@keyframes cizik {
+  0.000% { opacity: 0; transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  40.000% { opacity: 0; transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  40.111% { opacity: 1; transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  43.889% { opacity: 1; transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.000% { opacity: 1; transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.333% { opacity: 0; transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.cizik { animation: cizik 9.0s infinite; }
+[class^=d], .cizik { transform-box: fill-box; } [class^=d] { transform-origin: center; } .cizik { transform-origin: left center; }
+</style>
+<rect x="1" y="1" width="998" height="298" rx="16" fill="#ede7d8" stroke="#2f2a24" stroke-opacity="0.13" stroke-width="1.5"/><filter id="gren" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0 0.11 0 0 0 0.07 0"/></filter><rect width="1000" height="300" rx="16" filter="url(#gren)"/><g class="karo"><rect x="40" y="40" width="40" height="40" rx="11" fill="#f1e3bb"/><g transform="translate(48.0 48.0) scale(1.000)" fill="none" stroke="#86590a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></g></g><text x="92" y="70.0" font-family="'Iowan Old Style', 'Palatino Linotype', Georgia, serif" font-size="30" fill="#2f2a24" font-weight="bold" letter-spacing="-0.6">Formats as you type</text><text x="40" y="161.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#5f564a" >Type the marks, the text takes shape instantly.</text><text x="40" y="185.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#5f564a" >Headings, bold, highlights, callouts and more.</text><text x="40" y="270" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#2f5f7f" font-weight="600">How it works →</text><rect x="430" y="28" width="542" height="244" rx="11" fill="#f6f2e7" stroke="#2f2a24" stroke-opacity="0.08"/><g class="d0 gecici"><g transform="translate(466 92.0)"><text x="0" y="0" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19"><tspan fill="#857862">## </tspan><tspan fill="#2f2a24">Meeting notes</tspan></text></g></g><g class="d1"><g transform="translate(466 92.0)"><text x="0" y="0" font-family="'Iowan Old Style', 'Palatino Linotype', Georgia, serif" font-size="27" fill="#2f2a24" font-weight="bold" letter-spacing="-0.4">Meeting notes</text></g></g><g class="d2 gecici"><g transform="translate(466 156.0)"><text x="0" y="0" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19"><tspan fill="#857862">**</tspan><tspan fill="#2f2a24">Decision:</tspan><tspan fill="#857862">**</tspan><tspan fill="#2f2a24"> budget </tspan><tspan fill="#857862">==</tspan><tspan fill="#2f2a24">approved</tspan><tspan fill="#857862">==</tspan></text></g></g><g class="d3"><g transform="translate(466 156.0)"><text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#2f2a24" font-weight="700">Decision:</text><text x="98" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#2f2a24" >budget</text><rect x="168" y="-21" width="104" height="29" rx="5" fill="#f1e3bb"/><text x="220.0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#2f2a24" text-anchor="middle">approved</text></g></g><g class="d4 gecici"><g transform="translate(466 220.0)"><text x="0" y="0" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="19"><tspan fill="#857862">&gt; [!💡 sarı] </tspan><tspan fill="#2f2a24">Due Friday</tspan></text></g></g><g class="d5"><g transform="translate(466 220.0)"><rect x="0" y="-27" width="220" height="40" rx="8" fill="#f1e3bb"/><rect x="0" y="-27" width="4" height="40" rx="2" fill="#86590a"/><g transform="translate(16 -17) scale(0.833)" fill="none" stroke="#86590a" stroke-width="2.10" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z"/></g><text x="46" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#2f2a24" >Due Friday</text></g></g>
+</svg>

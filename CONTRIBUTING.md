@@ -1,94 +1,90 @@
-# Contributing to Claudesidian
+# Contributing to NotDefteri
 
-Thank you for your interest in contributing to claudesidian! This document
-provides guidelines for contributing to the project.
+Thanks for contributing. This page explains how to set up the project on your computer, make a
+change and send it in.
 
-## Development Setup
+## Installation
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/yourusername/claudesidian.git`
-3. Install dependencies: `pnpm install`
-4. Create a feature branch: `git checkout -b feature/your-feature-name`
+<p align="center">
+  <img src="docs/kurulum.svg" width="100%"
+       alt="Installation in the terminal: clone the repository with git clone, cd NotDefteri, install the shortcut with ./scripts/kisayol-kur.sh, then type not to build and open the app.">
+</p>
 
-## Commit Message Convention
+### macOS
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/) for clear
-commit history:
+Requirements: macOS 12 or later, Xcode or the Xcode Command Line Tools (Swift 5.9+).
+Copy the commands and paste them into the terminal:
 
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `style:` Code style changes (formatting, etc.)
-- `refactor:` Code refactoring
-- `test:` Test additions or changes
-- `chore:` Maintenance tasks
-
-Examples:
-
-```
-feat: add new research-assistant command
-fix: correct attachment link updates in scripts
-docs: update README with MCP setup instructions
+```bash
+git clone https://github.com/olcayalkan/NotDefteri.git
+cd NotDefteri
+./scripts/kisayol-kur.sh
+not
 ```
 
-## Versioning
+`kisayol-kur.sh` adds the `not` command to your terminal. From then on, typing `not` is enough;
+if the code changed, the app rebuilds itself first.
 
-We use [Semantic Versioning](https://semver.org/):
+### Linux (Ubuntu 22.04)
 
-- MAJOR (1.0.0): Breaking changes
-- MINOR (0.1.0): New features (backward compatible)
-- PATCH (0.0.1): Bug fixes (backward compatible)
+One script installs the GTK 4 packages, Swift and the `not` command, then opens the app:
 
-## Pull Request Process
-
-1. Update the CHANGELOG.md with your changes under "Unreleased"
-2. Update documentation if needed
-3. Ensure all scripts still work
-4. Submit PR with clear description of changes
-
-## Changelog Updates
-
-When contributing, add your changes to CHANGELOG.md under the "Unreleased"
-section:
-
-```markdown
-## [Unreleased]
-
-### Added
-
-- Your new feature here
-
-### Fixed
-
-- Your bug fix here
+```bash
+git clone https://github.com/olcayalkan/NotDefteri.git ~/NotDefteri
+~/NotDefteri/scripts/linux-kur.sh
 ```
 
-Use these categories:
+## Development
 
-- **Added** - New features
-- **Changed** - Changes to existing functionality
-- **Deprecated** - Features to be removed
-- **Removed** - Removed features
-- **Fixed** - Bug fixes
-- **Security** - Security updates
+```bash
+swift build          # build
+swift test           # run the tests
+./calistir.sh -t     # run the tests first, open the app only if they pass
+```
 
-## Release Process (Maintainers)
+- Tests run in their own temporary folders; they never touch your real notes (`~/Documents/NotDefteri/`).
+- To keep your notes safe while trying the app, point it at another folder:
+  `NOTDEFTERI_KOK=/tmp/try not`
+- On every PR, CI builds, tests and packages the app on macOS and Linux. Nothing is merged until
+  "CI sonucu" (CI result) is green.
 
-1. Update version in package.json
-2. Move "Unreleased" items to new version in CHANGELOG.md
-3. Commit: `git commit -m "chore: release v0.2.0"`
-4. Tag: `git tag v0.2.0`
-5. Push: `git push && git push --tags`
-6. Create GitHub Release from tag, using changelog content
+## Workflow
 
-## Code Style
+1. **Open an issue.** Fill in the bug report or feature request form. Even for small fixes, writing
+   down what and why makes the history easier to follow later.
+2. **Create a branch.** Keep the name short and in English: `fix/failing-tests`, `feat/theme-menu`,
+   `docs/readme-banner`.
+3. **Commit.** Start the message with the type and mention the related issue:
 
-- Use clear, descriptive variable names
-- Comment complex logic
-- Keep functions focused and small
-- For Bash scripts, use portable shebangs like `#!/usr/bin/env bash` instead of hardcoding `/bin/bash`
-- Test your changes thoroughly
+   ```text
+   Fix: Kutu üst/alt iç boşluğu artırıldı (#12)
+   ```
 
-## Questions?
+   Types: `Feat`, `Fix`, `Docs`, `Test`, `CI`, `Refactor`, `Perf`, `Chore`.
+4. **Open a PR.** Fill in the template and write `Closes #N` in the description; the issue closes
+   itself when the PR is merged.
+5. **Merge.** Once CI is green, use "Squash and merge" and delete the branch.
 
-Feel free to open an issue for discussion before making large changes.
+## Code conventions
+
+- **Turkish identifiers and comments:** `NotPenceresi`, `agaciYukle()`. Comments explain **why**
+  the code does something, not what it does.
+- **The right layer:** platform-independent logic goes in `Sources/NotDefteri/Cekirdek/`, views in
+  `Gorunum/`. When you add a responsibility to a large type, put it in a new `Type+Topic.swift`
+  extension file.
+- **No dependencies:** the macOS side is pure AppKit, the Linux side GTK 4. No third-party packages.
+- **Code map:** if you add or remove files, update `06_Metadata/Kod-Haritasi.md`. Reading it and
+  `06_Metadata/Mimari-Kararlar.md` before the code saves time.
+
+## README graphics
+
+The animations in the README are the SVG files under `docs/`, generated by one script:
+
+```bash
+python3 scripts/readme-animasyonlar.py
+```
+
+## License
+
+NotDefteri is MIT licensed (see [LICENSE](LICENSE)). Your contributions are published under the
+same license.
