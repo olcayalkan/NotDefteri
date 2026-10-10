@@ -15,6 +15,8 @@ jobs:
   macos:
     name: macOS (AppKit)
     runs-on: macos-15
+    # Takılan bir test (ör. modal uyarı) varsayılan 6 saatlik sınırı beklemesin.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Swift sürümü
@@ -33,6 +35,7 @@ jobs:
   linux:
     name: Linux (GTK 4)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     # README Ubuntu 22.04'ü hedefliyor; aynı dağıtımda derlemek kullanıcıyla aynı GTK sürümünü garanti eder.
     container: swift:6.2-jammy
     steps:
