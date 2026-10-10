@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="478" viewBox="0 0 1000 478" role="img" aria-label="Not Defteri özellikleri: Markdown kaynağı yazıldığı anda biçimlenir"><title>Not Defteri özellikleri: Markdown kaynağı yazıldığı anda biçimlenir</title>
+<style>
+.kaynak, .gorunum, .etiket, .satir { opacity: 0; }
+@keyframes k0 {
+  0.000% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  2.727% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  5.909% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  18.182% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  20.455% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes g0 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  19.091% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  22.727% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  89.091% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.273% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes e0 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  2.727% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  5.909% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.182% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.k0 { animation: k0 11.0s infinite; } .g0 { animation: g0 11.0s infinite; } .e0 { animation: e0 11.0s infinite; }
+@keyframes k1 {
+  0.000% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  4.364% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  7.545% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  19.818% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  22.091% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes g1 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  20.727% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  24.364% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  89.455% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.636% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes e1 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  4.364% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  7.545% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.364% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.545% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.k1 { animation: k1 11.0s infinite; } .g1 { animation: g1 11.0s infinite; } .e1 { animation: e1 11.0s infinite; }
+@keyframes k2 {
+  0.000% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  6.000% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  9.182% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  21.455% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  23.727% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes g2 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  22.364% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  26.000% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  89.818% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes e2 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  6.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  9.182% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.727% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.909% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.k2 { animation: k2 11.0s infinite; } .g2 { animation: g2 11.0s infinite; } .e2 { animation: e2 11.0s infinite; }
+@keyframes k3 {
+  0.000% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  7.636% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  10.818% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  23.091% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  25.364% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes g3 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  24.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  27.636% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.182% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.364% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes e3 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  7.636% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  10.818% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.091% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  94.273% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.k3 { animation: k3 11.0s infinite; } .g3 { animation: g3 11.0s infinite; } .e3 { animation: e3 11.0s infinite; }
+@keyframes k4 {
+  0.000% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  9.273% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  12.455% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  24.727% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  27.000% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes g4 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  25.636% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  29.273% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.545% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.727% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes e4 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  9.273% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  12.455% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.455% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  94.636% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.k4 { animation: k4 11.0s infinite; } .g4 { animation: g4 11.0s infinite; } .e4 { animation: e4 11.0s infinite; }
+@keyframes k5 {
+  0.000% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  10.909% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  14.091% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  26.364% { opacity: 1; transform: translateX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  28.636% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes g5 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  27.273% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  30.909% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.909% { opacity: 1; transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  94.091% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes e5 {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  10.909% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  14.091% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.818% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  95.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.k5 { animation: k5 11.0s infinite; } .g5 { animation: g5 11.0s infinite; } .e5 { animation: e5 11.0s infinite; }
+@media (prefers-reduced-motion: reduce) { .kaynak { animation: none; opacity: 0; } .gorunum, .etiket { animation: none; opacity: 1; transform: none; } }
+</style>
+<rect width="1000" height="478" rx="14" fill="#d6cfba"/><line x1="0" y1="44" x2="1000" y2="44" stroke="#cec7b1"/><line x1="0" y1="78" x2="1000" y2="78" stroke="#cec7b1"/><line x1="0" y1="112" x2="1000" y2="112" stroke="#cec7b1"/><line x1="0" y1="146" x2="1000" y2="146" stroke="#cec7b1"/><line x1="0" y1="180" x2="1000" y2="180" stroke="#cec7b1"/><line x1="0" y1="214" x2="1000" y2="214" stroke="#cec7b1"/><line x1="0" y1="248" x2="1000" y2="248" stroke="#cec7b1"/><line x1="0" y1="282" x2="1000" y2="282" stroke="#cec7b1"/><line x1="0" y1="316" x2="1000" y2="316" stroke="#cec7b1"/><line x1="0" y1="350" x2="1000" y2="350" stroke="#cec7b1"/><line x1="0" y1="384" x2="1000" y2="384" stroke="#cec7b1"/><line x1="0" y1="418" x2="1000" y2="418" stroke="#cec7b1"/><line x1="0" y1="452" x2="1000" y2="452" stroke="#cec7b1"/><line x1="70" y1="0" x2="70" y2="478" stroke="#be8070" stroke-width="2"/><text class="etiket e0" x="96" y="78" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" fill="#605444">Başlıklar</text><g transform="translate(300 78)"><text class="kaynak k0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20"><tspan fill="#968670">## </tspan><tspan fill="#3a3026">Toplantı notları</tspan></text><g class="gorunum g0"><text font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="26" fill="#3a3026">Toplantı notları</text></g></g><text class="etiket e1" x="96" y="142" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" fill="#605444">Biçimli yazı</text><g transform="translate(300 142)"><text class="kaynak k1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20"><tspan fill="#968670">**</tspan><tspan fill="#3a3026">kalın</tspan><tspan fill="#968670">**</tspan><tspan fill="#3a3026"> ve </tspan><tspan fill="#968670">==</tspan><tspan fill="#3a3026">vurgu</tspan><tspan fill="#968670">==</tspan></text><g class="gorunum g1"><rect x="88" y="-21" width="64" height="28" rx="4" fill="#efd27a"/><text font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#3a3026"><tspan font-weight="bold">kalın</tspan> ve <tspan>vurgu</tspan></text></g></g><text class="etiket e2" x="96" y="206" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" fill="#605444">Yapılacaklar</text><g transform="translate(300 206)"><text class="kaynak k2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20"><tspan fill="#968670">- [ ] </tspan><tspan fill="#3a3026">Raporu gönder</tspan></text><g class="gorunum g2"><rect x="0" y="-18" width="20" height="20" rx="4" fill="none" stroke="#3a3026" stroke-width="2"/><text x="32" font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#3a3026">Raporu gönder</text></g></g><text class="etiket e3" x="96" y="270" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" fill="#605444">Sayfa bağları</text><g transform="translate(300 270)"><text class="kaynak k3" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20"><tspan fill="#968670">[[</tspan><tspan fill="#3a3026">Proje Planı</tspan><tspan fill="#968670">]]</tspan></text><g class="gorunum g3"><text font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#1f5f9e">📄 <tspan text-decoration="underline">Proje Planı</tspan></text></g></g><text class="etiket e4" x="96" y="334" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" fill="#605444">Uyarı kutusu</text><g transform="translate(300 334)"><text class="kaynak k4" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20"><tspan fill="#968670">&gt; [!💡 sarı] </tspan><tspan fill="#3a3026">Cuma teslim</tspan></text><g class="gorunum g4"><rect x="-10" y="-26" width="200" height="38" rx="7" fill="#e6d29a"/><rect x="-10" y="-26" width="4" height="38" fill="#c9a227"/><text x="6" font-family="Georgia, 'Times New Roman', serif" font-size="21" fill="#3a3026">💡 Cuma teslim</text></g></g><text class="etiket e5" x="96" y="398" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" fill="#605444">Blok menüsü</text><g transform="translate(300 398)"><text class="kaynak k5" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="20"><tspan fill="#968670">/</tspan></text><g class="gorunum g5"><g class="menu"><rect x="0" y="-24" width="330" height="34" rx="8" fill="#c7bda6"/><text x="14" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#605444">Başlık 1 · Yapılacak · Kod bloğu · Tablo</text></g></g></g>
+</svg>

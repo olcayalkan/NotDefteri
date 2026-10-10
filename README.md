@@ -14,6 +14,11 @@ okunabilir kalır; Obsidian, VS Code ya da herhangi bir metin düzenleyiciyle a�
 
 ## Özellikler
 
+<p align="center">
+  <img src="docs/ozellikler.svg" width="100%"
+       alt="Markdown yazıldığı anda biçimlenir: ## başlığa, **kalın** kalına, - [ ] onay kutusuna, [[bağ]] sayfa bağına, > [!💡 sarı] uyarı kutusuna dönüşür; / blok menüsünü açar.">
+</p>
+
 - **Sayfa ağacı.** Her sayfanın altında alt sayfalar olabilir. Sürükle-bırakla taşınır ve sıralanır.
 - **Biçimli düzenleme.** Kalın, italik, üstü çizili, satır içi kod, vurgu, başlıklar, listeler,
   yapılacaklar, alıntı, kod bloğu, uyarı kutusu, ayırıcı, görsel.
@@ -37,6 +42,11 @@ okunabilir kalır; Obsidian, VS Code ya da herhangi bir metin düzenleyiciyle a�
 ---
 
 ## Kurulum ve Çalıştırma
+
+<p align="center">
+  <img src="docs/kurulum.svg" width="100%"
+       alt="Terminalde kurulum: git clone ile depoyu indir, cd NotDefteri, ./scripts/kisayol-kur.sh ile kısayolu kur, ardından not yazınca uygulama derlenip açılır.">
+</p>
 
 ### macOS
 
