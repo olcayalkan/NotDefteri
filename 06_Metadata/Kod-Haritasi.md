@@ -1,6 +1,6 @@
 ---
 tags: [kod-haritasi, referans]
-guncelleme: 2026-08-28
+guncelleme: 2026-10-10
 kaynak: Sources/NotDefteri/
 ---
 
@@ -105,9 +105,30 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-`Tests/NotDefteriTests/` — 121 test (`PerformansTestleri` 4, `CeviriciTestleri` 24, `YenidenAdlandirmaTestleri` 15, `KaydediciTestleri` 13, `YapistirmaTestleri` 12, `TasimaTestleri` 12, `DosyaAdiTestleri` 11, `IcindekilerTestleri` 8, `OnbellekTestleri` 6, `KopyalamaTestleri` 6, `GorselBagiTestleri` 5, `YapistirmaDonmaTestleri` 2).
-Kapsam: gidiş-dönüş çevirici, işaret temizleme, punto sınırlama, otomatik başlık,
-Türkçe arama, font yardımcıları, dış içeriğin nota uydurulması, sayfa taşıma. `swift test` ile çalıştır.
+335 test, iki hedefte. `swift test` ile çalıştır; CI her PR'da macOS ve Linux'ta koşar.
+
+**`Tests/NotDefteriCekirdekTests/`** — AppKit'siz, macOS ve Linux'ta koşar (21 dosya)
+
+| Alan | Dosyalar |
+|---|---|
+| Ortak temel | `GeciciKokTestCase` — her test geçici kökte, `NOTDEFTERI_KOK` oraya ayarlı; gerçek notlara dokunmaz |
+| Markdown | `CeviriciTestleri` 24, `MetinBloguTestleri` 14, `YapiEnterTestleri` 10, `KodVurgulayiciTestleri` 8, `SablonTestleri` 6 |
+| Sayfa ağacı ve dosya sistemi | `SayfaAgaciTestleri` 24, `CopKutusuTestleri` 14, `SayfaSirasiTestleri` 13, `DosyaSistemiTestleri` 12, `DosyaAdiTestleri` 11, `SayfaDosyalariTestleri` 9 |
+| Bağlantı, arama, Ana Sayfa | `SayfaBaglantilariTestleri` 17, `AnaSayfaVerisiTestleri` 11, `FavorilerTestleri` 10, `OnbellekTestleri` 6 |
+| Kayıt, geçmiş, dışa aktarım | `KaydediciTestleri` 13, `HtmlCeviriciTestleri` 12, `SayfaGecmisiTestleri` 10, `MarkdownDisaAktarTestleri` 7, `PerformansTestleri` 4 |
+
+**`Tests/NotDefteriMacTests/`** — AppKit, yalnızca macOS (11 dosya)
+
+| Alan | Dosyalar |
+|---|---|
+| Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
+| Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 8 |
+| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2 |
+| Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
+| Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 12 — tema, "/" blok menüsü, ⌘P bulucu |
+
+Test yazarken: dosya sistemine dokunan çekirdek testi `GeciciKokTestCase`'ten türet. AppKit sarmalayıcıları
+(`sayfayiYenidenAdlandir` vb.) hata olunca `NSAlert.runModal()` açar ve testi kilitler; çekirdek fonksiyonu `kok:` ile çağır.
 
 ## Bölünmüş Tipler Hakkında
 
