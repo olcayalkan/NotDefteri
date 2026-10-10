@@ -1,13 +1,22 @@
 <p align="center">
   <img src="docs/baslik.svg" width="100%"
-       alt="NotDefteri — Notların, yapılacakların ve fikirlerin için sade bir defter, macOS ve Linux'ta. Yazarken biçimlenir, yapılacaklar, görseller, sayfa bağları, kendi dosyaların.">
+       alt="NotDefteri — Notların, yapılacakların ve fikirlerin için sade bir defter, macOS ve Linux'ta. Yazarken biçimlenir, yapılacaklar, görseller, sayfa ağacı, kendi dosyaların.">
+</p>
+
+<p align="center">
+  <a href="docs/tanitim.mp4"><img src="docs/tanitim.gif" width="100%" alt="20 saniyelik tanıtım: ## Bugün yazılıp başlığa dönüşüyor; uygulama penceresinde yapılacaklar yazılıp işaretleniyor, [[ ile sayfa bağı kuruluyor; notların Belgeler › NotDefteri klasöründe sıradan dosyalar olarak durduğu gösteriliyor."></a>
+</p>
+
+<p align="center">
+  <a href="docs/tanitim.mp4"><img src="docs/tanitim-kapak.jpg" width="320" height="180" alt="Sesli tanıtım videosunu izle"></a><br>
+  <sub><a href="docs/tanitim.mp4">Sesli videoyu izle (MP4, 20&nbsp;sn)</a></sub>
 </p>
 
 Notların bilgisayarındaki **Belgeler › NotDefteri** klasöründe sıradan metin dosyaları olarak durur.
 Uygulamayı silsen bile notların yerinde kalır; Obsidian, VS Code ya da herhangi bir metin
 düzenleyiciyle açılabilir.
 
-**macOS** ve **Linux**'ta çalışır · Yazmayı bıraktığında kendiliğinden kaydeder · Silinen sayfalar 30 gün çöp kutusunda bekler
+**macOS** ve **Linux**'ta çalışır · Yazmayı bıraktığında kendiliğinden kaydeder · Silinen sayfalar 30&nbsp;gün çöp kutusunda bekler
 
 ---
 
@@ -16,33 +25,37 @@ düzenleyiciyle açılabilir.
 Bir karta tıklayınca nasıl kullanıldığını anlatan bölüme gidersin.
 
 <p align="center">
-  <a href="#yazarken-biçimlendirme"><img src="docs/kart-bicim.svg" width="49%" alt="Yazarken biçimlenir: işaretleri yaz, metin anında şekillensin"></a>
-  <a href="#yapılacaklar"><img src="docs/kart-yapilacaklar.svg" width="49%" alt="Yapılacaklar: bütün işlerin Ana Sayfa'da tek listede"></a>
+  <a href="#yazarken-biçimlendirme"><img src="docs/kart-bicim.svg" width="100%" alt="Yazarken biçimlenir: işaretleri yaz, metin anında şekillensin. Nasıl kullanıldığına git."></a>
 </p>
 <p align="center">
-  <a href="#sayfalar-arası-bağ"><img src="docs/kart-baglar.svg" width="49%" alt="Sayfalar arası bağ: sayfaları birbirine bağla, tek tıkla geç"></a>
-  <a href="#görsel-ekleme"><img src="docs/kart-gorseller.svg" width="49%" alt="Görseller: sürükle bırak, görsel sayfada görünsün"></a>
+  <a href="#yapılacaklar"><img src="docs/kart-yapilacaklar.svg" width="49%" alt="Yapılacaklar: bütün işlerin Ana Sayfa'da tek listede. Nasıl kullanıldığına git."></a>
+  <a href="#görsel-ekleme"><img src="docs/kart-gorseller.svg" width="49%" alt="Görseller: sürükle bırak, görsel sayfada görünsün. Nasıl kullanıldığına git."></a>
 </p>
 <p align="center">
-  <a href="#sayfa-oluşturma"><img src="docs/kart-agac.svg" width="49%" alt="Sayfa ağacı: alt sayfalar ekle, sürükleyerek düzenle"></a>
-  <a href="#notlar-nerede-saklanıyor"><img src="docs/kart-dosyalar.svg" width="49%" alt="Notlar senin: bilgisayarında sıradan dosyalar olarak durur"></a>
+  <a href="#sayfa-oluşturma"><img src="docs/kart-agac.svg" width="49%" alt="Sayfa ağacı: alt sayfalar ekle, sürükleyerek düzenle. Nasıl kullanıldığına git."></a>
+  <a href="#notlar-nerede-saklanıyor"><img src="docs/kart-dosyalar.svg" width="49%" alt="Notlar senin: bilgisayarında sıradan dosyalar olarak durur. Nerede saklandığına git."></a>
+</p>
+<p align="center">
+  <a href="#diğer-özellikler"><img src="docs/kart-fazlasi.svg" width="100%" alt="Daha fazlası: hızlı bulucu, sayfa bağları, sayfa geçmişi, çöp kutusu, dışa aktarma ve otomatik kayıt. Tüm özelliklere git."></a>
 </p>
 
 ### Diğer özellikler
 
 - **Hızlı sayfa bulucu** (`⌘P` / `Ctrl+P`): Sayfa adının bir kısmını yaz, hemen bul. Türkçe harflere
-  takılmaz ("istanbul" yazınca "İstanbul" da çıkar).
+  takılmaz (“istanbul” yazınca “İstanbul” da çıkar).
 - **Ana Sayfa.** Son açtığın sayfalar, bekleyen işlerin ve tek tıkla yeni sayfa, günlük not ya da hazır şablon.
+- **Sayfa bağları.** `[[` yazınca sayfa önerileri çıkar; seçtiğin sayfaya tek tıkla geçersin.
+  Sayfa taşınsa ya da adı değişse de bağlar kendiliğinden güncellenir.
 - **Blok menüsü.** Satır başında `/` yazınca başlık, liste, alıntı, uyarı kutusu gibi seçenekler açılır.
 - **İçindekiler.** Uzun sayfalarda sağ kenarda başlık listesi durur; okuduğun bölüm vurgulanır,
   tıklayınca o başlığa gider.
-- **Otomatik kayıt.** Yazmayı bıraktıktan 5 saniye sonra kaydeder; kapatırken de kaydeder.
+- **Otomatik kayıt.** Yazmayı bıraktıktan 5&nbsp;saniye sonra kaydeder; kapatırken de kaydeder.
 - **Sayfa geçmişi.** Bir sayfanın eski hâline geri dönebilirsin.
-- **Çöp kutusu.** Silinen sayfalar 30 gün boyunca geri getirilebilir.
+- **Çöp kutusu.** Silinen sayfalar 30&nbsp;gün boyunca geri getirilebilir.
 - **Dışa aktarma.** Sayfayı PDF, web sayfası ya da düz metin olarak kaydet.
 - **Bölüm katlama.** Başlıkların altını katlayıp uzun sayfayı sadeleştir.
 - **Kağıt temaları.** Sepya, Yeşilimsi Kağıt, Gri Kağıt, Krem.
-- **Üstte tut (📌).** Pencere diğer pencerelerin üstünde kalır.
+- **Üstte tut.** Raptiye düğmesiyle pencere diğer pencerelerin üstünde kalır.
 
 ## Kurulum ve Çalıştırma
 
@@ -51,12 +64,23 @@ Bir karta tıklayınca nasıl kullanıldığını anlatan bölüme gidersin.
        alt="Terminalde kurulum: git clone ile depoyu indir, cd NotDefteri, ./scripts/kisayol-kur.sh ile kısayolu kur, ardından not yazınca uygulama derlenip açılır.">
 </p>
 
+**Hızlı kurulum (macOS).** Komutları kopyalayıp terminale yapıştır:
+
+```bash
+git clone https://github.com/olcayalkan/NotDefteri.git
+cd NotDefteri
+./scripts/kisayol-kur.sh
+not
+```
+
+Linux için aşağıdaki [Linux](#linux-ubuntu-2204) bölümüne bak.
+
 ### macOS
 
 Gerekenler: macOS 12+, Xcode ya da Xcode Command Line Tools (Swift 5.9+).
 
 ```bash
-git clone <depo-adresi> NotDefteri
+git clone https://github.com/olcayalkan/NotDefteri.git NotDefteri
 cd NotDefteri
 swift run
 ```
@@ -98,7 +122,7 @@ Tek komut. Her şeyi o kurar: GTK 4 paketleri, Swift, derleme, `not` komutu, uyg
 Sonunda uygulamayı açar.
 
 ```bash
-git clone <depo-adresi> ~/NotDefteri
+git clone https://github.com/olcayalkan/NotDefteri.git ~/NotDefteri
 ~/NotDefteri/scripts/linux-kur.sh
 ```
 
