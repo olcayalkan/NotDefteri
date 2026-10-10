@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="214" viewBox="0 0 480 214" role="img" aria-label="Sayfa ağacı: Alt sayfalar ekle, sürükleyerek düzenle."><title>Sayfa ağacı: Alt sayfalar ekle, sürükleyerek düzenle.</title>
+<style>
+.anim { opacity: 0; }
+@keyframes d0 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  17.333% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  22.667% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  88.000% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d0 { animation: d0 7.5s infinite; transform-box: fill-box; }
+@keyframes d1 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  25.333% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  30.667% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  88.533% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.533% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d1 { animation: d1 7.5s infinite; transform-box: fill-box; }
+@keyframes d2 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  32.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  37.333% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  89.067% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.067% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d2 { animation: d2 7.5s infinite; transform-box: fill-box; }
+@keyframes cizik {
+  0.000% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  60.000% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  64.667% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.cizik { animation: cizik 7.5s infinite; transform-box: fill-box; transform-origin: left center; }
+@media (prefers-reduced-motion: reduce) { .anim, .cizik { animation: none; opacity: 1; transform: none; } }
+</style>
+<rect x="1" y="1" width="478" height="212" rx="16" fill="#d6cfba" stroke="#c2b89e" stroke-width="2"/><text font-family="Georgia, 'Times New Roman', serif" font-size="23" fill="#3a3026" x="26" y="46" font-weight="bold">🌳 Sayfa ağacı</text><text font-family="Georgia, 'Times New Roman', serif" font-size="15" fill="#605444" x="26" y="72">Alt sayfalar ekle, sürükleyerek düzenle.</text><rect x="18" y="92" width="444" height="84" rx="10" fill="#e4ddc9"/><text font-family="Georgia, 'Times New Roman', serif" font-size="13" fill="#1f5f9e" x="456" y="200" text-anchor="end">Nasıl kullanılır →</text><g transform="translate(40 118)"><g class="anim d0"><text font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#3a3026" >📁 Proje</text></g></g><g transform="translate(66 142)"><g class="anim d1"><text font-family="Georgia, 'Times New Roman', serif" font-size="17" fill="#605444" >📄 Toplantı notları</text></g></g><g transform="translate(66 165)"><g class="anim d2"><text font-family="Georgia, 'Times New Roman', serif" font-size="17" fill="#605444" >📄 Bütçe</text></g></g>
+</svg>

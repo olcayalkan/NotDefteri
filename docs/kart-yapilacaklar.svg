@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="214" viewBox="0 0 480 214" role="img" aria-label="Yapılacaklar: Bütün işlerin Ana Sayfa&#x27;da tek listede."><title>Yapılacaklar: Bütün işlerin Ana Sayfa&#x27;da tek listede.</title>
+<style>
+.anim { opacity: 0; }
+@keyframes d0 {
+  0.000% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  7.333% { opacity: 0; transform: translateX(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  12.667% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  27.333% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  31.333% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateX(-8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d0 { animation: d0 7.5s infinite; transform-box: fill-box; }
+@keyframes d1 {
+  0.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  29.333% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  34.667% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  88.533% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.533% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d1 { animation: d1 7.5s infinite; transform-box: fill-box; }
+@keyframes d2 {
+  0.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  48.667% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  54.000% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  89.067% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.067% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d2 { animation: d2 7.5s infinite; transform-box: fill-box; }
+@keyframes cizik {
+  0.000% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  50.000% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  54.667% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.cizik { animation: cizik 7.5s infinite; transform-box: fill-box; transform-origin: left center; }
+@media (prefers-reduced-motion: reduce) { .anim, .cizik { animation: none; opacity: 1; transform: none; } .d0 { display: none; } }
+</style>
+<rect x="1" y="1" width="478" height="212" rx="16" fill="#d6cfba" stroke="#c2b89e" stroke-width="2"/><text font-family="Georgia, 'Times New Roman', serif" font-size="23" fill="#3a3026" x="26" y="46" font-weight="bold">✅ Yapılacaklar</text><text font-family="Georgia, 'Times New Roman', serif" font-size="15" fill="#605444" x="26" y="72">Bütün işlerin Ana Sayfa&#x27;da tek listede.</text><rect x="18" y="92" width="444" height="84" rx="10" fill="#e4ddc9"/><text font-family="Georgia, 'Times New Roman', serif" font-size="13" fill="#1f5f9e" x="456" y="200" text-anchor="end">Nasıl kullanılır →</text><g transform="translate(40 140)"><g class="anim d0"><text font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="18"><tspan fill="#968670">- [ ] </tspan><tspan fill="#3a3026">Raporu gönder</tspan></text></g></g><g transform="translate(40 140)"><g class="anim d1"><rect x="0" y="-17" width="19" height="19" rx="4" fill="none" stroke="#3a3026" stroke-width="2"/><text font-family="Georgia, 'Times New Roman', serif" font-size="21" fill="#3a3026" x="30">Raporu gönder</text></g></g><g transform="translate(40 140)"><g class="anim d2"><rect x="0" y="-17" width="19" height="19" rx="4" fill="#3a3026"/><path d="M4 -8 L8 -4 L15 -12" stroke="#e4ddc9" stroke-width="2.5" fill="none"/><line class="cizik" x1="30" y1="-6" x2="168" y2="-6" stroke="#3a3026" stroke-width="2"/></g></g>
+</svg>

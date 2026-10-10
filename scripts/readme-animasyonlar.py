@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""README'nin özellik ve kurulum animasyonlarını üretir: docs/ozellikler.svg, docs/kurulum.svg.
+"""README animasyonlarını üretir: docs/baslik.svg, docs/kart-*.svg, docs/kurulum.svg.
 
-Başlık animasyonuyla (docs/baslik.gif) aynı mantık: Markdown kaynağı yazılır, uygulamadaki
-gibi biçimlenmiş hâline dönüşür. SVG içindeki CSS animasyonu GitHub'da <img> ile oynar;
-yalnızca transform ve opacity hareket eder, prefers-reduced-motion'da son hâl durağan görünür.
-Gereksinim yok (yalnızca Python standart kütüphanesi).
+Hepsi aynı mantığı izler: Markdown kaynağı yazılır, uygulamadaki gibi biçimlenmiş hâline
+dönüşür. SVG içindeki CSS animasyonu GitHub'da <img> ile oynar. Hareket kuralları
+(emilkowalski/skills `animate`): yalnızca transform ve opacity; giriş/çıkış güçlü ease-out,
+ekranda yer değiştirme ease-in-out; ardışık öğeler 60 ms kademeli; prefers-reduced-motion
+açıkken son hâl durağan görünür. Gereksinim yok (yalnızca Python standart kütüphanesi).
 
     python3 scripts/readme-animasyonlar.py
 """
@@ -13,8 +14,10 @@ from pathlib import Path
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 
-# Sepya teması (Tema.swift) ve başlık GIF'iyle aynı renkler.
+# Sepya teması (Tema.swift).
 ZEMIN = "#d6cfba"
+SAYFA = "#e4ddc9"
+CERCEVE = "#c2b89e"
 CIZGI = "#cec7b1"
 KENAR = "#be8070"
 METIN = "#3a3026"
@@ -22,14 +25,13 @@ ISARET = "#968670"
 ALT = "#605444"
 KUTU = "#c7bda6"
 BAG = "#1f5f9e"
-VURGU = "#efd27a"
 UYARI_ZEMIN = "#e6d29a"
 UYARI_KENAR = "#c9a227"
 
 SERIF = "Georgia, 'Times New Roman', serif"
 MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace"
-# Güçlü ease-out (animate skill'i): giriş ve çıkışlar için.
-EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)"
+EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)"       # giriş ve çıkış
+EASE_IN_OUT = "cubic-bezier(0.77, 0, 0.175, 1)"   # ekranda yer değiştirme
 
 
 def yuzde(t, toplam):
@@ -45,80 +47,180 @@ def anahtar_kareler(ad, toplam, adimlar, egri=EASE_OUT):
     return f"@keyframes {ad} {{\n" + "\n".join(satirlar) + "\n}"
 
 
-def defter_zemini(gen, yuk):
-    cizgiler = "".join(f'<line x1="0" y1="{y}" x2="{gen}" y2="{y}" stroke="{CIZGI}"/>' for y in range(44, yuk, 34))
-    return (f'<rect width="{gen}" height="{yuk}" rx="14" fill="{ZEMIN}"/>{cizgiler}'
-            f'<line x1="70" y1="0" x2="70" y2="{yuk}" stroke="{KENAR}" stroke-width="2"/>')
+def gir_cik(ad, toplam, gir, cik, kayma="translateY(6px)", cikis_kayma=None, sure=0.4):
+    """Öğe `gir` anında kayarak belirir, `cik` anında söner (çıkış girişin tersinden)."""
+    cikis_kayma = cikis_kayma or kayma
+    return anahtar_kareler(ad, toplam, [
+        (0, {"opacity": 0, "transform": kayma}),
+        (gir, {"opacity": 0, "transform": kayma}),
+        (gir + sure, {"opacity": 1, "transform": "translate(0, 0)"}),
+        (cik, {"opacity": 1, "transform": "translate(0, 0)"}),
+        (cik + 0.3, {"opacity": 0, "transform": cikis_kayma}),
+        (toplam, {"opacity": 0, "transform": cikis_kayma}),
+    ])
 
 
-# ───────────────────────────── Özellikler ─────────────────────────────
+def svg_belgesi(gen, yuk, baslik, css, hareket_azalt, icerik):
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{gen}" height="{yuk}" viewBox="0 0 {gen} {yuk}" '
+            f'role="img" aria-label="{escape(baslik)}"><title>{escape(baslik)}</title>\n<style>\n'
+            f".anim {{ opacity: 0; }}\n{css}\n"
+            f"@media (prefers-reduced-motion: reduce) {{ {hareket_azalt} }}\n</style>\n{icerik}\n</svg>\n")
 
-OZELLIKLER = [
-    # (özellik adı, kaynak parçaları [(metin, işaret mi)], görünüm SVG'si)
-    ("Başlıklar", [("## ", True), ("Toplantı notları", False)],
-     f'<text font-family="{SERIF}" font-weight="bold" font-size="26" fill="{METIN}">Toplantı notları</text>'),
-    ("Biçimli yazı", [("**", True), ("kalın", False), ("**", True), (" ve ", False), ("==", True), ("vurgu", False), ("==", True)],
-     f'<rect x="88" y="-21" width="64" height="28" rx="4" fill="{VURGU}"/>'
-     f'<text font-family="{SERIF}" font-size="22" fill="{METIN}"><tspan font-weight="bold">kalın</tspan> ve '
-     f'<tspan>vurgu</tspan></text>'),
-    ("Yapılacaklar", [("- [ ] ", True), ("Raporu gönder", False)],
-     f'<rect x="0" y="-18" width="20" height="20" rx="4" fill="none" stroke="{METIN}" stroke-width="2"/>'
-     f'<text x="32" font-family="{SERIF}" font-size="22" fill="{METIN}">Raporu gönder</text>'),
-    ("Sayfa bağları", [("[[", True), ("Proje Planı", False), ("]]", True)],
-     f'<text font-family="{SERIF}" font-size="22" fill="{BAG}">📄 <tspan text-decoration="underline">Proje Planı</tspan></text>'),
-    ("Uyarı kutusu", [("> [!💡 sarı] ", True), ("Cuma teslim", False)],
-     f'<rect x="-10" y="-26" width="200" height="38" rx="7" fill="{UYARI_ZEMIN}"/>'
-     f'<rect x="-10" y="-26" width="4" height="38" fill="{UYARI_KENAR}"/>'
-     f'<text x="6" font-family="{SERIF}" font-size="21" fill="{METIN}">💡 Cuma teslim</text>'),
-    ("Blok menüsü", [("/", True)],
-     f'<g class="menu"><rect x="0" y="-24" width="330" height="34" rx="8" fill="{KUTU}"/>'
-     f'<text x="14" font-family="{SERIF}" font-size="18" fill="{ALT}">Başlık 1 · Yapılacak · Kod bloğu · Tablo</text></g>'),
+
+# ───────────────────────────── Başlık ─────────────────────────────
+
+SLOGAN = "Notların, yapılacakların ve fikirlerin için sade bir defter — macOS ve Linux'ta."
+ETIKETLER = ["✍️ Yazarken biçimlenir", "✅ Yapılacaklar", "🖼️ Görseller", "🔗 Sayfa bağları", "📁 Kendi dosyaların"]
+
+
+def baslik_svg():
+    gen, yuk, sol = 1000, 270, 96
+    toplam = 9.5
+    harf = 32.4                      # 54 px tek aralıklı font; textLength ile sabitlenir
+    yazim_bas, yazim_hiz = 0.6, 0.09
+    yazim_son = yazim_bas + 12 * yazim_hiz
+    isaret_gen = 2 * harf
+    css = [
+        # "# NotDefteri" harf harf açılır: örtü ve imleç adım adım sağa kayar.
+        f"@keyframes ortu {{ 0% {{ transform: translateX(0); }} "
+        f"{yuzde(yazim_bas, toplam)} {{ transform: translateX(0); animation-timing-function: steps(12, end); }} "
+        f"{yuzde(yazim_son, toplam)} {{ transform: translateX({12 * harf}px); }} 100% {{ transform: translateX({12 * harf}px); }} }}",
+        anahtar_kareler("imlec", toplam, [(0, {"opacity": 1}), (yazim_son + 0.3, {"opacity": 1}),
+                                          (yazim_son + 0.301, {"opacity": 0}), (toplam, {"opacity": 0})], egri="linear"),
+        # "# " söner, düz metin yerine kayar, ardından başlık fontu belirir.
+        anahtar_kareler("isaret", toplam, [(0, {"opacity": 1}), (2.0, {"opacity": 1}), (2.25, {"opacity": 0}),
+                                           (toplam, {"opacity": 0})]),
+        anahtar_kareler("mono", toplam, [(0, {"opacity": 1, "transform": "translateX(0)"}),
+                                         (2.1, {"opacity": 1, "transform": "translateX(0)"}),
+                                         (2.55, {"opacity": 1, "transform": f"translateX({-isaret_gen}px)"}),
+                                         (2.7, {"opacity": 0, "transform": f"translateX({-isaret_gen}px)"}),
+                                         (toplam, {"opacity": 0, "transform": f"translateX({-isaret_gen}px)"})],
+                        egri=EASE_IN_OUT),
+        gir_cik("baslik", toplam, 2.55, 8.6, kayma="translateY(4px)", sure=0.35),
+        gir_cik("slogan", toplam, 3.0, 8.65, kayma="translateY(8px)"),
+    ]
+    govde = [
+        f'<rect width="{gen}" height="{yuk}" rx="16" fill="{ZEMIN}"/>',
+        f'<text class="anim isaret" x="{sol}" y="118" font-family="{MONO}" font-size="54" fill="{ISARET}" '
+        f'textLength="{harf}" lengthAdjust="spacingAndGlyphs">#</text>',   # boşluk konumla verilir: textLength sondaki boşluğu yok sayıp # işaretini geriyordu
+        f'<text class="anim mono" x="{sol + isaret_gen}" y="118" font-family="{MONO}" font-size="54" fill="{METIN}" '
+        f'textLength="{10 * harf}" lengthAdjust="spacingAndGlyphs">NotDefteri</text>',
+        f'<g class="ortu"><rect x="{sol}" y="66" width="{12 * harf + 8}" height="66" fill="{ZEMIN}"/>'
+        f'<rect class="imlec" x="{sol + 2}" y="70" width="5" height="58" fill="{METIN}"/></g>',
+        f'<text class="anim baslik" x="{sol}" y="120" font-family="{SERIF}" font-weight="bold" font-size="76" '
+        f'fill="{METIN}">NotDefteri</text>',
+        f'<text class="anim slogan" x="{sol + 2}" y="172" font-family="{SERIF}" font-style="italic" font-size="25" '
+        f'fill="{ALT}">{escape(SLOGAN)}</text>',
+    ]
+    x = sol
+    for i, etiket in enumerate(ETIKETLER):
+        # Georgia 17 px'te harf başına ~8 px (Pillow ile ölçüldü); emoji ~24 px. Yazı ortalanır,
+        # font farklı olsa da kutudan taşmaz.
+        en = len(etiket.split(" ", 1)[1]) * 8.1 + 24 + 30
+        css.append(gir_cik(f"e{i}", toplam, 3.3 + i * 0.06, 8.7 + i * 0.03, kayma="translateY(8px)"))
+        css.append(f".e{i} {{ animation: e{i} {toplam}s infinite; }}")
+        govde.append(f'<g class="anim e{i}"><rect x="{x:.0f}" y="196" width="{en:.0f}" height="34" rx="17" fill="{KUTU}"/>'
+                     f'<text x="{x + en / 2:.0f}" y="219" text-anchor="middle" font-family="{SERIF}" font-size="17" '
+                     f'fill="{METIN}">{escape(etiket)}</text></g>')
+        x += en + 10
+    assert x < gen - 20, f"etiketler sığmıyor: {x}"
+    # Defter çizgileri en üstte: örtü kutusu altta kalan çizgileri kesmesin.
+    govde.append("".join(f'<line x1="0" y1="{y}" x2="{gen}" y2="{y}" stroke="{CIZGI}" stroke-opacity="0.7"/>'
+                         for y in range(44, yuk, 34)))
+    govde.append(f'<line x1="70" y1="0" x2="70" y2="{yuk}" stroke="{KENAR}" stroke-width="2"/>')
+    for ad in ["ortu", "imlec", "isaret", "mono", "baslik", "slogan"]:
+        css.append(f".{ad} {{ animation: {ad} {toplam}s infinite; }}")
+    hareket_azalt = (".ortu, .isaret, .mono { display: none; } "
+                     ".anim, .baslik, .slogan { animation: none; opacity: 1; transform: none; }")
+    return svg_belgesi(gen, yuk, "NotDefteri — " + SLOGAN, "\n".join(css), hareket_azalt, "".join(govde))
+
+
+# ───────────────────────────── Özellik kartları ─────────────────────────────
+
+def _kaynak(*parcalar):
+    """Markdown kaynağı: işaretler soluk, metin koyu (tek aralıklı)."""
+    return (f'<text font-family="{MONO}" font-size="18">'
+            + "".join(f'<tspan fill="{ISARET if isaret else METIN}">{escape(m)}</tspan>' for m, isaret in parcalar)
+            + "</text>")
+
+
+def _yazi(metin, boyut=20, renk=METIN, **ek):
+    nitelik = " ".join(f'{k.replace("_", "-")}="{v}"' for k, v in ek.items())
+    return f'<text font-family="{SERIF}" font-size="{boyut}" fill="{renk}" {nitelik}>{metin}</text>'
+
+
+GORSEL = (f'<rect x="0" y="-30" width="64" height="44" rx="6" fill="#b9c9d6"/>'
+          f'<circle cx="46" cy="-18" r="6" fill="#f2d27a"/>'
+          f'<path d="M4 10 L22 -10 L34 2 L42 -6 L60 10 Z" fill="#7d9a6a"/>')
+
+# (dosya adı, README bağlantısı, emoji, başlık, açıklama, demo öğeleri)
+# Demo öğesi: (svg, x, y, giriş sn, çıkış sn ya da None = sona kadar, kayma yönü)
+KARTLAR = [
+    ("bicim", "#yazarken-biçimlendirme", "✍️", "Yazarken biçimlenir", "İşaretleri yaz, metin anında şekillensin.", [
+        (_kaynak(("**", True), ("Önemli", False), ("**", True), (" toplantı", False)), 0, 0, 0.3, 1.8, "x"),
+        (_yazi('<tspan font-weight="bold">Önemli</tspan> toplantı', 22), 0, 0, 1.95, None, "y"),
+    ]),
+    ("yapilacaklar", "#yapılacaklar", "✅", "Yapılacaklar", "Bütün işlerin Ana Sayfa'da tek listede.", [
+        (_kaynak(("- [ ] ", True), ("Raporu gönder", False)), 0, 0, 0.3, 1.8, "x"),
+        (f'<rect x="0" y="-17" width="19" height="19" rx="4" fill="none" stroke="{METIN}" stroke-width="2"/>'
+         + _yazi("Raporu gönder", 21, x="30"), 0, 0, 1.95, None, "y"),
+        (f'<rect x="0" y="-17" width="19" height="19" rx="4" fill="{METIN}"/>'
+         f'<path d="M4 -8 L8 -4 L15 -12" stroke="{SAYFA}" stroke-width="2.5" fill="none"/>'
+         f'<line class="cizik" x1="30" y1="-6" x2="168" y2="-6" stroke="{METIN}" stroke-width="2"/>', 0, 0, 3.4, None, "o"),
+    ]),
+    ("baglar", "#sayfalar-arası-bağ", "🔗", "Sayfalar arası bağ", "Sayfaları birbirine bağla, tek tıkla geç.", [
+        (_kaynak(("[[", True), ("Proje Planı", False), ("]]", True)), 0, 0, 0.3, 1.8, "x"),
+        (_yazi('📄 <tspan text-decoration="underline">Proje Planı</tspan>', 21, BAG), 0, 0, 1.95, None, "y"),
+    ]),
+    ("gorseller", "#görsel-ekleme", "🖼️", "Görseller", "Sürükle bırak, görsel sayfada görünsün.", [
+        (f'<rect x="-6" y="-38" width="300" height="58" rx="8" fill="none" stroke="{ISARET}" stroke-dasharray="6 5"/>'
+         + _yazi("Görseli buraya sürükle", 17, ISARET, x="56", y="-4"), 0, 0, 0.3, 1.9, "o"),
+        (GORSEL + _yazi("plan.png", 16, ALT, x="78", y="-4"), 0, 0, 1.95, None, "d"),
+    ]),
+    ("agac", "#sayfa-oluşturma", "🌳", "Sayfa ağacı", "Alt sayfalar ekle, sürükleyerek düzenle.", [
+        (_yazi("📁 Proje", 18), 0, -22, 0.3, None, "y"),
+        (_yazi("📄 Toplantı notları", 17, ALT), 26, 2, 0.9, None, "y"),
+        (_yazi("📄 Bütçe", 17, ALT), 26, 25, 1.4, None, "y"),
+    ]),
+    ("dosyalar", "#notlar-nerede-saklanıyor", "📁", "Notlar senin", "Bilgisayarında sıradan dosyalar olarak durur.", [
+        (_yazi("📂 Belgeler › NotDefteri", 18), 0, -22, 0.3, None, "y"),
+        (_yazi("📄 Toplantı notları", 17, ALT), 26, 2, 0.9, None, "y"),
+        (_yazi("Başka uygulamalarla da açılır", 15, ISARET, font_style="italic"), 26, 25, 1.5, None, "y"),
+    ]),
 ]
 
 
-def ozellikler_svg():
-    gen, satir_yuk, ust = 1000, 64, 70
-    yuk = ust + len(OZELLIKLER) * satir_yuk + 24
-    toplam = 11.0
-    kademe = 0.18        # satırlar arası gecikme: sayfa bir anda dolmasın
-    css, govde = [], []
-    for i, (ad, kaynak, gorunum) in enumerate(OZELLIKLER):
-        y = ust + i * satir_yuk
-        bas = 0.3 + i * kademe
-        donus = 2.0 + i * kademe
-        bitis = toplam - 1.2 + i * 0.04
-        # Kaynak girer (sağdan hafif), bekler, sola kayarak çıkar; görünüm aşağıdan oturur.
-        css.append(anahtar_kareler(f"k{i}", toplam, [
-            (0, {"opacity": 0, "transform": "translateX(8px)"}),
-            (bas, {"opacity": 0, "transform": "translateX(8px)"}),
-            (bas + 0.35, {"opacity": 1, "transform": "translateX(0)"}),
-            (donus, {"opacity": 1, "transform": "translateX(0)"}),
-            (donus + 0.25, {"opacity": 0, "transform": "translateX(-8px)"}),
-            (toplam, {"opacity": 0, "transform": "translateX(-8px)"}),
-        ]))
-        css.append(anahtar_kareler(f"g{i}", toplam, [
-            (0, {"opacity": 0, "transform": "translateY(6px)"}),
-            (donus + 0.1, {"opacity": 0, "transform": "translateY(6px)"}),
-            (donus + 0.5, {"opacity": 1, "transform": "translateY(0)"}),
-            (bitis, {"opacity": 1, "transform": "translateY(0)"}),
-            (bitis + 0.35, {"opacity": 0, "transform": "translateY(6px)"}),
-            (toplam, {"opacity": 0, "transform": "translateY(6px)"}),
-        ]))
-        css.append(anahtar_kareler(f"e{i}", toplam, [
-            (0, {"opacity": 0}), (bas, {"opacity": 0}), (bas + 0.35, {"opacity": 1}),
-            (bitis + 0.1, {"opacity": 1}), (bitis + 0.45, {"opacity": 0}), (toplam, {"opacity": 0}),
-        ]))
-        css.append(f".k{i} {{ animation: k{i} {toplam}s infinite; }} .g{i} {{ animation: g{i} {toplam}s infinite; }} "
-                   f".e{i} {{ animation: e{i} {toplam}s infinite; }}")
-        parcalar = "".join(f'<tspan fill="{ISARET if isaret else METIN}">{escape(metin)}</tspan>' for metin, isaret in kaynak)
-        govde.append(
-            f'<text class="etiket e{i}" x="96" y="{y + 8}" font-family="{SERIF}" font-size="17" font-style="italic" fill="{ALT}">{escape(ad)}</text>'
-            f'<g transform="translate(300 {y + 8})"><text class="kaynak k{i}" font-family="{MONO}" font-size="20">{parcalar}</text>'
-            f'<g class="gorunum g{i}">{gorunum}</g></g>')
-    hareket_azalt = (".kaynak { animation: none; opacity: 0; } "
-                     ".gorunum, .etiket { animation: none; opacity: 1; transform: none; }")
-    return svg_belgesi(gen, yuk, "Not Defteri özellikleri: Markdown kaynağı yazıldığı anda biçimlenir",
-                       "\n".join(css), hareket_azalt, defter_zemini(gen, yuk) + "".join(govde))
+def kart_svg(sira, ad, emoji, baslik, aciklama, demo):
+    gen, yuk = 480, 214
+    toplam = 7.5
+    # Kartlar aynı anda değil, sırayla döner; sayfa canlı ama dağınık görünmez.
+    kayma = sira * 0.25
+    cikis = toplam - 0.9
+    css, govde = [], [
+        f'<rect x="1" y="1" width="{gen - 2}" height="{yuk - 2}" rx="16" fill="{ZEMIN}" stroke="{CERCEVE}" stroke-width="2"/>',
+        _yazi(f"{emoji} {escape(baslik)}", 23, METIN, x="26", y="46", font_weight="bold"),
+        _yazi(escape(aciklama), 15, ALT, x="26", y="72"),
+        f'<rect x="18" y="92" width="{gen - 36}" height="84" rx="10" fill="{SAYFA}"/>',
+        _yazi("Nasıl kullanılır →", 13, BAG, x=str(gen - 24), y="200", text_anchor="end"),
+    ]
+    kaymalar = {"x": ("translateX(8px)", "translateX(-8px)"), "y": ("translateY(6px)", "translateY(6px)"),
+                "o": ("translate(0, 0)", "translate(0, 0)"), "d": ("translateY(-14px) scale(0.96)", "translateY(6px)")}
+    for i, (svg, x, y, gir, cik, yon) in enumerate(demo):
+        giris, cikis_k = kaymalar[yon]
+        css.append(gir_cik(f"d{i}", toplam, gir + kayma, (cik + kayma) if cik else cikis + i * 0.04,
+                           kayma=giris, cikis_kayma=cikis_k))
+        css.append(f".d{i} {{ animation: d{i} {toplam}s infinite; transform-box: fill-box; }}")
+        govde.append(f'<g transform="translate({40 + x} {140 + y})"><g class="anim d{i}">{svg}</g></g>')
+    # Yapılacak işaretlenince üstü soldan sağa çizilir.
+    css.append(anahtar_kareler("cizik", toplam, [
+        (0, {"transform": "scaleX(0)"}), (3.5 + kayma, {"transform": "scaleX(0)"}),
+        (3.85 + kayma, {"transform": "scaleX(1)"}), (toplam, {"transform": "scaleX(1)"})]))
+    css.append(f".cizik {{ animation: cizik {toplam}s infinite; transform-box: fill-box; transform-origin: left center; }}")
+    # Hareket azaltılınca: kaynak ve sürükleme ipucu gizli, son hâl görünür.
+    gizli = ", ".join(f".d{i}" for i, (_, _, _, _, cik, _) in enumerate(demo) if cik)
+    hareket_azalt = (f".anim, .cizik {{ animation: none; opacity: 1; transform: none; }}"
+                     + (f" {gizli} {{ display: none; }}" if gizli else ""))
+    return svg_belgesi(gen, yuk, f"{baslik}: {aciklama}", "\n".join(css), hareket_azalt, "".join(govde))
 
 
 # ───────────────────────────── Kurulum ─────────────────────────────
@@ -186,14 +288,14 @@ def kurulum_svg():
             ], egri="linear"))
             css.append(f".o{i} {{ animation: o{i} {toplam}s infinite; }} .i{i} {{ animation: i{i} {toplam}s infinite; }}")
             govde.append(
-                f'<g class="satir s{i}">'
+                f'<g class="anim satir s{i}">'
                 f'<text x="{sol}" y="{y}" font-family="{MONO}" font-size="16" fill="{T_ISTEM}">{istem}</text>'
                 f'<text x="{x0}" y="{y}" font-family="{MONO}" font-size="16" fill="{renk}" '
                 f'textLength="{n * harf:.1f}" lengthAdjust="spacingAndGlyphs">{escape(metin)}</text>'
                 f'<g class="ortu o{i}"><rect x="{x0}" y="{y - 17}" width="{n * harf + 4:.1f}" height="23" fill="{T_ZEMIN}"/>'
                 f'<rect class="imlec i{i}" x="{x0}" y="{y - 15}" width="9" height="19" fill="{T_METIN}"/></g></g>')
         else:
-            govde.append(f'<text class="satir s{i}" x="{sol}" y="{y}" font-family="{MONO}" font-size="16" fill="{renk}" '
+            govde.append(f'<text class="anim satir s{i}" x="{sol}" y="{y}" font-family="{MONO}" font-size="16" fill="{renk}" '
                          f'textLength="{len(metin) * harf:.1f}" lengthAdjust="spacingAndGlyphs">{escape(metin)}</text>')
 
     pencere = (f'<rect width="{gen}" height="{yuk}" rx="12" fill="{T_ZEMIN}"/>'
@@ -202,20 +304,16 @@ def kurulum_svg():
                          for k, r in enumerate(["#ff5f57", "#febc2e", "#28c840"]))
                + f'<text x="{gen / 2}" y="23" text-anchor="middle" font-family="{SERIF}" font-size="14" fill="{T_SOLUK}">'
                  f'Terminal — NotDefteri</text>')
-    hareket_azalt = ".satir, .ortu, .imlec { animation: none; opacity: 1; transform: none; } .ortu { display: none; }"
+    hareket_azalt = ".anim, .satir, .ortu, .imlec { animation: none; opacity: 1; transform: none; } .ortu { display: none; }"
     return svg_belgesi(gen, yuk, "Kurulum: depoyu klonla, kısayolu kur, not yazınca uygulama açılır",
                        "\n".join(css), hareket_azalt, pencere + "".join(govde))
 
 
-def svg_belgesi(gen, yuk, baslik, css, hareket_azalt, icerik):
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{gen}" height="{yuk}" viewBox="0 0 {gen} {yuk}" '
-            f'role="img" aria-label="{escape(baslik)}"><title>{escape(baslik)}</title>\n<style>\n'
-            f".kaynak, .gorunum, .etiket, .satir {{ opacity: 0; }}\n"
-            f"{css}\n@media (prefers-reduced-motion: reduce) {{ {hareket_azalt} }}\n</style>\n{icerik}\n</svg>\n")
-
-
 if __name__ == "__main__":
-    for ad, uret in [("ozellikler.svg", ozellikler_svg), ("kurulum.svg", kurulum_svg)]:
+    ciktilar = [("baslik.svg", baslik_svg()), ("kurulum.svg", kurulum_svg())]
+    ciktilar += [(f"kart-{ad}.svg", kart_svg(i, ad, emoji, baslik, aciklama, demo))
+                 for i, (ad, _, emoji, baslik, aciklama, demo) in enumerate(KARTLAR)]
+    for ad, icerik in ciktilar:
         yol = DOCS / ad
-        yol.write_text(uret(), encoding="utf-8")
-        print(f"{yol} — {yol.stat().st_size / 1024:.1f} KB")
+        yol.write_text(icerik, encoding="utf-8")
+        print(f"{yol.relative_to(DOCS.parent)} — {yol.stat().st_size / 1024:.1f} KB")

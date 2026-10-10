@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="214" viewBox="0 0 480 214" role="img" aria-label="Görseller: Sürükle bırak, görsel sayfada görünsün."><title>Görseller: Sürükle bırak, görsel sayfada görünsün.</title>
+<style>
+.anim { opacity: 0; }
+@keyframes d0 {
+  0.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  14.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  19.333% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  35.333% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  39.333% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d0 { animation: d0 7.5s infinite; transform-box: fill-box; }
+@keyframes d1 {
+  0.000% { opacity: 0; transform: translateY(-14px) scale(0.96); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  36.000% { opacity: 0; transform: translateY(-14px) scale(0.96); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  41.333% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  88.533% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.533% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.d1 { animation: d1 7.5s infinite; transform-box: fill-box; }
+@keyframes cizik {
+  0.000% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  56.667% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  61.333% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.cizik { animation: cizik 7.5s infinite; transform-box: fill-box; transform-origin: left center; }
+@media (prefers-reduced-motion: reduce) { .anim, .cizik { animation: none; opacity: 1; transform: none; } .d0 { display: none; } }
+</style>
+<rect x="1" y="1" width="478" height="212" rx="16" fill="#d6cfba" stroke="#c2b89e" stroke-width="2"/><text font-family="Georgia, 'Times New Roman', serif" font-size="23" fill="#3a3026" x="26" y="46" font-weight="bold">🖼️ Görseller</text><text font-family="Georgia, 'Times New Roman', serif" font-size="15" fill="#605444" x="26" y="72">Sürükle bırak, görsel sayfada görünsün.</text><rect x="18" y="92" width="444" height="84" rx="10" fill="#e4ddc9"/><text font-family="Georgia, 'Times New Roman', serif" font-size="13" fill="#1f5f9e" x="456" y="200" text-anchor="end">Nasıl kullanılır →</text><g transform="translate(40 140)"><g class="anim d0"><rect x="-6" y="-38" width="300" height="58" rx="8" fill="none" stroke="#968670" stroke-dasharray="6 5"/><text font-family="Georgia, 'Times New Roman', serif" font-size="17" fill="#968670" x="56" y="-4">Görseli buraya sürükle</text></g></g><g transform="translate(40 140)"><g class="anim d1"><rect x="0" y="-30" width="64" height="44" rx="6" fill="#b9c9d6"/><circle cx="46" cy="-18" r="6" fill="#f2d27a"/><path d="M4 10 L22 -10 L34 2 L42 -6 L60 10 Z" fill="#7d9a6a"/><text font-family="Georgia, 'Times New Roman', serif" font-size="16" fill="#605444" x="78" y="-4">plan.png</text></g></g>
+</svg>

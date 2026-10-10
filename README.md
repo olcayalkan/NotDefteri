@@ -1,45 +1,48 @@
 <p align="center">
-  <img src="docs/baslik.gif" width="100%"
-       alt="Not Defteri — macOS ve Linux için sade, hızlı, Markdown tabanlı bir not uygulaması. Animasyonda '# NotDefteri' yazılıyor ve '#' işareti kaybolarak başlığa dönüşüyor.">
+  <img src="docs/baslik.svg" width="100%"
+       alt="NotDefteri — Notların, yapılacakların ve fikirlerin için sade bir defter, macOS ve Linux'ta. Yazarken biçimlenir, yapılacaklar, görseller, sayfa bağları, kendi dosyaların.">
 </p>
 
-Notlar sıradan `.md` dosyaları olarak diskte durur. Uygulamayı silsen de notların
-okunabilir kalır; Obsidian, VS Code ya da herhangi bir metin düzenleyiciyle açılabilir.
+Notların bilgisayarındaki **Belgeler › NotDefteri** klasöründe sıradan metin dosyaları olarak durur.
+Uygulamayı silsen bile notların yerinde kalır; Obsidian, VS Code ya da herhangi bir metin
+düzenleyiciyle açılabilir.
 
-- **macOS:** saf AppKit, bağımlılık yok
-- **Linux:** GTK 4 (Ubuntu 22.04'te denendi)
-- **Dil:** Swift 5.9, SwiftPM
+**macOS** ve **Linux**'ta çalışır · Yazmayı bıraktığında kendiliğinden kaydeder · Silinen sayfalar 30 gün çöp kutusunda bekler
 
 ---
 
 ## Özellikler
 
+Bir karta tıklayınca nasıl kullanıldığını anlatan bölüme gidersin.
+
 <p align="center">
-  <img src="docs/ozellikler.svg" width="100%"
-       alt="Markdown yazıldığı anda biçimlenir: ## başlığa, **kalın** kalına, - [ ] onay kutusuna, [[bağ]] sayfa bağına, > [!💡 sarı] uyarı kutusuna dönüşür; / blok menüsünü açar.">
+  <a href="#yazarken-biçimlendirme"><img src="docs/kart-bicim.svg" width="49%" alt="Yazarken biçimlenir: işaretleri yaz, metin anında şekillensin"></a>
+  <a href="#yapılacaklar"><img src="docs/kart-yapilacaklar.svg" width="49%" alt="Yapılacaklar: bütün işlerin Ana Sayfa'da tek listede"></a>
+</p>
+<p align="center">
+  <a href="#sayfalar-arası-bağ"><img src="docs/kart-baglar.svg" width="49%" alt="Sayfalar arası bağ: sayfaları birbirine bağla, tek tıkla geç"></a>
+  <a href="#görsel-ekleme"><img src="docs/kart-gorseller.svg" width="49%" alt="Görseller: sürükle bırak, görsel sayfada görünsün"></a>
+</p>
+<p align="center">
+  <a href="#sayfa-oluşturma"><img src="docs/kart-agac.svg" width="49%" alt="Sayfa ağacı: alt sayfalar ekle, sürükleyerek düzenle"></a>
+  <a href="#notlar-nerede-saklanıyor"><img src="docs/kart-dosyalar.svg" width="49%" alt="Notlar senin: bilgisayarında sıradan dosyalar olarak durur"></a>
 </p>
 
-- **Sayfa ağacı.** Her sayfanın altında alt sayfalar olabilir. Sürükle-bırakla taşınır ve sıralanır.
-- **Biçimli düzenleme.** Kalın, italik, üstü çizili, satır içi kod, vurgu, başlıklar, listeler,
-  yapılacaklar, alıntı, kod bloğu, uyarı kutusu, ayırıcı, görsel.
-- **`/` blok menüsü.** Satır başında `/` yazınca blok türü seçilir.
-- **Sayfa bağları.** `[[Sayfa adı]]` yazınca diğer sayfaya bağ kurulur. Sayfa taşınıp
-  adlandırılınca bağlar kendiliğinden güncellenir. Her sayfanın altında ona bağ veren sayfalar listelenir.
-- **İçindekiler.** Sağ kenarda başlıklardan oluşan yüzen bir panel. Okuduğun bölüm vurgulanır,
-  tıklayınca o başlığa gider.
-- **Hızlı sayfa bulucu** (`⌘P` / `Ctrl+P`): Türkçe karakterlere duyarsız arama
-  ("istanbul" yazınca "İstanbul" da bulunur).
-- **Ana Sayfa.** Son açılan sayfalar, tüm notlardaki bekleyen yapılacaklar, hızlı eylemler
-  (yeni sayfa, günlük not, şablondan sayfa).
-- **Otomatik kayıt.** Yazmayı bıraktıktan 5 sn sonra kaydeder; kapatırken de kaydeder.
-- **Sayfa geçmişi.** Sayfanın eski sürümlerine dönülebilir.
-- **Çöp kutusu.** Silinen sayfalar 30 gün boyunca geri yüklenebilir.
-- **Dışa aktarma.** PDF, tek dosya HTML ya da Markdown.
-- **Katlama.** Başlıkların altındaki bölümler katlanabilir.
-- **Kağıt temaları.** Sepya, Yeşilimsi Kağıt, Gri Kağıt, Krem.
-- **Pencereyi üstte tutma (📌).** Pencere diğer pencerelerin üstünde kalır.
+### Diğer özellikler
 
----
+- **Hızlı sayfa bulucu** (`⌘P` / `Ctrl+P`): Sayfa adının bir kısmını yaz, hemen bul. Türkçe harflere
+  takılmaz ("istanbul" yazınca "İstanbul" da çıkar).
+- **Ana Sayfa.** Son açtığın sayfalar, bekleyen işlerin ve tek tıkla yeni sayfa, günlük not ya da hazır şablon.
+- **Blok menüsü.** Satır başında `/` yazınca başlık, liste, alıntı, uyarı kutusu gibi seçenekler açılır.
+- **İçindekiler.** Uzun sayfalarda sağ kenarda başlık listesi durur; okuduğun bölüm vurgulanır,
+  tıklayınca o başlığa gider.
+- **Otomatik kayıt.** Yazmayı bıraktıktan 5 saniye sonra kaydeder; kapatırken de kaydeder.
+- **Sayfa geçmişi.** Bir sayfanın eski hâline geri dönebilirsin.
+- **Çöp kutusu.** Silinen sayfalar 30 gün boyunca geri getirilebilir.
+- **Dışa aktarma.** Sayfayı PDF, web sayfası ya da düz metin olarak kaydet.
+- **Bölüm katlama.** Başlıkların altını katlayıp uzun sayfayı sadeleştir.
+- **Kağıt temaları.** Sepya, Yeşilimsi Kağıt, Gri Kağıt, Krem.
+- **Üstte tut (📌).** Pencere diğer pencerelerin üstünde kalır.
 
 ## Kurulum ve Çalıştırma
 
@@ -219,6 +222,11 @@ Tüm notlar **`~/Documents/NotDefteri/`** klasöründedir. Her sayfa bir klasör
 ---
 
 ## Geliştirme
+
+- **macOS:** saf AppKit, üçüncü parti bağımlılık yok
+- **Linux:** GTK 4 (Ubuntu 22.04'te denendi)
+- **Dil:** Swift 5.9, SwiftPM
+- **Dosya biçimi:** Markdown (`.md`); her sayfa kendi klasöründe `index.md`
 
 ```bash
 swift build          # derle
