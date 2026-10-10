@@ -46,3 +46,6 @@ DerivedData/
 
 # Claude Code ajan worktree klasörleri
 .claude/worktrees/
+
+# brag tanıtım videosu ara çıktıları (son dosyalar docs/ altına kopyalanır)
+brag-output*/
