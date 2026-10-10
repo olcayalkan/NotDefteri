@@ -1,4 +1,5 @@
 name: CI
+run-name: "CI · ${{ github.event.pull_request.title || github.ref_name }}"
 
 on:
   push:
@@ -6,10 +7,19 @@ on:
   pull_request:
   workflow_dispatch:
 
+# İş akışı yalnızca kodu okur; yazma yetkisi gerekmiyor.
+permissions:
+  contents: read
+
 # Aynı PR'a art arda push gelirse eski koşuyu iptal et; kuyruk boşa dolmasın.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+# Linux container'ında varsayılan kabuk sh; pipefail için bash gerekiyor.
+defaults:
+  run:
+    shell: bash
 
 jobs:
   macos:
@@ -18,19 +28,55 @@ jobs:
     # Takılan bir test (ör. modal uyarı) varsayılan 6 saatlik sınırı beklemesin.
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - name: Swift sürümü
-        run: swift --version
-      - name: Derle (debug)
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Araç zinciri bilgisi
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Paket bağımlılıklarını çöz
+        run: swift package resolve
+
+      - name: Uygulamayı derle (debug)
         run: swift build
-      - name: Test
-        run: swift test
-      - name: Derle (release)
+
+      - name: Testleri derle
+        run: swift build --build-tests
+
+      - name: Testleri çalıştır
+        run: |
+          set -o pipefail
+          swift test --skip-build 2>&1 | tee test-sonucu.log
+
+      - name: Test özeti
+        if: always()
+        run: .github/scripts/test-ozeti.sh test-sonucu.log "macOS (AppKit)"
+
+      - name: Uygulamayı derle (release)
         run: swift build -c release
-      - uses: actions/upload-artifact@v4
+
+      - name: İkiliyi doğrula
+        run: |
+          file .build/release/NotDefteri
+          ls -lh .build/release/NotDefteri
+
+      - name: İkiliyi yükle
+        uses: actions/upload-artifact@v4
         with:
           name: NotDefteri-macos
           path: .build/release/NotDefteri
+          retention-days: 14
+
+      - name: Test günlüğünü yükle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-gunlugu-macos
+          path: test-sonucu.log
+          if-no-files-found: ignore
 
   linux:
     name: Linux (GTK 4)
@@ -39,18 +85,78 @@ jobs:
     # README Ubuntu 22.04'ü hedefliyor; aynı dağıtımda derlemek kullanıcıyla aynı GTK sürümünü garanti eder.
     container: swift:6.2-jammy
     steps:
-      - uses: actions/checkout@v4
-      - name: GTK 4 kur
-        run: apt-get update && apt-get install -y --no-install-recommends libgtk-4-dev pkg-config
-      - name: Swift sürümü
-        run: swift --version
-      - name: Derle (debug)
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Sistem paketlerini kur (GTK 4)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libgtk-4-dev pkg-config file
+
+      - name: Araç zinciri bilgisi
+        run: |
+          grep PRETTY_NAME /etc/os-release
+          echo "GTK $(pkg-config --modversion gtk4)"
+          swift --version
+
+      - name: Paket bağımlılıklarını çöz
+        run: swift package resolve
+
+      - name: Uygulamayı derle (debug)
         run: swift build
-      - name: Test
-        run: swift test
-      - name: Derle (release)
+
+      - name: Testleri derle
+        run: swift build --build-tests
+
+      - name: Testleri çalıştır
+        run: |
+          set -o pipefail
+          swift test --skip-build 2>&1 | tee test-sonucu.log
+
+      - name: Test özeti
+        if: always()
+        run: .github/scripts/test-ozeti.sh test-sonucu.log "Linux (GTK 4)"
+
+      - name: Uygulamayı derle (release)
         run: swift build -c release
-      - uses: actions/upload-artifact@v4
+
+      - name: İkiliyi doğrula
+        run: |
+          file .build/release/NotDefteri
+          ls -lh .build/release/NotDefteri
+
+      - name: İkiliyi yükle
+        uses: actions/upload-artifact@v4
         with:
           name: NotDefteri-linux
           path: .build/release/NotDefteri
+          retention-days: 14
+
+      - name: Test günlüğünü yükle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-gunlugu-linux
+          path: test-sonucu.log
+          if-no-files-found: ignore
+
+  # Branch protection'da tek kontrol yeterli olsun; platform eklense de kural değişmez.
+  sonuc:
+    name: CI sonucu
+    if: always()
+    needs: [macos, linux]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Tüm platformlar geçti mi?
+        run: |
+          echo "macOS (AppKit): ${{ needs.macos.result }}"
+          echo "Linux (GTK 4):  ${{ needs.linux.result }}"
+          {
+            echo "### CI sonucu"
+            echo "| Platform | Sonuç |"
+            echo "|---|---|"
+            echo "| macOS (AppKit) | ${{ needs.macos.result }} |"
+            echo "| Linux (GTK 4) | ${{ needs.linux.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [[ "${{ needs.macos.result }}" == success && "${{ needs.linux.result }}" == success ]]
