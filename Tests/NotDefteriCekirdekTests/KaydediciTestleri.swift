@@ -21,6 +21,14 @@ final class KaydediciTestleri: XCTestCase {
         klasor.appendingPathComponent(ad)
     }
 
+    /// Üst klasörün yerinde sıradan bir dosya durur; klasör oluşturulamaz.
+    /// `/System` gibi korumalı yollar Linux'ta root için yazılabilir, bu her yerde başarısız olur.
+    private func yazilamazURL() throws -> URL {
+        let engel = url("engel")
+        try Data().write(to: engel)
+        return engel.appendingPathComponent("not.md")
+    }
+
     // MARK: Yazma
 
     func testYazmaDiskeIsler() throws {
@@ -80,13 +88,13 @@ final class KaydediciTestleri: XCTestCase {
     /// Eskiden güncelleniyordu: not kaydedilmediği hâlde "kaydedildi" sayılıyor,
     /// sonraki otomatik kayıtlar "değişmemiş" deyip atlıyor, kullanıcı
     /// yazdığını sessizce kaybediyordu.
-    func testBasarisizYazimDurumuBozmaz() {
+    func testBasarisizYazimDurumuBozmaz() throws {
         let k = NotKaydedici()
         let iyi = url()
         XCTAssertEqual(k.yaz(metin: "guvenli", url: iyi, mevcutURL: nil), .yazildi)
 
         k.degisiklikIsaretle()
-        let yazilamaz = URL(fileURLWithPath: "/System/olmayan-dizin/not.md")
+        let yazilamaz = try yazilamazURL()
         guard case .basarisiz = k.yaz(metin: "kayip", url: yazilamaz, mevcutURL: iyi) else {
             return XCTFail("yazılamayan yola yazım başarısız olmalıydı")
         }
@@ -96,9 +104,9 @@ final class KaydediciTestleri: XCTestCase {
     }
 
     /// Başarısızlıktan sonra tekrar denenince yazabilmeli.
-    func testBasarisizliktanSonraYenidenDenenebilir() {
+    func testBasarisizliktanSonraYenidenDenenebilir() throws {
         let k = NotKaydedici()
-        let yazilamaz = URL(fileURLWithPath: "/System/olmayan-dizin/not.md")
+        let yazilamaz = try yazilamazURL()
         guard case .basarisiz = k.yaz(metin: "icerik", url: yazilamaz, mevcutURL: nil) else {
             return XCTFail("başarısız olmalıydı")
         }
