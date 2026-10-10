@@ -1,0 +1,27 @@
+name: Özellik isteği
+description: Yeni bir özellik ya da iyileştirme öner
+labels: [enhancement]
+body:
+  - type: textarea
+    id: sorun
+    attributes:
+      label: Hangi sorunu çözüyor?
+    validations:
+      required: true
+  - type: textarea
+    id: oneri
+    attributes:
+      label: Önerilen çözüm
+    validations:
+      required: true
+  - type: checkboxes
+    id: platform
+    attributes:
+      label: Hangi platformlar etkilenir?
+      options:
+        - label: macOS
+        - label: Linux
+  - type: textarea
+    id: alternatif
+    attributes:
+      label: Düşünülen alternatifler

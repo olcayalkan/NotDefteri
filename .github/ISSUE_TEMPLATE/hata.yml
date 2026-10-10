@@ -1,0 +1,42 @@
+name: Hata bildirimi
+description: Beklendiği gibi çalışmayan bir şey
+labels: [bug]
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [macOS, Linux]
+    validations:
+      required: true
+  - type: input
+    id: surum
+    attributes:
+      label: İşletim sistemi sürümü
+      placeholder: "macOS 15.3 / Ubuntu 22.04"
+  - type: input
+    id: commit
+    attributes:
+      label: NotDefteri sürümü veya commit
+      placeholder: "git rev-parse --short HEAD"
+  - type: textarea
+    id: adimlar
+    attributes:
+      label: Yeniden üretme adımları
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: beklenen
+    attributes:
+      label: Beklenen ve gerçekleşen davranış
+    validations:
+      required: true
+  - type: textarea
+    id: gunluk
+    attributes:
+      label: Günlük / ekran görüntüsü
+      description: "Linux'ta ~/.local/state/NotDefteri/ altındaki en yeni .log dosyası"
+      render: text
