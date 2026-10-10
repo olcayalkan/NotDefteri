@@ -1,6 +1,16 @@
 name: CI
 run-name: "CI · ${{ github.event.pull_request.title || github.ref_name }}"
 
+# Akış (her platform kendi zincirinde, iki platform paralel):
+#
+#   macOS · 1. Derle ─► macOS · 2. Test ─► macOS · 3. Paketle ─┐
+#                                                              ├─► CI sonucu
+#   Linux · 1. Derle ─► Linux · 2. Test ─► Linux · 3. Paketle ─┘
+#
+# Derlenmeyen kod test edilmez, testi geçmeyen kod paketlenmez.
+# Derleyici uyarı/hataları ve kırık testler koşu sayfasında açıklama (annotation)
+# olarak işaretlenir; her biri dosya ve satıra, oradan ilgili aşamaya götürür.
+
 on:
   push:
     branches: [main]
@@ -22,11 +32,12 @@ defaults:
     shell: bash
 
 jobs:
-  macos:
-    name: macOS (AppKit)
+  # ─────────────────────────────── macOS ───────────────────────────────
+
+  macos-derle:
+    name: macOS · 1. Derle
     runs-on: macos-15
-    # Takılan bir test (ör. modal uyarı) varsayılan 6 saatlik sınırı beklemesin.
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
@@ -41,10 +52,48 @@ jobs:
         run: swift package resolve
 
       - name: Uygulamayı derle (debug)
-        run: swift build
+        run: |
+          set -o pipefail
+          swift build 2>&1 | tee -a derleme.log
 
       - name: Testleri derle
-        run: swift build --build-tests
+        run: |
+          set -o pipefail
+          swift build --build-tests 2>&1 | tee -a derleme.log
+
+      - name: Hata ve uyarıları işaretle
+        if: always()
+        run: .github/scripts/bulgulari-isaretle.sh derleme.log "macOS · Derle"
+
+      # Test işi aynı ikilileri kullansın, yeniden derlemesin.
+      # tar: upload-artifact çalıştırma izinlerini ve symlink'leri korumuyor.
+      - name: Derleme çıktısını paketle
+        run: tar -czf derleme.tgz .build
+
+      - name: Derleme çıktısını yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: derleme-macos
+          path: derleme.tgz
+          retention-days: 1
+
+  macos-test:
+    name: macOS · 2. Test
+    needs: macos-derle
+    runs-on: macos-15
+    # Takılan bir test (ör. modal uyarı) varsayılan 6 saatlik sınırı beklemesin.
+    timeout-minutes: 15
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Derleme çıktısını indir
+        uses: actions/download-artifact@v4
+        with:
+          name: derleme-macos
+
+      - name: Derleme çıktısını aç
+        run: tar -xzf derleme.tgz
 
       - name: Testleri çalıştır
         run: |
@@ -54,6 +103,27 @@ jobs:
       - name: Test özeti
         if: always()
         run: .github/scripts/test-ozeti.sh test-sonucu.log "macOS (AppKit)"
+
+      - name: Kırık testleri işaretle
+        if: always()
+        run: .github/scripts/bulgulari-isaretle.sh test-sonucu.log "macOS · Test"
+
+      - name: Test günlüğünü yükle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-gunlugu-macos
+          path: test-sonucu.log
+          if-no-files-found: ignore
+
+  macos-paketle:
+    name: macOS · 3. Paketle
+    needs: macos-test
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
 
       - name: Uygulamayı derle (release)
         run: swift build -c release
@@ -70,19 +140,12 @@ jobs:
           path: .build/release/NotDefteri
           retention-days: 14
 
-      - name: Test günlüğünü yükle
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-gunlugu-macos
-          path: test-sonucu.log
-          if-no-files-found: ignore
+  # ─────────────────────────────── Linux ───────────────────────────────
 
-  linux:
-    name: Linux (GTK 4)
+  linux-derle:
+    name: Linux · 1. Derle
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    # README Ubuntu 22.04'ü hedefliyor; aynı dağıtımda derlemek kullanıcıyla aynı GTK sürümünü garanti eder.
+    timeout-minutes: 15
     container: swift:6.2-jammy
     steps:
       - name: Kaynak kodu al
@@ -91,7 +154,7 @@ jobs:
       - name: Sistem paketlerini kur (GTK 4)
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends libgtk-4-dev pkg-config file
+          apt-get install -y --no-install-recommends libgtk-4-dev pkg-config
 
       - name: Araç zinciri bilgisi
         run: |
@@ -103,10 +166,52 @@ jobs:
         run: swift package resolve
 
       - name: Uygulamayı derle (debug)
-        run: swift build
+        run: |
+          set -o pipefail
+          swift build 2>&1 | tee -a derleme.log
 
       - name: Testleri derle
-        run: swift build --build-tests
+        run: |
+          set -o pipefail
+          swift build --build-tests 2>&1 | tee -a derleme.log
+
+      - name: Hata ve uyarıları işaretle
+        if: always()
+        run: .github/scripts/bulgulari-isaretle.sh derleme.log "Linux · Derle"
+
+      - name: Derleme çıktısını paketle
+        run: tar -czf derleme.tgz .build
+
+      - name: Derleme çıktısını yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: derleme-linux
+          path: derleme.tgz
+          retention-days: 1
+
+  linux-test:
+    name: Linux · 2. Test
+    needs: linux-derle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: swift:6.2-jammy
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      # Manifest gtk4'ü pkg-config ile arıyor; test ikilisi de GTK'ya bağlı olabilir.
+      - name: Sistem paketlerini kur (GTK 4)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libgtk-4-dev pkg-config
+
+      - name: Derleme çıktısını indir
+        uses: actions/download-artifact@v4
+        with:
+          name: derleme-linux
+
+      - name: Derleme çıktısını aç
+        run: tar -xzf derleme.tgz
 
       - name: Testleri çalıştır
         run: |
@@ -116,6 +221,33 @@ jobs:
       - name: Test özeti
         if: always()
         run: .github/scripts/test-ozeti.sh test-sonucu.log "Linux (GTK 4)"
+
+      - name: Kırık testleri işaretle
+        if: always()
+        run: .github/scripts/bulgulari-isaretle.sh test-sonucu.log "Linux · Test"
+
+      - name: Test günlüğünü yükle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-gunlugu-linux
+          path: test-sonucu.log
+          if-no-files-found: ignore
+
+  linux-paketle:
+    name: Linux · 3. Paketle
+    needs: linux-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: swift:6.2-jammy
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Sistem paketlerini kur (GTK 4)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libgtk-4-dev pkg-config file
 
       - name: Uygulamayı derle (release)
         run: swift build -c release
@@ -132,31 +264,24 @@ jobs:
           path: .build/release/NotDefteri
           retention-days: 14
 
-      - name: Test günlüğünü yükle
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-gunlugu-linux
-          path: test-sonucu.log
-          if-no-files-found: ignore
+  # ─────────────────────────────── Sonuç ───────────────────────────────
 
-  # Branch protection'da tek kontrol yeterli olsun; platform eklense de kural değişmez.
+  # Branch protection'da tek kontrol yeterli olsun; aşama eklense de kural değişmez.
   sonuc:
     name: CI sonucu
     if: always()
-    needs: [macos, linux]
+    needs: [macos-derle, macos-test, macos-paketle, linux-derle, linux-test, linux-paketle]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Tüm platformlar geçti mi?
+      - name: Tüm aşamalar geçti mi?
+        env:
+          SONUCLAR: ${{ toJSON(needs) }}
         run: |
-          echo "macOS (AppKit): ${{ needs.macos.result }}"
-          echo "Linux (GTK 4):  ${{ needs.linux.result }}"
           {
             echo "### CI sonucu"
-            echo "| Platform | Sonuç |"
+            echo "| Aşama | Sonuç |"
             echo "|---|---|"
-            echo "| macOS (AppKit) | ${{ needs.macos.result }} |"
-            echo "| Linux (GTK 4) | ${{ needs.linux.result }} |"
-          } >> "$GITHUB_STEP_SUMMARY"
-          [[ "${{ needs.macos.result }}" == success && "${{ needs.linux.result }}" == success ]]
+            jq -r 'to_entries[] | "| \(.key) | \(.value.result) |"' <<< "$SONUCLAR"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          jq -e 'all(.[]; .result == "success")' <<< "$SONUCLAR" > /dev/null
