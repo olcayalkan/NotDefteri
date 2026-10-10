@@ -22,6 +22,8 @@ targets += [
 targets += [
     .systemLibrary(name: "CGtk", pkgConfig: "gtk4", providers: [.apt(["libgtk-4-dev"])]),
     .target(name: "NotDefteriLinux", dependencies: ["NotDefteriCekirdek", "CGtk"]),
+    .testTarget(name: "NotDefteriLinuxTests", dependencies: ["NotDefteriLinux", "CGtk"],
+                path: "Tests/NotDefteriLinuxTests"),
     .executableTarget(name: "NotDefteri", dependencies: ["NotDefteriLinux"],
                       path: "Sources/Calistirici")
 ]

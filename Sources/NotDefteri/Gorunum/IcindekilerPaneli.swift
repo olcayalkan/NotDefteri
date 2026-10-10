@@ -63,7 +63,7 @@ final class IcindekilerPaneli: NSView {
         kaydirma.documentView = icerik
         addSubview(kaydirma)
         bagBasligi.font = .systemFont(ofSize: 11, weight: .semibold)
-        bagBasligi.textColor = .secondaryLabelColor
+        bagBasligi.textColor = kMetinRenk.withAlphaComponent(0.6)
         bagBasligi.isHidden = true
         icerik.addSubview(bagBasligi)
     }
@@ -318,6 +318,8 @@ final class IcindekilerPaneli: NSView {
 
     func temayiUygula() {
         if acik { layer?.backgroundColor = aktifTema.kenarPanel.withAlphaComponent(0.95).cgColor }
+        bagBasligi.textColor = kMetinRenk.withAlphaComponent(0.6)
+        bagDugmeleri.forEach { $0.contentTintColor = kMetinRenk.withAlphaComponent(0.65) }
         satirlar.forEach { $0.temayiUygula() }
     }
 }
@@ -396,10 +398,10 @@ private final class SatirGorunumu: NSView {
 
     private func gorunumuTazele() {
         let koyuluk: CGFloat = etkin ? 0.8 : 0.3
-        cizgi.layer?.backgroundColor = NSColor.black.withAlphaComponent(koyuluk).cgColor
-        etiket.textColor = NSColor.black.withAlphaComponent(etkin ? 0.9 : 0.58)
+        cizgi.layer?.backgroundColor = kMetinRenk.withAlphaComponent(koyuluk).cgColor
+        etiket.textColor = kMetinRenk.withAlphaComponent(etkin ? 0.9 : 0.58)
         layer?.backgroundColor = (farePanelde && acik)
-            ? NSColor.black.withAlphaComponent(0.07).cgColor
+            ? kMetinRenk.withAlphaComponent(0.07).cgColor
             : NSColor.clear.cgColor
     }
 

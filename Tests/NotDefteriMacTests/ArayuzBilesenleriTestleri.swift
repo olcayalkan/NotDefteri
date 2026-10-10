@@ -9,7 +9,7 @@ final class ArayuzBilesenleriTestleri: XCTestCase {
     // MARK: Tema
 
     func testTemaAdlariBenzersiz() {
-        XCTAssertEqual(temaListesi.count, 4)
+        XCTAssertEqual(temaListesi.map(\.ad), ["Sepya", "Terminal", "Yeşilimsi Kağıt", "Gri Kağıt", "Krem"])
         XCTAssertEqual(Set(temaListesi.map(\.ad)).count, temaListesi.count)
     }
 
@@ -30,10 +30,42 @@ final class ArayuzBilesenleriTestleri: XCTestCase {
         XCTAssertEqual(rgb.alphaComponent, 0.4, accuracy: 0.001)
     }
 
-    func testVurguRenkleriPaneldenKoyudur() throws {
-        let panel = try XCTUnwrap(aktifTema.kenarPanel.usingColorSpace(.genericRGB)).redComponent
-        for renk in [aramaKutuRengi(), secimVurguRengi(), aramaOdakRengi()] {
-            XCTAssertLessThan(try XCTUnwrap(renk.usingColorSpace(.genericRGB)).redComponent, panel)
+    func testAcikTemalarMainVurguVeSimgeRenkleriniKorur() throws {
+        let onceki = gTemaIndex
+        defer { gTemaIndex = onceki }
+        for (index, tema) in temaListesi.enumerated() where !tema.koyuMu {
+            gTemaIndex = index
+            XCTAssertEqual(aramaKutuRengi(), tema.kenarPanel.koyulastir(0.07))
+            XCTAssertEqual(secimVurguRengi(), tema.kenarPanel.koyulastir(0.14))
+            XCTAssertEqual(aramaOdakRengi(), tema.kenarPanel.koyulastir(0.16))
+            XCTAssertEqual(temaSimgeRengi(), NSColor.darkGray)
+        }
+    }
+
+    func testKoyuTemaTonFarkiBirdeKirpilirVeSaydamligiKorur() throws {
+        let renk = NSColor(calibratedRed: 0.1, green: 0.5, blue: 0.9, alpha: 0.4)
+            .tonFarki(0.2, koyuTema: true)
+        let rgb = try XCTUnwrap(renk.usingColorSpace(.genericRGB))
+        XCTAssertEqual(rgb.redComponent, 0.3, accuracy: 0.01)
+        XCTAssertEqual(rgb.greenComponent, 0.7, accuracy: 0.01)
+        XCTAssertEqual(rgb.blueComponent, 1, accuracy: 0.001)
+        XCTAssertEqual(rgb.alphaComponent, 0.4, accuracy: 0.001)
+    }
+
+    func testVurguRenkleriHerTemadaPaneldenAyristirilir() throws {
+        let onceki = gTemaIndex
+        defer { gTemaIndex = onceki }
+        for (index, tema) in temaListesi.enumerated() {
+            gTemaIndex = index
+            let panel = try XCTUnwrap(tema.kenarPanel.usingColorSpace(.genericRGB)).redComponent
+            for renk in [aramaKutuRengi(), secimVurguRengi(), aramaOdakRengi()] {
+                let bilesen = try XCTUnwrap(renk.usingColorSpace(.genericRGB)).redComponent
+                if tema.koyuMu {
+                    XCTAssertGreaterThan(bilesen, panel, tema.ad)
+                } else {
+                    XCTAssertLessThan(bilesen, panel, tema.ad)
+                }
+            }
         }
     }
 

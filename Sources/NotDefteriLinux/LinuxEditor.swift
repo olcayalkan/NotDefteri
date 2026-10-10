@@ -134,9 +134,15 @@ final class LinuxEditor {
     private var bekleyenKayitHatasi: (url: URL, neden: String)?
     var notSecimiBildir: ((URL?) -> Void)?
     var tusOncesi: [(_ keyval: UInt32, _ durum: UInt32) -> Bool] = []
+    /// Yapısal hücre düzenleyicileri sıradan tampon değişikliğini sahiplenebilir.
+    var metinEklemeOncesi: [(Int, String) -> Bool] = []
+    var metinSilmeOncesi: [(NSRange) -> Bool] = []
+    var tiklamaOncesi: [(Double, Double) -> Bool] = []
     /// GdkClipboard, C köprüsünde opaque türdür. true = pano eklenti tarafından işlendi.
     var yapistirmaOncesi: [(OpaquePointer) -> Bool] = []
     var degisiklikSonrasi: [() -> Void] = []
+    /// Tampon yeni belgeyle değiştirilmeden önce görünüm eklentileri kapanır.
+    var notKapanmadanOnce: [() -> Void] = []
     /// Editör alanının genişliği değişti (pencere boyutu, panel aç/kapa, sayfanın ilk gösterilişi).
     var boyutDegisti: [() -> Void] = []
     /// Dikey kaydırma: okunan bölüm değişti (içindekiler etkin başlığı izler).
@@ -154,6 +160,7 @@ final class LinuxEditor {
     private(set) var editorEtkin = false
     private(set) var nesil: UInt = 0
     var durumDegisti: [() -> Void] = []
+    var temaDegisti: [() -> Void] = []
     /// Tek geri alma geçmişi LinuxGorseller'dadır (metin, görsel ve üstbilgi adımları); tuş, menü ve düğmeler buradan geçer.
     var geriAlYolu: ((_ ileri: Bool) -> Void)?
     var kayitSonrasi: [(URL, String) -> Void] = []
@@ -190,6 +197,12 @@ final class LinuxEditor {
         g_object_unref(UnsafeMutableRawPointer(stil))
     }
 
+    func temayiUygula() {
+        adaptor.temayiUygula()
+        temaDegisti.forEach { $0() }
+        gtk_widget_queue_draw(metinGorunumu)
+    }
+
     private func gorunumuKur(_ pencere: LinuxPencere) {
         gtk_widget_add_css_class(metinGorunumu, "nd-metin")
         gtk_text_view_set_wrap_mode(gorunum, GTK_WRAP_WORD_CHAR)
@@ -210,10 +223,9 @@ final class LinuxEditor {
         gtk_style_context_add_provider_for_display(stilEkrani, nd_style_provider(stil),
                                                    guint(GTK_STYLE_PROVIDER_PRIORITY_APPLICATION))
         let kaydirici = OpaquePointer(kaydirma)
-        // EXTERNAL: yatay çubuk yok ama içeriğin en küçük genişliği pencereye dayatılmaz. NEVER'da
-        // görselin genişliği pencerenin daralmasını engelliyordu; görsel de pencere daralmadığı için
-        // hiç küçülmüyordu (kilitlenme).
-        gtk_scrolled_window_set_policy(kaydirici, GTK_POLICY_EXTERNAL, GTK_POLICY_AUTOMATIC)
+        // Normal paragraflar satıra sarmayı sürdürür. Tablo satırları kendi
+        // etiketiyle sarmasız olduğundan, dar pencerede yatay kaydırılır.
+        gtk_scrolled_window_set_policy(kaydirici, GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC)
         gtk_scrolled_window_set_child(kaydirici, metinGorunumu)
         gtk_overlay_set_child(OpaquePointer(ustKatman), kaydirma)
         gtk_widget_set_vexpand(ustKatman, 1)
@@ -415,6 +427,7 @@ final class LinuxEditor {
         }
         let sayfa = sayfaUstbilgisiniAyir(icerik)
         ustbilgi = sayfa.bilgi
+        for kanca in notKapanmadanOnce { kanca() }
         imlecIzlenmiyor = true
         adaptor.yukle(markdowndenAttributedStringUret(sayfa.govde, taban: sayfaKlasoru(url)))
         var bas = GtkTextIter()
@@ -765,6 +778,10 @@ final class LinuxEditor {
     fileprivate func metinEklenecek(_ iter: GtkTextIter, _ metin: String) {
         guard !adaptor.programatik else { return }
         let konum = LinuxMetinDonusumu.konum(iter)
+        if metinEklemeOncesi.contains(where: { $0(konum, metin) }) {
+            g_signal_stop_emission_by_name(UnsafeMutableRawPointer(tampon), "insert-text")
+            return
+        }
         guard konum >= 0, konum <= anlamsalBelge.length, GtkKoprusu.aynalamaHatasi(tampon) == nil else {
             GtkKoprusu.aynalamaKaymasi(tampon, "Aynalama ekleme konumu geçersiz: \(konum)")
             return
@@ -775,7 +792,12 @@ final class LinuxEditor {
 
     fileprivate func metinSilinecek(_ bas: GtkTextIter, _ son: GtkTextIter) {
         guard !adaptor.programatik else { return }
-        adaptor.silindi(LinuxMetinDonusumu.aralik(bas, son))
+        let aralik = LinuxMetinDonusumu.aralik(bas, son)
+        if metinSilmeOncesi.contains(where: { $0(aralik) }) {
+            g_signal_stop_emission_by_name(UnsafeMutableRawPointer(tampon), "delete-range")
+            return
+        }
+        adaptor.silindi(aralik)
     }
 
     private func degisti() {
@@ -789,7 +811,10 @@ final class LinuxEditor {
     /// Yer tutucu ve blok işareti öznitelikleri gerçek yazıya taşınamaz.
     static func yapisalYazimIsaretleriniTemizle(_ oznitelikler: Oznitelikler) -> Oznitelikler {
         var sonuc = oznitelikler
-        for anahtar in [kBlokIsaretiAnahtari, kBosKodSatiriAnahtari] { sonuc.removeValue(forKey: anahtar) }
+        for anahtar in [kBlokIsaretiAnahtari, kBosKodSatiriAnahtari,
+                        kTabloGorselAnahtari, kTabloModeliAnahtari, kTabloSatiriAnahtari] {
+            sonuc.removeValue(forKey: anahtar)
+        }
         return sonuc
     }
 
@@ -839,7 +864,9 @@ final class LinuxEditor {
     // MARK: Klavye ve fare
 
     fileprivate func tusBasildi(_ tus: guint, _ durum: GdkModifierType) -> Bool {
-        guard editorEtkin else { return false }
+        // Metin görünümü yakalama aşamasında çalışır; overlay hücresi, arama
+        // alanı vb. odaktaysa tuş olayını onların yerel denetleyicisine bırak.
+        guard editorEtkin, gtk_widget_has_focus(metinGorunumu) != 0 else { return false }
         // Mac keyDown: önce bulucu/menü, ardından kısayollar ve otomatik blok biçimi.
         for kanca in tusOncesi where kanca(tus, durum.rawValue) { return true }
         guard GtkKoprusu.aynalamaHatasi(tampon) == nil else { return false }
@@ -847,6 +874,7 @@ final class LinuxEditor {
         let shift = durum.rawValue & GDK_SHIFT_MASK.rawValue != 0
         if ctrl {
             switch tus {
+            case 0xff0d, 0xff8d: return !shift && bloktaYeniSatir(koddanCik: true) // Ctrl+Enter: kodun altına çık.
             case 0x62, 0x42: satirIciBicimiDegistir(kKalinAnahtari) // b
             case 0x69, 0x49: satirIciBicimiDegistir(kItalikAnahtari) // i
             default: return false
@@ -886,6 +914,7 @@ final class LinuxEditor {
 
     fileprivate func tiklandi(_ x: Double, _ y: Double) -> Bool {
         guard editorEtkin, GtkKoprusu.aynalamaHatasi(tampon) == nil else { return false }
+        if tiklamaOncesi.contains(where: { $0(x, y) }) { return true }
         var bx: Int32 = 0, by: Int32 = 0
         gtk_text_view_window_to_buffer_coords(gorunum, GTK_TEXT_WINDOW_WIDGET, Int32(x), Int32(y), &bx, &by)
         var iter = GtkTextIter()
@@ -1149,8 +1178,8 @@ final class LinuxEditor {
         blokDuzenle(paragraf, yeni: yeni, secim: s, yazim: yazim, numarala: blok(paragraf)?.listeMi == true)
     }
 
-    private func bloktaYeniSatir() -> Bool {
-        guard let degisim = yapiEnterKurali(anlamsalBelge, imlec: secim) else { return false }
+    private func bloktaYeniSatir(koddanCik: Bool = false) -> Bool {
+        guard let degisim = yapiEnterKurali(anlamsalBelge, imlec: secim, koddanCik: koddanCik) else { return false }
         yapiDegisiminiPlanla(degisim)
         return true
     }

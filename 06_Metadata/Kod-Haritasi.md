@@ -105,27 +105,27 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-335 test, iki hedefte. `swift test` ile çalıştır; CI her PR'da macOS ve Linux'ta koşar.
+`swift test` platforma uygun hedefleri çalıştırır; CI her PR'da macOS ve Linux'ta koşar.
 
-**`Tests/NotDefteriCekirdekTests/`** — AppKit'siz, macOS ve Linux'ta koşar (21 dosya)
+**`Tests/NotDefteriCekirdekTests/`** — AppKit'siz, macOS ve Linux'ta koşar
 
 | Alan | Dosyalar |
 |---|---|
 | Ortak temel | `GeciciKokTestCase` — her test geçici kökte, `NOTDEFTERI_KOK` oraya ayarlı; gerçek notlara dokunmaz |
-| Markdown | `CeviriciTestleri` 24, `MetinBloguTestleri` 14, `YapiEnterTestleri` 10, `KodVurgulayiciTestleri` 8, `SablonTestleri` 6 |
-| Sayfa ağacı ve dosya sistemi | `SayfaAgaciTestleri` 24, `CopKutusuTestleri` 14, `SayfaSirasiTestleri` 13, `DosyaSistemiTestleri` 12, `DosyaAdiTestleri` 11, `SayfaDosyalariTestleri` 9 |
+| Markdown | `CeviriciTestleri` 24, `MetinBloguTestleri` 14, `YapiEnterTestleri` 10, `KodVurgulayiciTestleri` 11, `SablonTestleri` 6 |
+| Sayfa ağacı ve dosya sistemi | `SayfaAgaciTestleri` 24, `CopKutusuTestleri` 14, `SayfaSirasiTestleri` 13, `DosyaSistemiTestleri` 12, `DosyaAdiTestleri` 11, `SayfaDosyalariTestleri` 10 |
 | Bağlantı, arama, Ana Sayfa | `SayfaBaglantilariTestleri` 17, `AnaSayfaVerisiTestleri` 11, `FavorilerTestleri` 10, `OnbellekTestleri` 6 |
 | Kayıt, geçmiş, dışa aktarım | `KaydediciTestleri` 13, `HtmlCeviriciTestleri` 12, `SayfaGecmisiTestleri` 10, `MarkdownDisaAktarTestleri` 7, `PerformansTestleri` 4 |
 
-**`Tests/NotDefteriMacTests/`** — AppKit, yalnızca macOS (11 dosya)
+**`Tests/NotDefteriMacTests/`** — AppKit, yalnızca macOS
 
 | Alan | Dosyalar |
 |---|---|
 | Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
-| Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 8 |
+| Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
 | Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2 |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
-| Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 12 — tema, "/" blok menüsü, ⌘P bulucu |
+| Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 
 Test yazarken: dosya sistemine dokunan çekirdek testi `GeciciKokTestCase`'ten türet. AppKit sarmalayıcıları
 (`sayfayiYenidenAdlandir` vb.) hata olunca `NSAlert.runModal()` açar ve testi kilitler; çekirdek fonksiyonu `kok:` ile çağır.
@@ -146,3 +146,16 @@ Yalnızca tek dosyada kullanılanlar `private` kaldı.
 - [[Markdown-Formati]] — çeviricinin ürettiği biçim
 - [[Acik-Isler]] — sıradaki işler
 - [[ozet]] — projenin tam analizi
+
+## Tema, tablo ve Linux bütünleşmesi
+
+- `Cekirdek/Tablo.swift`, `TabloModeli.swift`: tablo üretimi, hücre kaynak yazılışı ve Markdown/görsel aralık eşlemesi.
+- `Cekirdek/ArkaPlanYenileyici.swift`: nesil kontrolüyle arka planda ağaç yenileme.
+- `Cekirdek/KullanimKilavuzu.swift`: ortak kullanım kılavuzu içeriği.
+- `Gorunum/NotMetinGorunumu+Tablolar.swift`: AppKit yerel hücre editörü, gezinme ve belge geri alma yolu.
+- `Uygulama/Menu.swift`: ana menü ve not/ana sayfa/kenar panel için ortak Görünüm bağlam alt menüsü.
+- `Sources/NotDefteriLinux/LinuxTablolar.swift`: GTK hücre editörü, konumlandırma ve kayıt/geri alma.
+- `Sources/NotDefteriLinux/LinuxTamEkranKontrolleri.swift`: tam ekran kontrol görünürlüğü.
+- `Tests/NotDefteriMacTests/GorunumBaglamMenusuTestleri.swift`, `TabloDuzenlemeTestleri.swift`: sağ tık tema ve hücre düzenleme regresyonları.
+- `Tests/NotDefteriLinuxTests/GrafikTestOrtami.swift`: tüm grafik testleri için tek GTK başlatma ve gerçek ekran denetimi.
+- `Tests/NotDefteriCekirdekTests/Tablo*`, `KodBloguEnterTestleri`, `TemaAyarlariTestleri`: tablo kaynağı, açık kod çıkışı ve tema ayarı geçişi.

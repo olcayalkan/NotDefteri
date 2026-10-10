@@ -8,7 +8,10 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        kagitGorunumunuUygula()
+        // Panel not ağacını okumadan önce boş, ilk kurulum kökünü rehberle doldur.
+        // Hata, açılışı engellemez; kullanıcı yine boş not defterini kullanabilir.
+        _ = try? ilkKullanimKilavuzunuHazirla()
+        temaGorunumunuUygula()
         NSApp.mainMenu = anaMenuyuOlustur(delege: self)
         let p = NotPenceresi()
         self.pencere = p
@@ -47,10 +50,9 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 }
 
-/// Kağıt temaları açık renklidir. Sistem koyu görünümdeyken dinamik renkler (etiketler,
-/// ikincil yazılar, alt bilgi) beyaza dönüp açık zeminde okunmuyordu; uygulama açık görünümde sabitlenir.
-func kagitGorunumunuUygula() {
-    NSApp.appearance = NSAppearance(named: .aqua)
+/// Yerel AppKit kontrolleri de özel paletle aynı açık/koyu görünümü kullansın.
+func temaGorunumunuUygula() {
+    NSApp.appearance = NSAppearance(named: aktifTema.koyuMu ? .darkAqua : .aqua)
 }
 
 /// Ortak çalıştırıcının çağırdığı macOS giriş noktası.

@@ -170,6 +170,15 @@ extension NotPenceresi {
         guard let index = sender.representedObject as? Int, temaListesi.indices.contains(index) else { return }
         gTemaIndex = index
         gAyarlar.set(index, forKey: "temaIndex")
+        sender.menu?.items.forEach { oge in
+            oge.state = (oge.representedObject as? Int) == index ? .on : .off
+        }
+        if let anaTema = NSApp.mainMenu?.item(withTitle: "Görünüm")?.submenu?.item(withTitle: "Tema")?.submenu {
+            for oge in anaTema.items {
+                oge.state = (oge.representedObject as? Int) == index ? .on : .off
+            }
+        }
+        temaGorunumunuUygula()
         temaUygulaTumUI()
     }
 
@@ -177,10 +186,16 @@ extension NotPenceresi {
         backgroundColor = aktifTema.arkaplan
         icerikGorunum.layer?.backgroundColor = aktifTema.arkaplan.cgColor
         metinGorunumu.backgroundColor = aktifTema.arkaplan
+        metinGorunumu.insertionPointColor = kMetinRenk
+        metinGorunumu.linkTextAttributes = [.foregroundColor: kMetinRenk,
+                                             .underlineStyle: NSUnderlineStyle.single.rawValue]
+        metinGorunumu.belgeGorunumunuYenile()
         baslikCubugu.temayiUygula()
         kenarPaneli.temayiUygula()
         anaSayfa.temayiUygula()
         icindekiler.temayiUygula()
+        sayfaDosyalariAlani.temayiUygula()
+        sayfaAltBilgisi.textColor = kMetinRenk.withAlphaComponent(0.6)
         metinGorunumu.blokMenusunuGuncelle()
         metinGorunumu.secimCubugunuGuncelle()
     }

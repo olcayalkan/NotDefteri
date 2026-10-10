@@ -30,7 +30,7 @@ okunabilir kalır; Obsidian, VS Code ya da herhangi bir metin düzenleyiciyle a�
 - **Çöp kutusu.** Silinen sayfalar 30 gün boyunca geri yüklenebilir.
 - **Dışa aktarma.** PDF, tek dosya HTML ya da Markdown.
 - **Katlama.** Başlıkların altındaki bölümler katlanabilir.
-- **Kağıt temaları.** Sepya, Yeşilimsi Kağıt, Gri Kağıt, Krem.
+- **Temalar.** Sepya, Terminal, Yeşilimsi Kağıt, Gri Kağıt, Krem.
 - **Pencereyi üstte tutma (📌).** Pencere diğer pencerelerin üstünde kalır.
 
 ---
@@ -117,8 +117,9 @@ Güncellemek için `git pull` yapıp yine `not` yazman yeterli; kod değiştiyse
 
 - **Metin seçince** üstünde bir biçim çubuğu çıkar: Kalın, İtalik, Çizili, Kod, Vurgu, Bağlantı.
 - **Satır başında `/`** yazınca blok menüsü açılır: Başlık 1/2/3, Madde listesi, Numaralı liste,
-  Yapılacak, Alıntı, Kod bloğu, Ayırıcı, Alt sayfa, Görsel, Uyarı kutusu (gri, mavi, sarı,
+  Yapılacak, Alıntı, Kod bloğu, Ayırıcı, Alt sayfa, Görsel, Tablo, Uyarı kutusu (gri, mavi, sarı,
   kırmızı, yeşil). Yazarak süzülür, `Enter` ile seçilir.
+- `/tablo` satır ve sütun sayısını sorup düzenlenebilir bir Markdown tablosu ekler.
 - Kenar paneldeki **B1 / B2 / B3 / Aa** düğmeleri satırı başlığa ya da düz metne çevirir.
   **A− / A+** seçili metnin puntosunu değiştirir.
 - Markdown sözdizimi de çalışır: `# `, `- `, `1. `, `- [ ] `, `> `, ` ``` ` vb.
@@ -186,8 +187,15 @@ Tüm notlar **`~/Documents/NotDefteri/`** klasöründedir. Her sayfa bir klasör
     └── index.md
 ```
 
-- Dosyalar düz Markdown'dır. Uygulama tanımadığı sözdizimini (tablo, wikilink, frontmatter…)
-  biçimli göstermese de **olduğu gibi korur**.
+- macOS’ta not alanına, ana sayfaya veya kenar paneldeki sayfaya sağ tıklayıp
+  **Görünüm → Tema** ile temayı değiştirebilirsin. Linux’ta aynı seçenek ☰ menüsündedir.
+- `/table` (veya `/tablo`) ile satır/sütun sayısını seçerek tablo ekleyebilirsin.
+  Hücreye tıklayarak düzenle; Tab/Shift+Tab ile hücreler arasında gezin.
+  macOS’ta geniş tablolar bütün sütunlara erişilen yatay kaydırmalı yerel düzenleyicide açılır.
+- Kod bloğunda Enter boş satır ekler; **Ctrl+Enter** kod bloğunun dışına çıkar.
+
+- Dosyalar düz Markdown'dır. Tablolar iki platformda da biçimli ve düzenlenebilir görünür;
+  uygulamanın tanımadığı diğer sözdizimleri (wikilink, frontmatter…) **olduğu gibi korunur**.
 - Markdown'a iki küçük ek vardır: punto için `<punto=16>metin</punto>`, görsel boyutu için
   `![](resim.png){320x240}`.
 - Klasörü Git ile yedekleyebilir, Dropbox/iCloud ile eşitleyebilirsin.
@@ -214,13 +222,35 @@ swift build          # derle
 swift test           # testleri çalıştır
 ```
 
+Linux grafik regresyon testleri ekran yoksa atlanır. Masaüstü oturumunda
+GTK uyarılarını da başarısızlık sayarak çalıştırmak için (geçici test pencereleri açar):
+
+```bash
+G_DEBUG=fatal-warnings GDK_BACKEND=x11 swift test --filter PopoverTestleri
+G_DEBUG=fatal-warnings GDK_BACKEND=wayland swift test --filter PopoverTestleri
+```
+
+İlgili backend oturumda mevcut olmalıdır; `skipped` sonucu başarılı grafik testi
+sayılmaz. Testler not dosyalarını kullanmaz. Popover çapasının taşınması, pencere
+boyutlandırma, gizleme ve tekrar açma sınanır. Yerleşim, GTK'nın
+[popover sahipliği kurallarına](https://docs.gtk.org/gtk4/class.Popover.html) göre
+ebeveynin layout aşamasına bırakılır. X11 varsayılanı, üstte tutma desteği için korunur;
+`GDK_BACKEND` tercihi verilirse uygulama bunu değiştirmez.
+
+Elle regresyon kontrolü: sağ tık menüsünü basılı tutup bırakma, `/` ve `[[` menüleri,
+hızlı bulucuyu art arda açma/kapatma, uzun notta kaydırma ve pencere boyutlandırma.
+Monitör çıkarma/takma da ayrı bir kontroldür; bu testler backend içindeki tüm
+monitör yarışlarını veya eski logdaki uyarının kesin nedenini doğrulamaz.
+macOS'ta `swift test`, tema geçişinde Markdown/biçim ve seçim koruma testlerini de
+çalıştırır; AppKit derlemesi ve görsel doğrulaması bir Mac üzerinde yapılmalıdır.
+
 | Klasör | İçerik |
 |---|---|
 | `Sources/NotDefteri/Cekirdek/` | Platformdan bağımsız mantık: Markdown çevirici, sayfa ağacı, kayıt, arama (iki platform ortak) |
 | `Sources/NotDefteri/` (diğerleri) | macOS arayüzü (AppKit) |
 | `Sources/NotDefteriLinux/` | Linux arayüzü (GTK 4) |
 | `Sources/CGtk/` | GTK için C köprüsü |
-| `Tests/` | Çekirdek ve macOS testleri |
+| `Tests/` | Çekirdek, macOS ve Linux GTK regresyon testleri |
 | `06_Metadata/` | Kod haritası ve mimari kararlar. Kodu okumadan önce buraya bak |
 
 Kod kuralları (Türkçe tanımlayıcılar, katmanlar, yorum tarzı) için `CLAUDE.md` ve

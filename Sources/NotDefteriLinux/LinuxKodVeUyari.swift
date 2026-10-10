@@ -7,7 +7,34 @@ enum LinuxKodVeUyari {
         let araclar = KodVeUyariAraclari(pencere: pencere, editor: editor)
         // Kancalar bileşeni yaşatır; bileşen editörü zayıf tutar.
         editor.degisiklikSonrasi.append { araclar.degisti() }
+        editor.temaDegisti.append { araclar.temayiUygula() }
         LinuxEklentiler.yasamDongusunuIzle(editor) { araclar.notAcildi() }
+    }
+}
+
+/// Çerçeve, satırın dış boşluğunu çıkarıp ortak iç boşluğu geri ekler.
+enum LinuxKutuGeometrisi {
+    static func dikey(ilkY: Int32, sonY: Int32, sonBoy: Int32) -> (ust: Int32, alt: Int32) {
+        let bosluk = LinuxBelgeAdaptoru.kutuBoslugu, ic = Int32(kKutuIcBoslugu)
+        return (ilkY + bosluk - ic, sonY + sonBoy - bosluk + ic)
+    }
+}
+
+enum LinuxKodEtiketOnceligi {
+    @discardableResult
+    static func uygula(_ etiketler: [UnsafeMutablePointer<GtkTextTag>], tablo: OpaquePointer) -> Int {
+        let ilk = gtk_text_tag_table_get_size(tablo) - Int32(etiketler.count)
+        var degisen = 0
+        // En yüksekten aşağı ilerle: alttaki etiketi taşımak daha önce yerleştirilen
+        // üst etiketi kaydırmasın. Değişmeyen tabloya hiç dokunulmaz.
+        for (i, tag) in etiketler.enumerated().reversed() {
+            let hedef = ilk + Int32(i)
+            if gtk_text_tag_get_priority(tag) != hedef {
+                gtk_text_tag_set_priority(tag, hedef)
+                degisen += 1
+            }
+        }
+        return degisen
     }
 }
 
@@ -102,6 +129,7 @@ private final class KodVeUyariAraclari {
     private var aracKaresi = GdkRectangle()
     private var aracBlogu: (aralik: NSRange, kimlik: String)?
     private var uyariHedefi: UyariHedefi?
+    private var uyariSagTikBekliyor = false
     /// macOS ile aynı: kutunun içi çerçeve rengiyle doldurulur; çizgi kodda siyah %30, uyarıda soluk ton.
     private struct Cerceve {
         let kare: GdkRectangle
@@ -209,6 +237,14 @@ private final class KodVeUyariAraclari {
             gtk_event_controller_set_propagation_phase(tik, GTK_PHASE_CAPTURE)
             kodUyariSinyali(UnsafeMutableRawPointer(tik), "pressed", unsafeBitCast(uyariTiklamaC, to: GCallback.self),
                            { [weak self] (x: Double, y: Double) in self?.uyariTiklandi(x, y) ?? false })
+            kodUyariSinyali(UnsafeMutableRawPointer(tik), "released", unsafeBitCast(uyariTiklamaC, to: GCallback.self),
+                           { [weak self] (x: Double, y: Double) in self?.uyariMenusunuAc(x, y) ?? false })
+            GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(tik), "stopped") { [weak self] in
+                self?.uyariSagTikBekliyor = false
+            }
+            GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(tik), "cancel") { [weak self] (_: gpointer?) in
+                self?.uyariSagTikBekliyor = false
+            }
             gtk_widget_add_controller(editor.metinGorunumu, tik)
         }
         for ayar in [gtk_scrollable_get_hadjustment(OpaquePointer(editor.metinGorunumu)),
@@ -247,12 +283,20 @@ private final class KodVeUyariAraclari {
 
     private func renkleriGuncelle() {
         guard !kapandi else { return }
-        // KodRenkleri.swift'in açık kağıt değerleri; kağıt temaları macOS'taki gibi hep açıktır.
-        let renkler: [KodTokenTuru: String] = [.anahtarKelime: "#9342ae", .metin: "#b93931", .sayi: "#2869ad",
-            .yorum: "#565656", .tur: "#32868c", .fonksiyon: "#2869ad", .operator: "#292929"]
+        let renkler: [KodTokenTuru: String] = LinuxTema.koyuMu
+            ? [.anahtarKelime: "#ff78b4", .metin: "#7ee787", .sayi: "#ffa657",
+               .yorum: "#8b949e", .tur: "#56d4dd", .fonksiyon: "#79c0ff", .operator: "#d2a8ff"]
+            : [.anahtarKelime: "#9342ae", .metin: "#b93931", .sayi: "#2869ad",
+               .yorum: "#66727f", .tur: "#087a8c", .fonksiyon: "#1769aa", .operator: "#7a3fa3"]
         for (tur, tag) in kodEtiketleri { gNesneOzelligi(UnsafeMutableRawPointer(tag), "foreground", .metin(renkler[tur]!)) }
         cerceveKirli = true
         yerlesimiPlanla()
+    }
+
+    func temayiUygula() {
+        renkleriGuncelle()
+        cerceveKirli = true
+        gtk_widget_queue_draw(cerceveAlani)
     }
 
     /// Sinyal sırasında belge okunmaz. Sol/sağ yerçekimi eklenen metni kapsar;
@@ -321,7 +365,10 @@ private final class KodVeUyariAraclari {
     }
 
     private func renklendir() {
-        guard let editor, let url = editor.acikURL else { return }
+        // Yeni, henüz diske kaydedilmemiş notlarda da kod yazılır; URL yalnızca
+        // sonuç geri döndüğünde doğru belgeyi doğrulamak için kullanılır.
+        guard let editor else { return }
+        let url = editor.acikURL
         let surum = nesil, araliklar = kirliAraliklar()
         let bloklar = editor.belgeyiOku { belge -> [KodBlogu] in
             var sonuc: [KodBlogu] = [], gorulen = Set<Int>()
@@ -354,13 +401,11 @@ private final class KodVeUyariAraclari {
         }
     }
 
-    private func enUsteAl(_ tag: UnsafeMutablePointer<GtkTextTag>) {
-        guard let editor else { return }
-        gtk_text_tag_set_priority(tag, gtk_text_tag_table_get_size(gtk_text_buffer_get_tag_table(editor.tampon)) - 1)
-    }
-
     private func tokenlariUygula(_ bloklar: [KodBlogu], _ tokenlar: [[(aralik: NSRange, tur: KodTokenTuru)]], kirli: [NSRange]) {
         guard let editor else { return }
+        let sira: [KodTokenTuru] = [.anahtarKelime, .metin, .sayi, .yorum, .tur, .fonksiyon, .operator]
+        LinuxKodEtiketOnceligi.uygula(sira.compactMap { kodEtiketleri[$0] },
+                                     tablo: gtk_text_buffer_get_tag_table(editor.tampon))
         editor.belgeyiOku { belge in
             let ns = belge.string as NSString
             for aralik in kirli + bloklar.map(\.aralik) where aralik.length > 0 {
@@ -379,7 +424,6 @@ private final class KodVeUyariAraclari {
                 var son = iter
                 gtk_text_iter_forward_chars(&son, Int32(LinuxMetinDonusumu.karakterSayisi(ns, token.aralik)))
                 if let tag = kodEtiketleri[token.tur] {
-                    enUsteAl(tag)
                     gtk_text_buffer_apply_tag(editor.tampon, tag, &iter, &son)
                 }
                 iter = son; oncekiSon = NSMaxRange(token.aralik)
@@ -476,8 +520,7 @@ private final class KodVeUyariAraclari {
         var ust: Int32 = 0, alt: Int32 = 0, boy: Int32 = 0
         gtk_text_view_get_line_yrange(gorunum, &bas, &ust, nil)
         gtk_text_view_get_line_yrange(gorunum, &son, &alt, &boy)
-        let bosluk = LinuxBelgeAdaptoru.kutuBoslugu, ic = Int32(kKutuIcBoslugu)
-        return (ust + bosluk - ic, alt + boy - bosluk + ic)
+        return LinuxKutuGeometrisi.dikey(ilkY: ust, sonY: alt, sonBoy: boy)
     }
 
     private func icerir(_ kare: GdkRectangle, _ x: Int32, _ y: Int32) -> Bool {
@@ -506,6 +549,7 @@ private final class KodVeUyariAraclari {
     }
 
     private func uyariTiklandi(_ x: Double, _ y: Double) -> Bool {
+        uyariSagTikBekliyor = false
         guard let editor, let url = editor.acikURL, let iter = noktadakiIter(x, y) else { return false }
         let konum = GtkKoprusu.utf16(iter)
         let bilgi = editor.belgeyiOku { belge -> (NSRange, MetinBlogu)? in
@@ -518,10 +562,22 @@ private final class KodVeUyariAraclari {
         guard let (aralik, blok) = bilgi else { return false }
         panelleriKapat()
         uyariHedefi = UyariHedefi(konum: aralik.location, kimlik: blok.uyariKimligi, nesil: nesil, url: url)
+        // Press'i sahiplenerek TextView'ın yerleşik menüsünü engelle, fakat yeni
+        // yüzeyi ancak release'te aç; basılı durum başka yüzeye taşınmasın.
+        uyariSagTikBekliyor = true
+        return true
+    }
+
+    private func uyariMenusunuAc(_ x: Double, _ y: Double) -> Bool {
+        guard uyariSagTikBekliyor else { return false }
+        uyariSagTikBekliyor = false
+        guard !kapandi, let editor, !editor.yokEdildi, let hedef = uyariHedefi,
+              hedef.nesil == nesil, hedef.url == editor.acikURL,
+              nd_popup_hedefi_hazir(editor.ustKatman) != 0 else { return false }
         let panel: UnsafeMutablePointer<GtkPopover> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(renkMenusu))
         // Popover üst widget koordinatı ister: tıklama TextView'a göre, üst ise editör katmanıdır.
         var px = x, py = y
-        gtk_widget_translate_coordinates(editor.metinGorunumu, editor.ustKatman, x, y, &px, &py)
+        guard gtk_widget_translate_coordinates(editor.metinGorunumu, editor.ustKatman, x, y, &px, &py) != 0 else { return false }
         var kare = GdkRectangle(x: Int32(px), y: Int32(py), width: 1, height: 1)
         gtk_popover_set_pointing_to(panel, &kare)
         gtk_popover_popup(panel)
@@ -636,7 +692,8 @@ private final class KodVeUyariAraclari {
                 _ = belge.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok, in: tumu)
                 let kod = anahtar == kKodBloguAnahtari
                 let uyari = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: alt.location, effectiveRange: nil))
-                let r = kod ? (r: 0.0, g: 0.0, b: 0.0) : kUyariRenkleri[uyari?.renk ?? ""] ?? kUyariRenkleri["gri"]!
+                let ton = LinuxTema.koyuMu ? 1.0 : 0.0
+                let r = kod ? (r: ton, g: ton, b: ton) : kUyariRenkleri[uyari?.renk ?? ""] ?? kUyariRenkleri["gri"]!
                 let renk = GdkRGBA(red: Float(r.r), green: Float(r.g), blue: Float(r.b), alpha: Float(kod ? 0.3 : kUyariCizgiOpakligi))
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
                 let x = gtk_text_view_get_left_margin(gorunum) + seviye
@@ -679,6 +736,7 @@ private final class KodVeUyariAraclari {
     }
 
     private func panelleriKapat() {
+        uyariSagTikBekliyor = false
         uyariHedefi = nil
         gtk_popover_popdown(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(renkMenusu)))
     }

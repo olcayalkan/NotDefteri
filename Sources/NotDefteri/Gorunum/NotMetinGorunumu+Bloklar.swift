@@ -215,9 +215,9 @@ extension NotMetinGorunumu {
                     geriMetin: geriMetin, geriSecim: geriSecim)
     }
 
-    func bloktaYeniSatir() -> Bool {
+    func bloktaYeniSatir(koddanCik: Bool = false) -> Bool {
         guard let depo = textStorage,
-              let degisim = yapiEnterKurali(depo, imlec: selectedRange()) else { return false }
+              let degisim = yapiEnterKurali(depo, imlec: selectedRange(), koddanCik: koddanCik) else { return false }
         blokDuzenle(degisim.aralik, yeni: degisim.metin,
                     secim: NSRange(location: degisim.imlec, length: 0), yazim: degisim.yazim)
         return true

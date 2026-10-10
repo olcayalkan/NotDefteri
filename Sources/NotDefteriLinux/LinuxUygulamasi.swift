@@ -8,7 +8,8 @@ package enum LinuxUygulamasi {
         // XFCE gibi masaüstlerinin GTK3 temaları GTK4'te renk değişkenlerini tanımlamıyor: açılışta
         // "Theme parser error" basılıyor ve renkler bozuluyordu. Tema GTK açılmadan seçilmeli;
         // kullanıcı GTK_THEME verdiyse dokunulmaz.
-        // Kağıt temaları macOS'taki gibi hep açıktır; masaüstü koyu olsa da açık Adwaita kullanılır.
+        // Uygulama renkleri kendi CSS sağlayıcısından gelir; sistem teması ayrıntılarını sabitlemek için
+        // açık Adwaita tabanı kullanılır. Terminal teması da bu tabanın üstünde kendi koyu paletini uygular.
         if g_getenv("GTK_THEME") == nil { g_setenv("GTK_THEME", "Adwaita", 1) }
         // Wayland'de "her zaman üstte" istemi yok (GNOME/Mutter, Zorin); sabitleme düğmesi işe
         // yaramıyordu. XWayland varsa pencere X11 olarak açılır, _NET_WM_STATE_ABOVE çalışır.
@@ -27,6 +28,8 @@ package enum LinuxUygulamasi {
                 gtk_window_present(nd_window(mevcut.pencere))
                 return
             }
+            // Kenar paneli ağacı yüklemeden önce, boş ilk kurulum köküne rehberi ekle.
+            _ = try? ilkKullanimKilavuzunuHazirla()
             let yeni = LinuxPencere(uygulama: uygulama)
             pencere = yeni
             let editor = LinuxEditor(pencere: yeni)

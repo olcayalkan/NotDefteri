@@ -40,10 +40,10 @@ enum LinuxBlokMenusu {
 
 private final class LinuxDuzenlemeAraclari {
     private enum Komut: Int, CaseIterable {
-        case baslik1, baslik2, baslik3, madde, numarali, yapilacak, alinti, kod, uyari, ayirici, sayfa
+        case baslik1, baslik2, baslik3, madde, numarali, yapilacak, alinti, kod, uyari, ayirici, sayfa, tablo
         var ad: String {
             ["Başlık 1", "Başlık 2", "Başlık 3", "Madde listesi", "Numaralı liste", "Yapılacak",
-             "Alıntı", "Kod bloğu", "Uyarı kutusu", "Ayırıcı", "Alt sayfa"][rawValue]
+             "Alıntı", "Kod bloğu", "Uyarı kutusu", "Ayırıcı", "Alt sayfa", "Tablo"][rawValue]
         }
         var kisayollar: [String] {
             switch self {
@@ -53,6 +53,7 @@ private final class LinuxDuzenlemeAraclari {
             case .kod: return ["code", "kod"]
             case .uyari: return ["att", "uyari"]
             case .sayfa: return ["page", "sayfa"]
+            case .tablo: return ["table", "tablo"]
             default: return []
             }
         }
@@ -156,7 +157,8 @@ private final class LinuxDuzenlemeAraclari {
     }
 
     private func goster(_ popover: Widget, secimBasi: Bool = false) {
-        guard let editor, let gorunum, let capa = capalar[popover] else { return }
+        guard let editor, !editor.yokEdildi, let gorunum, let capa = capalar[popover],
+              nd_popup_hedefi_hazir(editor.metinGorunumu) != 0 else { return }
         var iter = GtkTextIter(), kare = GdkRectangle()
         if secimBasi {
             var son = GtkTextIter()
@@ -176,7 +178,8 @@ private final class LinuxDuzenlemeAraclari {
         var yerel = GdkRectangle(x: 0, y: 0, width: max(1, kare.width), height: max(1, kare.height))
         gtk_popover_set_pointing_to(isaretci(popover), &yerel)
         if !acik(popover) { gtk_popover_popup(isaretci(popover)) }
-        gtk_popover_present(isaretci(popover))
+        // Çapa az önce taşındı. Yerleşimi GtkMenuButton'ın allocation aşaması
+        // tamamlar; burada present çağırmak eski çapa geometrisini kullanır.
     }
 
     private func tusBagla(_ widget: Widget, _ eylem: @escaping (UInt32, UInt32) -> Bool) {
@@ -325,7 +328,7 @@ private final class LinuxDuzenlemeAraclari {
             let metin = ns.substring(with: yerel(aralik))
             let sorgu = String(metin.dropFirst())
             // Escape yalnızca menüyü kapatır; tam kısayol metni yine uygulanır.
-            if kisayol, let komut = [Komut.kod, .uyari].first(where: { $0.kisayollar.contains(sorgu.lowercased()) }) {
+            if kisayol, let komut = [Komut.kod, .uyari, .tablo].first(where: { $0.kisayollar.contains(sorgu.lowercased()) }) {
                 kapatilanSlash = nil
                 slashAraligi = aralik
                 komutlar = [komut]; secili = 0
@@ -420,7 +423,7 @@ private final class LinuxDuzenlemeAraclari {
         let sorgu = dilSorgusu?.lowercased() ?? ""
         dilEslesmeleri = diller.filter { sorgu.isEmpty || $0.contains(sorgu) || dilAdiniNormallestir(sorgu) == $0 }
         secili = 0
-        menuSatirlariniKur(dilEslesmeleri.map { $0.isEmpty ? "Dil yok" : $0 })
+        menuSatirlariniKur(dilEslesmeleri.map { $0.isEmpty ? "Otomatik" : $0 })
         goster(menu)
     }
 
@@ -459,6 +462,7 @@ private final class LinuxDuzenlemeAraclari {
             dilSorgusu = ""; dilleriFiltrele(); return
         }
         menuKapat()
+        if komut == .tablo { tabloSor(aralik); return }
         if komut.rawValue <= Komut.baslik3.rawValue { paragrafDonustur(aralik, baslik: komut.rawValue + 1); return }
         uygulaniyor = true
         gtk_text_buffer_begin_user_action(editor.tampon)
@@ -468,6 +472,30 @@ private final class LinuxDuzenlemeAraclari {
         uygulaniyor = false
         if komut == .sayfa { altSayfaOlustur() }
         guncellemeyiPlanla()
+    }
+
+    private func tabloSor(_ aralik: NSRange) {
+        guard let pencere else { return }
+        LinuxDiyalog.ikiTamsayiGir(ust: pencere.pencere, baslik: "Tablo ekle",
+                                   aciklama: "Başlık satırı dahil satır ve sütun sayısını girin.") { [weak self] satir, sutun in
+            guard let self, let editor = self.editor else { return }
+            guard let markdown = tabloMarkdownUret(satir: satir, sutun: sutun) else {
+                LinuxDiyalog.bilgi(ust: pencere.pencere, baslik: "Geçersiz tablo boyutu",
+                                   aciklama: "Satır sayısı 2–30, sütun sayısı 2–12 arasında olmalı.", hata: true)
+                return
+            }
+            guard NSMaxRange(aralik) <= editor.belge.length,
+                  (editor.belge.string as NSString).substring(with: aralik).hasPrefix("/") else { return }
+            let yeni = markdowndenAttributedStringUret(markdown, taban: editor.acikURL.map(sayfaKlasoru) ?? notlarKlasoru())
+            let ilk = tabloIlkHucreAraligi(sutun: sutun)
+            self.uygulaniyor = true
+            gtk_text_buffer_begin_user_action(editor.tampon)
+            editor.aralikDegistir(aralik, ile: yeni,
+                                  secim: NSRange(location: aralik.location + ilk.location, length: ilk.length))
+            gtk_text_buffer_end_user_action(editor.tampon)
+            self.uygulaniyor = false
+            self.guncellemeyiPlanla()
+        }
     }
 
     private func paragrafDonustur(_ slash: NSRange, baslik: Int? = nil, dil: String? = nil) {

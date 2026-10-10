@@ -106,6 +106,7 @@ func anaMenuyuOlustur(delege: UygulamaDelegesi) -> NSMenu {
     for (index, tema) in temaListesi.enumerated() {
         let oge = NSMenuItem(title: tema.ad, action: #selector(NotPenceresi.temaSecKomutu(_:)), keyEquivalent: "")
         oge.representedObject = index
+        oge.state = index == gTemaIndex ? .on : .off
         temaAltMenu.addItem(oge)
     }
     temaMenuOgesi.submenu = temaAltMenu
@@ -163,4 +164,32 @@ extension UygulamaDelegesi {
         // Gizli panelin yerleşimi tamamlanınca popover doğru düğmeye bağlanır.
         DispatchQueue.main.async { pencere.kenarPaneli.copKutusuTiklandi() }
     }
+}
+
+/// Sağ tık menüsü aynı pencere komutlarını kullanır; belgeye görünüm verisi yazmaz.
+@discardableResult
+func gorunumBaglamMenusunuEkle(_ menu: NSMenu, hedef: NotPenceresi?) -> NSMenu {
+    if let eski = menu.item(withTitle: "Görünüm") { menu.removeItem(eski) }
+    let gorunum = NSMenu(title: "Görünüm")
+    let tema = NSMenu(title: "Tema")
+    for (index, palet) in temaListesi.enumerated() {
+        let oge = NSMenuItem(title: palet.ad, action: #selector(NotPenceresi.temaSecKomutu(_:)), keyEquivalent: "")
+        oge.target = hedef
+        oge.representedObject = index
+        oge.state = index == gTemaIndex ? .on : .off
+        tema.addItem(oge)
+    }
+    let temaOgesi = NSMenuItem(title: "Tema", action: nil, keyEquivalent: "")
+    temaOgesi.submenu = tema
+    gorunum.addItem(temaOgesi)
+    for (ad, eylem) in [("Tam genişlik", #selector(NotPenceresi.tamGenislikKomutu(_:))),
+                         ("Küçük yazı", #selector(NotPenceresi.kucukYaziKomutu(_:)))] {
+        let oge = gorunum.addItem(withTitle: ad, action: eylem, keyEquivalent: "")
+        oge.target = hedef
+    }
+    let oge = NSMenuItem(title: "Görünüm", action: nil, keyEquivalent: "")
+    oge.submenu = gorunum
+    if !menu.items.isEmpty, menu.items.last?.isSeparatorItem != true { menu.addItem(.separator()) }
+    menu.addItem(oge)
+    return menu
 }
