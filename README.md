@@ -1,6 +1,7 @@
-# Not Defteri
-
-macOS ve Linux için sade, hızlı, Markdown tabanlı bir not uygulaması.
+<p align="center">
+  <img src="docs/baslik.gif" width="100%"
+       alt="Not Defteri — macOS ve Linux için sade, hızlı, Markdown tabanlı bir not uygulaması. Animasyonda '# NotDefteri' yazılıyor ve '#' işareti kaybolarak başlığa dönüşüyor.">
+</p>
 
 Notlar sıradan `.md` dosyaları olarak diskte durur. Uygulamayı silsen de notların
 okunabilir kalır; Obsidian, VS Code ya da herhangi bir metin düzenleyiciyle açılabilir.
