@@ -8,6 +8,8 @@ import AppKit
 /// klasöründe olduğu için birlikte taşınmaları gerekir.
 final class GorselBagiTestleri: XCTestCase {
 
+    // Çekirdek fonksiyon kökle birlikte çağrılır: geçici klasör varsayılan kökün
+    // dışında kaldığı için AppKit sarmalayıcısı modal uyarı açıp testi kilitliyordu.
     private var kok: URL!
     private let fm = FileManager.default
 
@@ -46,7 +48,7 @@ final class GorselBagiTestleri: XCTestCase {
         let url = try sayfaKur(kok, "Notum", gorsel: "resim.png")
         XCTAssertTrue(bagCozuluyorMu(url, "\(kGorsellerKlasorAdi)/resim.png"))
 
-        let yeni = try XCTUnwrap(sayfayiYenidenAdlandir(url, yeniAd: "NotumYeni"))
+        let yeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "NotumYeni", kok: kok))
 
         XCTAssertTrue(bagCozuluyorMu(yeni, "\(kGorsellerKlasorAdi)/resim.png"),
                       "görsel sayfayla birlikte taşınmalı")
@@ -58,7 +60,7 @@ final class GorselBagiTestleri: XCTestCase {
         let ana = try sayfaKur(kok, "Ana")
         let alt = try sayfaKur(sayfaKlasoru(ana), "Alt", gorsel: "alt.png")
 
-        let altYeni = try XCTUnwrap(sayfayiYenidenAdlandir(alt, yeniAd: "AltYeni"))
+        let altYeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(alt, yeniAd: "AltYeni", kok: kok))
         XCTAssertTrue(bagCozuluyorMu(altYeni, "\(kGorsellerKlasorAdi)/alt.png"))
     }
 
@@ -67,7 +69,7 @@ final class GorselBagiTestleri: XCTestCase {
         let ana = try sayfaKur(kok, "Ana")
         try sayfaKur(sayfaKlasoru(ana), "Alt", gorsel: "alt.png")
 
-        let anaYeni = try XCTUnwrap(sayfayiYenidenAdlandir(ana, yeniAd: "AnaYeni"))
+        let anaYeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(ana, yeniAd: "AnaYeni", kok: kok))
         let altYolu = sayfaKlasoru(anaYeni).appendingPathComponent("Alt/\(kIcerikDosyaAdi)")
 
         XCTAssertTrue(fm.fileExists(atPath: altYolu.path), "alt sayfa taşınmalı")
@@ -80,7 +82,7 @@ final class GorselBagiTestleri: XCTestCase {
         try sayfaKur(kok, "Dolu")
         let url = try sayfaKur(kok, "Kaynak", gorsel: "r.png")
 
-        let yeni = try XCTUnwrap(sayfayiYenidenAdlandir(url, yeniAd: "Dolu"))
+        let yeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "Dolu", kok: kok))
         XCTAssertEqual(sayfaAdi(yeni), "Dolu (2)")
         XCTAssertTrue(bagCozuluyorMu(yeni, "\(kGorsellerKlasorAdi)/r.png"))
     }

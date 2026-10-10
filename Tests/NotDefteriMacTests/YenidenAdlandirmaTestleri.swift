@@ -7,6 +7,8 @@ import AppKit
 /// içinde durduğu için tek `moveItem` ile taşınmaları gerekir.
 final class YenidenAdlandirmaTestleri: XCTestCase {
 
+    // Çekirdek fonksiyon kökle birlikte çağrılır: geçici klasör varsayılan kökün
+    // dışında kaldığı için AppKit sarmalayıcısı modal uyarı açıp testi kilitliyordu.
     private var kok: URL!
     private let fm = FileManager.default
 
@@ -43,7 +45,7 @@ final class YenidenAdlandirmaTestleri: XCTestCase {
 
     func testAdDegisirIcerikKorunur() throws {
         let url = try sayfaKur("Eski")
-        let yeni = try XCTUnwrap(sayfayiYenidenAdlandir(url, yeniAd: "Yeni"))
+        let yeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "Yeni", kok: kok))
 
         XCTAssertEqual(sayfaAdi(yeni), "Yeni")
         XCTAssertEqual(try String(contentsOf: yeni, encoding: .utf8), "# Eski\n",
@@ -54,7 +56,7 @@ final class YenidenAdlandirmaTestleri: XCTestCase {
     /// Alt sayfalar sayfanın klasöründe olduğu için birlikte taşınmalı.
     func testAltSayfalarBirlikteTasinir() throws {
         let url = try sayfaKur("Ana", altSayfa: "Alt")
-        let yeni = try XCTUnwrap(sayfayiYenidenAdlandir(url, yeniAd: "AnaYeni"))
+        let yeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "AnaYeni", kok: kok))
 
         let altYolu = sayfaKlasoru(yeni).appendingPathComponent("Alt/\(kIcerikDosyaAdi)")
         XCTAssertTrue(fm.fileExists(atPath: altYolu.path), "alt sayfa taşınmalı")
@@ -63,7 +65,7 @@ final class YenidenAdlandirmaTestleri: XCTestCase {
     /// Görseller de sayfanın klasöründe; taşınmazlarsa bağlar kırılır.
     func testGorsellerBirlikteTasinir() throws {
         let url = try sayfaKur("Resimli", gorselli: true)
-        let yeni = try XCTUnwrap(sayfayiYenidenAdlandir(url, yeniAd: "ResimliYeni"))
+        let yeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "ResimliYeni", kok: kok))
 
         let gorsel = sayfaKlasoru(yeni).appendingPathComponent("\(kGorsellerKlasorAdi)/a.png")
         XCTAssertTrue(fm.fileExists(atPath: gorsel.path), "görsel taşınmalı, yoksa bağ kırılır")
@@ -72,7 +74,7 @@ final class YenidenAdlandirmaTestleri: XCTestCase {
     func testCakismadaSayacEklenir() throws {
         try sayfaKur("Dolu")
         let url = try sayfaKur("Boş")
-        let yeni = try XCTUnwrap(sayfayiYenidenAdlandir(url, yeniAd: "Dolu"))
+        let yeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "Dolu", kok: kok))
 
         XCTAssertEqual(sayfaAdi(yeni), "Dolu (2)")
         XCTAssertTrue(fm.fileExists(atPath: kok.appendingPathComponent("Dolu/\(kIcerikDosyaAdi)").path),
@@ -81,13 +83,13 @@ final class YenidenAdlandirmaTestleri: XCTestCase {
 
     func testAyniAdDegisiklikYapmaz() throws {
         let url = try sayfaKur("Sabit")
-        XCTAssertEqual(sayfayiYenidenAdlandir(url, yeniAd: "Sabit"), url)
+        XCTAssertEqual(try sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "Sabit", kok: kok), url)
         XCTAssertTrue(fm.fileExists(atPath: url.path))
     }
 
     func testTurkceKarakterliAd() throws {
         let url = try sayfaKur("Sifreleme")
-        let yeni = try XCTUnwrap(sayfayiYenidenAdlandir(url, yeniAd: "Şifreleme Ağı"))
+        let yeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "Şifreleme Ağı", kok: kok))
 
         XCTAssertTrue(fm.fileExists(atPath: yeni.path))
         XCTAssertEqual(sayfaAdi(yeni), "Şifreleme Ağı")
@@ -101,7 +103,7 @@ final class YenidenAdlandirmaTestleri: XCTestCase {
         try fm.createDirectory(at: dal, withIntermediateDirectories: true)
         try Data().write(to: dal.appendingPathComponent("ek.png"))
 
-        let yeni = try XCTUnwrap(sayfayiYenidenAdlandir(dosya, yeniAd: "DuzYeni"))
+        let yeni = try XCTUnwrap(sayfayiYenidenAdlandirmaSonucu(dosya, yeniAd: "DuzYeni", kok: kok))
 
         XCTAssertTrue(fm.fileExists(atPath: yeni.path), "dosya taşınmalı")
         XCTAssertTrue(fm.fileExists(atPath: kok.appendingPathComponent("DuzYeni/ek.png").path),
@@ -112,7 +114,7 @@ final class YenidenAdlandirmaTestleri: XCTestCase {
     /// Yeniden adlandırdıktan sonra ağaç taraması sayfayı yeni adıyla bulmalı.
     func testAgacYeniAdiGorur() throws {
         let url = try sayfaKur("Once", altSayfa: "Alt")
-        _ = sayfayiYenidenAdlandir(url, yeniAd: "Sonra")
+        _ = try sayfayiYenidenAdlandirmaSonucu(url, yeniAd: "Sonra", kok: kok)
 
         let agac = agaciYukle(kok)
         let adlar = agac.map(\.ad)

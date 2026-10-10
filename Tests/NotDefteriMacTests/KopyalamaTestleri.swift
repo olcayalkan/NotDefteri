@@ -79,7 +79,8 @@ final class KopyalamaTestleri: XCTestCase {
         XCTAssertEqual(markdownMetniUret(attr), kaynakMetin)
 
         // Panodaki Markdown, kaynak sayfanın klasörüne göre yeniden çözülebilmeli.
-        let geri = markdowndenAttributedStringUret(markdownMetniUret(attr), taban: sayfaKlasoru)
+        // Çekirdek yalnızca anlamsal görsel üretir; ek, editörün kullandığı adaptörde kurulur.
+        let geri = MacBelgeAdaptoru.markdownuAc(markdownMetniUret(attr), taban: sayfaKlasoru)
         var ekSayisi = 0
         geri.enumerateAttribute(.attachment, in: NSRange(location: 0, length: geri.length), options: []) { deger, _, _ in
             if let ek = deger as? ResimEki {
@@ -102,7 +103,10 @@ final class KopyalamaTestleri: XCTestCase {
                               bagYolu: "\(kGorsellerKlasorAdi)/\(yeniURL.lastPathComponent)",
                               gosterimBoyutu: NSSize(width: 120, height: 60))
 
-        let metin = markdownMetniUret(NSAttributedString(attachment: ek))
+        // Editör eki anlamsal görselle birlikte ekler; yazıcı yalnızca anlamsalı okur.
+        let gorsel = try XCTUnwrap(MacBelgeAdaptoru.gorselAnlamsali(ek))
+        let metin = markdownMetniUret(NSAttributedString(string: "\u{FFFC}",
+                                                         attributes: [.attachment: ek, kGorselAnahtari: gorsel]))
         XCTAssertEqual(metin, "![](\(kGorsellerKlasorAdi)/Şema.png){120x60}")
         // Bağ hedef sayfanın klasöründen çözülebilmeli.
         XCTAssertNotNil(resimBaginiCozumle(metin as NSString, 0, taban: hedefKlasor))
