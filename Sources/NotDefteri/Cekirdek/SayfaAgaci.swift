@@ -172,16 +172,16 @@ private func klasoruTara(_ klasor: URL) -> (dugumler: [AgacDugumu], icerikTarihi
     let fm = FileManager.default
     let anahtarlar: [URLResourceKey] = [.contentModificationDateKey, .isDirectoryKey, .isHiddenKey]
     // Gizli dosyalar elle süzülür: .sira.json'un varlığı da bu listeden öğrenilir.
-    guard let icerik = try? fm.contentsOfDirectory(at: klasor, includingPropertiesForKeys: anahtarlar,
-                                                    options: []) else { return ([], nil) }
+    guard let icerik = try? klasorListesi(klasor, anahtarlar: anahtarlar) else { return ([], nil) }
     var klasorler: [URL] = []
     var duzNotlar: [URL] = []
     var tarihler: [String: Date] = [:]   // dosya adı -> değişme tarihi (listelemede önceden alındı)
     var icerikTarihi: Date?
     var siraVar = false
-    for url in icerik {
+    for (url, listelenen) in icerik {
         let ad = url.lastPathComponent
-        let degerler = try? url.resourceValues(forKeys: Set(anahtarlar))
+        // Bilgi listelemede önceden alındı; yol istenen klasörün yazılışındadır (bkz. klasorListesi).
+        let degerler = try? listelenen.resourceValues(forKeys: Set(anahtarlar))
         if ad == kSiraDosyaAdi { siraVar = true }
         if ad.hasPrefix(".") || degerler?.isHidden == true { continue }
         if degerler?.isDirectory ?? false {
