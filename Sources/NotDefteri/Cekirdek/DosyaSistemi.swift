@@ -21,11 +21,12 @@ package func notlarYolunuDogrula(_ url: URL, kok: URL = notlarKlasoru(), kokDahi
     guard url.isFileURL, kok.isFileURL else { throw DosyaYoluHatasi.gecersizYol }
     let taban = kok.standardizedFileURL
     let cozulmusKok = taban.resolvingSymlinksInPath().standardizedFileURL
+    let kokler = [taban, cozulmusKok].flatMap(sistemBagiEsdegerleri)
     let yol = url.standardizedFileURL
-    let ust = [taban, cozulmusKok].first { yol.path == $0.path || yol.path.hasPrefix($0.path + "/") }
+    let ust = kokler.first { yol.path == $0.path || yol.path.hasPrefix($0.path + "/") }
     guard let ust, kokDahil || yol.path != ust.path else { throw DosyaYoluHatasi.kokDisinda(url) }
     // .. öncesinde kalan bileşenler de denetlenir; symlink/../ ile kontrol atlanamaz.
-    let hamUst = [taban, cozulmusKok].first { url.path == $0.path || url.path.hasPrefix($0.path + "/") }
+    let hamUst = kokler.first { url.path == $0.path || url.path.hasPrefix($0.path + "/") }
     guard let hamUst else { throw DosyaYoluHatasi.kokDisinda(url) }
     var parca = hamUst
     let parcalar = String(url.path.dropFirst(hamUst.path.count)).split(separator: "/")
@@ -44,11 +45,59 @@ package func notlarYolunuDogrula(_ url: URL, kok: URL = notlarKlasoru(), kokDahi
             // Henüz oluşturulmamış hedef; sonraki bileşenler yine denetlenir.
         }
     }
-    let cozulmus = yol.resolvingSymlinksInPath().standardizedFileURL
-    guard cozulmus.path.hasPrefix(cozulmusKok.path + "/") || kokDahil && cozulmus == cozulmusKok else {
+    let cozulmus = varOlanAtasiylaCoz(yol)
+    // resolvingSymlinksInPath /private'ı yalnızca var olan yolda atar; iki yazılış da kabul edilir.
+    let cozulmusKokler = sistemBagiEsdegerleri(cozulmusKok).map(\.path)
+    guard cozulmusKokler.contains(where: { cozulmus.path.hasPrefix($0 + "/") || kokDahil && cozulmus.path == $0 }) else {
         throw DosyaYoluHatasi.kokDisinda(url)
     }
     return cozulmus
+}
+
+/// resolvingSymlinksInPath yol (henüz) yoksa içindeki bağları hiç çözmez; bağlı kökte yeni
+/// hedef kök dışı sanılıyordu (#12). Var olan en derin ata çözülür, kalan bileşenler eklenir.
+private func varOlanAtasiylaCoz(_ url: URL) -> URL {
+    var ata = url.standardizedFileURL
+    var kalan: [String] = []
+    while !dosyaYoluVarMi(ata), ata.path != "/" {
+        kalan.insert(ata.lastPathComponent, at: 0)
+        ata.deleteLastPathComponent()
+    }
+    return kalan.reduce(ata.resolvingSymlinksInPath()) { $0.appendingPathComponent($1) }.standardizedFileURL
+}
+
+/// macOS'ta /var, /tmp ve /etc, /private altına sistem bağıdır. Dizin listelemesi yolları
+/// /private ile, resolvingSymlinksInPath /private'sız döndürür; iki yazılış aynı yerdir (#12).
+/// Yalnızca bu üç bağ eşlenir: rastgele bir /private yolu köke eşdeğer sayılmaz.
+private func sistemBagiEsdegerleri(_ kok: URL) -> [URL] {
+    #if os(macOS)
+    for bag in ["/var", "/tmp", "/etc"] {
+        let yol = kok.path
+        if yol == bag || yol.hasPrefix(bag + "/") { return [kok, URL(fileURLWithPath: "/private" + yol)] }
+        if yol == "/private" + bag || yol.hasPrefix("/private" + bag + "/") {
+            return [kok, URL(fileURLWithPath: String(yol.dropFirst("/private".count)))]
+        }
+    }
+    #endif
+    return [kok]
+}
+
+/// macOS'ta contentsOfDirectory(at:) son bileşeni bağ olan klasörü hiç listelemez (bağlı not
+/// klasöründe ağaç boş geliyordu) ve çocuk yollarını bağları çözerek döndürür (/var -> /private/var).
+/// Liste çözülmüş yoldan alınır, yollar istenen klasörün yazılışıyla kurulur; kök önek
+/// karşılaştırmaları ve favori/çöp göreli yolları böylece tutar (#12). Dönen URL'lerde önceden
+/// alınmış öznitelik yoktur; tarama performansı gereken yer `klasorListesi` kullanır.
+package func klasorIcerigi(_ klasor: URL, anahtarlar: [URLResourceKey]? = nil,
+                           secenekler: FileManager.DirectoryEnumerationOptions = []) throws -> [URL] {
+    try klasorListesi(klasor, anahtarlar: anahtarlar, secenekler: secenekler).map(\.url)
+}
+
+/// `klasorIcerigi` ile aynı; ayrıca öznitelikleri önceden alınmış listeleme URL'sini de verir.
+package func klasorListesi(_ klasor: URL, anahtarlar: [URLResourceKey]? = nil,
+                           secenekler: FileManager.DirectoryEnumerationOptions = []) throws -> [(url: URL, listelenen: URL)] {
+    try FileManager.default.contentsOfDirectory(at: klasor.resolvingSymlinksInPath(), includingPropertiesForKeys: anahtarlar,
+                                                options: secenekler)
+        .map { (klasor.appendingPathComponent($0.lastPathComponent, isDirectory: $0.hasDirectoryPath), $0) }
 }
 
 /// fileExists kopuk bağlarda false verir; ad seçerken bağ da dolu hedef sayılır.
