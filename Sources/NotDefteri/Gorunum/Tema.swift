@@ -61,11 +61,21 @@ func aramaKutuRengi() -> NSColor { aktifTema.kenarPanel.tonFarki(0.07, koyuTema:
 func aramaOdakRengi() -> NSColor { aktifTema.kenarPanel.tonFarki(0.16, koyuTema: aktifTema.koyuMu) }
 
 /// Başlık simgeleri ve ikincil metinler için tema zeminine uygun ön plan rengi.
-func temaSimgeRengi() -> NSColor { aktifTema.metin.withAlphaComponent(0.72) }
+func temaSimgeRengi() -> NSColor { aktifTema.koyuMu ? aktifTema.metin.withAlphaComponent(0.72) : .darkGray }
 
 extension NSColor {
+    /// Main'deki açık tema davranışı ve API'si korunur.
+    func koyulastir(_ miktar: CGFloat) -> NSColor {
+        guard let rgb = usingColorSpace(.genericRGB) else { return self }
+        return NSColor(calibratedRed: max(rgb.redComponent - miktar, 0),
+                       green: max(rgb.greenComponent - miktar, 0),
+                       blue: max(rgb.blueComponent - miktar, 0),
+                       alpha: rgb.alphaComponent)
+    }
+
     /// Açık temada koyulaştırır, koyu temada açar; benzer koyu tonların birbirine karışmasını önler.
     func tonFarki(_ miktar: CGFloat, koyuTema: Bool) -> NSColor {
+        if !koyuTema { return koyulastir(miktar) }
         guard let rgb = usingColorSpace(.genericRGB) else { return self }
         let yon: (CGFloat) -> CGFloat = { bilesen in
             koyuTema ? min(bilesen + miktar, 1) : max(bilesen - miktar, 0)

@@ -93,6 +93,7 @@ final class MacTabloYoneticisi: NSObject, NSTextFieldDelegate {
         konumlandir()
         gorunum.yuzerGorunumleriGizle()
         gorunum.window?.makeFirstResponder(alan)
+        alanEditorunuHazirla(alan)
         if let editor = alan.currentEditor() {
             editor.selectedRange = NSRange(location: sec ? 0 : (metin as NSString).length,
                                             length: sec ? (metin as NSString).length : 0)
@@ -255,16 +256,19 @@ final class MacTabloYoneticisi: NSObject, NSTextFieldDelegate {
     func controlTextDidBeginEditing(_ obj: Notification) {
         guard let alan = obj.object as? NSTextField, kendiAlani(alan) else { return }
         hedefiSec(alan)
-        // Hücre düzenlemeleri belgenin tek geri alma geçmişine yazılır.
-        if let editor = alan.currentEditor() as? NSTextView {
-            if alanEditoru !== editor {
-                // Ana pencere ve tablo sayfası farklı alan editörlerini paylaşır.
-                if let izin = oncekiUndoIzni { alanEditoru?.allowsUndo = izin }
-                alanEditoru = editor
-                oncekiUndoIzni = editor.allowsUndo
-            }
-            editor.allowsUndo = false
+        alanEditorunuHazirla(alan)
+    }
+
+    /// Odaklanma, ilk yazımdan önce gerçekleşir; beginEditing bildirimini
+    /// beklemek programlı hücre değişikliklerinde iki geri alma geçmişi bırakır.
+    private func alanEditorunuHazirla(_ alan: NSTextField) {
+        guard let editor = alan.currentEditor() as? NSTextView else { return }
+        if alanEditoru !== editor {
+            if let izin = oncekiUndoIzni { alanEditoru?.allowsUndo = izin }
+            alanEditoru = editor
+            oncekiUndoIzni = editor.allowsUndo
         }
+        editor.allowsUndo = false
     }
 
     func controlTextDidChange(_ obj: Notification) {
@@ -351,6 +355,7 @@ final class MacTabloYoneticisi: NSObject, NSTextFieldDelegate {
         guard let sayfa = tasmaPenceresi else { return }
         let alan = etkinAlan
         sayfa.makeFirstResponder(alan)
+        alanEditorunuHazirla(alan)
         if let editor = alan.currentEditor() {
             let uzunluk = (alan.stringValue as NSString).length
             editor.selectedRange = NSRange(location: sec ? 0 : uzunluk, length: sec ? uzunluk : 0)

@@ -76,6 +76,7 @@ final class TabloDuzenlemeTestleri: XCTestCase {
         paylasilan.allowsUndo = true
         let model = try XCTUnwrap(TabloModeli(markdown: kaynak))
         XCTAssertTrue(gorunum.tabloYoneticisi.hucreyiAc(konum: try XCTUnwrap(model.hucreAraligi(satir: 0, sutun: 0)).location))
+        XCTAssertTrue(pencere.firstResponder === paylasilan)
         XCTAssertFalse(paylasilan.allowsUndo)
         gorunum.tabloYoneticisi.metniKaydet(String(repeating: "uzun ", count: 100))
         XCTAssertNotNil(gorunum.tabloYoneticisi.tasmaPenceresi)

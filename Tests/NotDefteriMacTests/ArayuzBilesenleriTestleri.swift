@@ -22,12 +22,24 @@ final class ArayuzBilesenleriTestleri: XCTestCase {
         XCTAssertEqual(gTemaIndex, 0)
     }
 
-    func testAcikTemaTonFarkiSifirdaKirpilirVeSaydamligiKorur() throws {
-        let renk = NSColor(calibratedRed: 0.1, green: 0.5, blue: 0.9, alpha: 0.4).tonFarki(0.2, koyuTema: false)
+    func testKoyulastirmaSifirdaKirpilirVeSaydamligiKorur() throws {
+        let renk = NSColor(calibratedRed: 0.1, green: 0.5, blue: 0.9, alpha: 0.4).koyulastir(0.2)
         let rgb = try XCTUnwrap(renk.usingColorSpace(.genericRGB))
         XCTAssertEqual(rgb.redComponent, 0, accuracy: 0.001)
         XCTAssertEqual(rgb.greenComponent, 0.3, accuracy: 0.01)
         XCTAssertEqual(rgb.alphaComponent, 0.4, accuracy: 0.001)
+    }
+
+    func testAcikTemalarMainVurguVeSimgeRenkleriniKorur() throws {
+        let onceki = gTemaIndex
+        defer { gTemaIndex = onceki }
+        for (index, tema) in temaListesi.enumerated() where !tema.koyuMu {
+            gTemaIndex = index
+            XCTAssertEqual(aramaKutuRengi(), tema.kenarPanel.koyulastir(0.07))
+            XCTAssertEqual(secimVurguRengi(), tema.kenarPanel.koyulastir(0.14))
+            XCTAssertEqual(aramaOdakRengi(), tema.kenarPanel.koyulastir(0.16))
+            XCTAssertEqual(temaSimgeRengi(), NSColor.darkGray)
+        }
     }
 
     func testKoyuTemaTonFarkiBirdeKirpilirVeSaydamligiKorur() throws {
