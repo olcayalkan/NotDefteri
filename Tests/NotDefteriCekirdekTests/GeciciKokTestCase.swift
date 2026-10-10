@@ -12,11 +12,9 @@ class GeciciKokTestCase: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        let gecici = URL(fileURLWithPath: NSTemporaryDirectory())
+        kok = Self.tabanKlasor()
             .appendingPathComponent("notdefteri-test-\(UUID().uuidString)", isDirectory: true)
-        try fm.createDirectory(at: gecici, withIntermediateDirectories: true)
-        // macOS'ta /var -> /private/var; karşılaştırmalar çözülmüş yolla tutarlı olsun.
-        kok = gecici.resolvingSymlinksInPath()
+        try fm.createDirectory(at: kok, withIntermediateDirectories: true)
         oncekiKok = ProcessInfo.processInfo.environment["NOTDEFTERI_KOK"]
         setenv("NOTDEFTERI_KOK", kok.path, 1)
     }
@@ -25,6 +23,17 @@ class GeciciKokTestCase: XCTestCase {
         if let oncekiKok { setenv("NOTDEFTERI_KOK", oncekiKok, 1) } else { unsetenv("NOTDEFTERI_KOK") }
         try? fm.removeItem(at: kok)
         try super.tearDownWithError()
+    }
+
+    /// macOS'ta geçici klasör /var -> /private/var bağının altında; dizin listelemesi yolları
+    /// /private ile, kök ise /private'sız döndüğü için yol doğrulaması bunları kök dışı sayıyor
+    /// (bkz. #12). Testler davranışı ölçsün diye bağsız bir kök kullanılır.
+    private static func tabanKlasor() -> URL {
+        #if os(macOS)
+        return FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        #else
+        return URL(fileURLWithPath: NSTemporaryDirectory())
+        #endif
     }
 
     /// Yeni düzende sayfa kurar: `<yol>/index.md`. Dönen değer içerik dosyasıdır.
