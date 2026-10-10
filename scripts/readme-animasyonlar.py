@@ -2,7 +2,8 @@
 """README animasyonlarını üretir: docs/baslik.svg, docs/kart-*.svg, docs/kurulum.svg.
 
 Hepsi aynı mantığı izler: Markdown kaynağı yazılır, uygulamadaki gibi biçimlenmiş hâline
-dönüşür. SVG içindeki CSS animasyonu GitHub'da <img> ile oynar.
+dönüşür. SVG'ler kaynaktır; README GIF'leri kullanır (scripts/readme-gifleri.mjs), çünkü SVG
+içindeki CSS animasyonu her görüntüleyicide oynamıyor.
 
 Tasarım: uygulamanın sepya kâğıt kimliği; serif başlık + sans metin, kendi çizilmiş tutarlı
 simgeler (emoji yok), ince kenarlık, uçuk pastel vurgu, hafif kâğıt dokusu (minimalist-ui,
@@ -11,7 +12,7 @@ yalnızca transform ve opacity; giriş/çıkış güçlü ease-out, yer değişt
 80 ms kademe. Hareket azaltıldığında kayma kalkar, solma ve yazma sürer ("az ve yumuşak,
 sıfır değil"). Animasyon desteklemeyen görüntüleyicide son hâl görünür.
 
-    python3 scripts/readme-animasyonlar.py
+    python3 scripts/readme-animasyonlar.py && node scripts/readme-gifleri.mjs
 """
 from html import escape
 from pathlib import Path
@@ -151,9 +152,12 @@ ETIKETLER = [("kalem", "sari", "Yazarken biçimlenir"), ("onay", "yesil", "Yapı
 
 
 def baslik_svg():
-    gen, yuk, sol = 1000, 300, 104
+    """Ortalı başlık: ad, slogan ve etiketler sayfanın ortasında; defter çizgisi yok (bir şey anlatmıyordu)."""
+    gen, yuk = 1000, 300
+    orta = gen / 2
     s = Sahne(9.5)
     harf = 32.4                       # 54 px tek aralıklı; textLength ile sabitlenir
+    x0 = orta - 12 * harf / 2         # "# NotDefteri" ortalı yazılır
     yazim_bas, yazim_son = 0.6, 0.6 + 12 * 0.09
     s.css.append(f"@keyframes ortu {{ 0% {{ transform: translateX(0); }} "
                  f"{s.yuzde(yazim_bas)} {{ transform: translateX(0); animation-timing-function: steps(12, end); }} "
@@ -162,43 +166,41 @@ def baslik_svg():
     s.kareler("ortu-gizle", [(0, {"opacity": 1}), (yazim_son + 0.3, {"opacity": 1}), (yazim_son + 0.301, {"opacity": 0}),
                              (s.toplam, {"opacity": 0})], egri="linear", azalt=False)
     s.kareler("isaret", [(0, {"opacity": 1}), (2.0, {"opacity": 1}), (2.25, {"opacity": 0}), (s.toplam, {"opacity": 0})])
+    # "# " silinince kalan 10 harf yine ortalı olsun diye metin bir harf sola kayar.
     s.kareler("mono", [(0, {"opacity": 1, "transform": "translateX(0)"}), (2.1, {"opacity": 1, "transform": "translateX(0)"}),
-                       (2.55, {"opacity": 1, "transform": f"translateX({-2 * harf}px)"}),
-                       (2.7, {"opacity": 0, "transform": f"translateX({-2 * harf}px)"}),
-                       (s.toplam, {"opacity": 0, "transform": f"translateX({-2 * harf}px)"})], egri=EASE_IN_OUT)
+                       (2.55, {"opacity": 1, "transform": f"translateX({-harf}px)"}),
+                       (2.7, {"opacity": 0, "transform": f"translateX({-harf}px)"}),
+                       (s.toplam, {"opacity": 0, "transform": f"translateX({-harf}px)"})], egri=EASE_IN_OUT)
     s.gir_cik("baslik", 2.55, 8.6, kayma="translateY(4px)", sure=0.35)
     s.gir_cik("slogan", 3.0, 8.65)
     s.gir_cik("ust", 0.2, 8.7, kayma="translateY(-4px)")
     govde = [
         f'<rect width="{gen}" height="{yuk}" rx="18" fill="{SEPYA}"/>',
-        yazi("MACOS · LINUX", gen - 40, 44, 12, SOLUK, MONO, text_anchor="end", letter_spacing="1.5", **{"class": "ust"}),
-        yazi("#", sol, 124, 54, ISARET, MONO, textLength=harf, lengthAdjust="spacingAndGlyphs", **{"class": "isaret gecici"}),
-        yazi("NotDefteri", sol + 2 * harf, 124, 54, MUREKKEP, MONO, textLength=10 * harf, lengthAdjust="spacingAndGlyphs",
+        yazi("MACOS · LINUX", orta, 50, 12, SOLUK, MONO, text_anchor="middle", letter_spacing="1.5", **{"class": "ust"}),
+        yazi("#", x0, 134, 54, ISARET, MONO, textLength=harf, lengthAdjust="spacingAndGlyphs", **{"class": "isaret gecici"}),
+        yazi("NotDefteri", x0 + 2 * harf, 134, 54, MUREKKEP, MONO, textLength=10 * harf, lengthAdjust="spacingAndGlyphs",
              **{"class": "mono gecici"}),
-        # Örtü animasyonsuz görüntüleyicide yazının sağında durur (son hâl).
-        # Örtü yazma bitince gizlenir: dokusuz düz kutu çizgileri kesip yama gibi kalıyordu.
+        # Örtü animasyonsuz görüntüleyicide yazının sağında durur ve yazma bitince gizlenir.
         f'<g class="ortu-gizle gecici"><g class="ortu" transform="translate({12 * harf} 0)">'
-        f'<rect x="{sol}" y="70" width="{12 * harf + 8}" height="68" fill="{SEPYA}"/>'
-        f'<rect class="imlec" x="{sol + 2}" y="76" width="5" height="58" fill="{MUREKKEP}"/></g></g>',
-        # Doku ve çizgiler örtünün üstünde: yazma sırasında örtü dokusuz bir yama gibi görünmesin.
-        doku(gen, yuk, 18),
-        "".join(f'<line x1="0" y1="{y}" x2="{gen}" y2="{y}" stroke="{CIZGI}" stroke-opacity="0.55"/>' for y in range(48, yuk, 34)),
-        f'<line x1="74" y1="0" x2="74" y2="{yuk}" stroke="{KENAR}" stroke-width="2" stroke-opacity="0.8"/>',
-        yazi("NotDefteri", sol - 2, 128, 84, MUREKKEP, SERIF, font_weight="bold", letter_spacing="-2.5", **{"class": "baslik"}),
-        yazi(escape(SLOGAN), sol, 178, 24, SOLUK, SANS, **{"class": "slogan"}),
+        f'<rect x="{x0}" y="80" width="{12 * harf + 8}" height="68" fill="{SEPYA}"/>'
+        f'<rect class="imlec" x="{x0 + 2}" y="86" width="5" height="58" fill="{MUREKKEP}"/></g></g>',
+        doku(gen, yuk, 18),           # örtünün üstünde: yazma sırasında örtü dokusuz bir yama gibi görünmesin
+        yazi("NotDefteri", orta, 138, 84, MUREKKEP, SERIF, text_anchor="middle", font_weight="bold", letter_spacing="-2.5",
+             **{"class": "baslik"}),
+        yazi(escape(SLOGAN), orta, 188, 24, SOLUK, SANS, text_anchor="middle", **{"class": "slogan"}),
     ]
-    x = sol
-    for i, (ad, ton, etiket) in enumerate(ETIKETLER):
-        # Sistem sans 15 px'te harf başına ~7.6 px; yazı ortalı, kutu cömert.
-        en = len(etiket) * 7.4 + 54     # 13 sol + 18 simge + 8 boşluk + yazı + 15 sağ
+    # Sistem sans 15 px'te harf başına ~7.4 px: 13 sol + 18 simge + 8 boşluk + yazı + 15 sağ.
+    enler = [len(etiket) * 7.4 + 54 for _, _, etiket in ETIKETLER]
+    x = orta - (sum(enler) + 10 * (len(enler) - 1)) / 2
+    assert x > 24, f"etiketler sığmıyor: {x}"
+    for i, ((ad, ton, etiket), en) in enumerate(zip(ETIKETLER, enler)):
         s.gir_cik(f"e{i}", 3.35 + i * 0.08, 8.7 + i * 0.03)
         zemin, renk = PASTEL[ton]
-        govde.append(f'<g class="e{i}"><rect x="{x:.0f}" y="214" width="{en:.0f}" height="38" rx="9" fill="{zemin}"/>'
-                     + simge(ad, x + 13, 224, 18, renk)
-                     + yazi(escape(etiket), f"{x + 39 + (en - 54) / 2:.0f}", 238.5, 15, MUREKKEP, text_anchor="middle",
+        govde.append(f'<g class="e{i}"><rect x="{x:.0f}" y="222" width="{en:.0f}" height="38" rx="9" fill="{zemin}"/>'
+                     + simge(ad, x + 13, 232, 18, renk)
+                     + yazi(escape(etiket), f"{x + 39 + (en - 54) / 2:.0f}", 246.5, 15, MUREKKEP, text_anchor="middle",
                             font_weight="500") + "</g>")
         x += en + 10
-    assert x < gen - 24, f"etiketler sığmıyor: {x}"
     return s.svg(gen, yuk, "NotDefteri — " + SLOGAN + " macOS ve Linux'ta.", "".join(govde))
 
 
