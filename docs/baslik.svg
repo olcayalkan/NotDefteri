@@ -1,14 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="270" viewBox="0 0 1000 270" role="img" aria-label="NotDefteri — Notların, yapılacakların ve fikirlerin için sade bir defter — macOS ve Linux&#x27;ta."><title>NotDefteri — Notların, yapılacakların ve fikirlerin için sade bir defter — macOS ve Linux&#x27;ta.</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="300" viewBox="0 0 1000 300" role="img" aria-label="NotDefteri — Notların, yapılacakların ve fikirlerin için sade bir defter. macOS ve Linux&#x27;ta."><title>NotDefteri — Notların, yapılacakların ve fikirlerin için sade bir defter. macOS ve Linux&#x27;ta.</title>
 <style>
-.anim { opacity: 0; }
+.gecici { opacity: 0; }
 @keyframes ortu { 0% { transform: translateX(0); } 6.316% { transform: translateX(0); animation-timing-function: steps(12, end); } 17.684% { transform: translateX(388.79999999999995px); } 100% { transform: translateX(388.79999999999995px); } }
-@keyframes imlec {
+.ortu { animation: ortu 9.5s infinite; }
+@keyframes ortu-gizle {
   0.000% { opacity: 1; animation-timing-function: linear; }
   20.842% { opacity: 1; animation-timing-function: linear; }
   20.853% { opacity: 0; animation-timing-function: linear; }
   100.000% { opacity: 0; animation-timing-function: linear; }
 }
+.ortu-gizle { animation: ortu-gizle 9.5s infinite; }
 @keyframes isaret {
+  0.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  21.053% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  23.684% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.isaret { animation: isaret 9.5s infinite; }
+@keyframes isaret-a {
   0.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   21.053% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   23.684% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -21,6 +30,14 @@
   28.421% { opacity: 0; transform: translateX(-64.8px); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
   100.000% { opacity: 0; transform: translateX(-64.8px); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
 }
+.mono { animation: mono 9.5s infinite; }
+@keyframes mono-a {
+  0.000% { opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  22.105% { opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  26.842% { opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  28.421% { opacity: 0; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+}
 @keyframes baslik {
   0.000% { opacity: 0; transform: translateY(4px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   26.842% { opacity: 0; transform: translateY(4px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
@@ -29,66 +46,135 @@
   93.684% { opacity: 0; transform: translateY(4px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   100.000% { opacity: 0; transform: translateY(4px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
+.baslik { animation: baslik 9.5s infinite; }
+@keyframes baslik-a {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  26.842% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  30.526% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  90.526% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  93.684% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
 @keyframes slogan {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   31.579% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  35.789% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  36.316% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   91.053% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   94.211% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
+.slogan { animation: slogan 9.5s infinite; }
+@keyframes slogan-a {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  31.579% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  36.316% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.053% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  94.211% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@keyframes ust {
+  0.000% { opacity: 0; transform: translateY(-4px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  2.105% { opacity: 0; transform: translateY(-4px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  6.842% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.579% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  94.737% { opacity: 0; transform: translateY(-4px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; transform: translateY(-4px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+.ust { animation: ust 9.5s infinite; }
+@keyframes ust-a {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  2.105% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  6.842% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.579% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  94.737% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
 @keyframes e0 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  34.737% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  38.947% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  35.263% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  40.000% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   91.579% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   94.737% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .e0 { animation: e0 9.5s infinite; }
+@keyframes e0-a {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  35.263% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  40.000% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.579% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  94.737% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
 @keyframes e1 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  35.368% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  39.579% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  36.105% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  40.842% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   91.895% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   95.053% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .e1 { animation: e1 9.5s infinite; }
+@keyframes e1-a {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  36.105% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  40.842% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  91.895% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  95.053% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
 @keyframes e2 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  36.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  40.211% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  36.947% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  41.684% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   92.211% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   95.368% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .e2 { animation: e2 9.5s infinite; }
+@keyframes e2-a {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  36.947% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  41.684% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.211% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  95.368% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
 @keyframes e3 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  36.632% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  40.842% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  37.789% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  42.526% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   92.526% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   95.684% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .e3 { animation: e3 9.5s infinite; }
+@keyframes e3-a {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  37.789% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  42.526% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.526% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  95.684% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
 @keyframes e4 {
   0.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  37.263% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  41.474% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  38.632% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  43.368% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   92.842% { opacity: 1; transform: translate(0, 0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   96.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   100.000% { opacity: 0; transform: translateY(8px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
 .e4 { animation: e4 9.5s infinite; }
-.ortu { animation: ortu 9.5s infinite; }
-.imlec { animation: imlec 9.5s infinite; }
-.isaret { animation: isaret 9.5s infinite; }
-.mono { animation: mono 9.5s infinite; }
-.baslik { animation: baslik 9.5s infinite; }
-.slogan { animation: slogan 9.5s infinite; }
-@media (prefers-reduced-motion: reduce) { .ortu, .isaret, .mono { display: none; } .anim, .baslik, .slogan { animation: none; opacity: 1; transform: none; } }
+@keyframes e4-a {
+  0.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  38.632% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  43.368% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  92.842% { opacity: 1; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  96.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  100.000% { opacity: 0; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@media (prefers-reduced-motion: reduce) { .isaret { animation-name: isaret-a; } .mono { animation-name: mono-a; } .baslik { animation-name: baslik-a; } .slogan { animation-name: slogan-a; } .ust { animation-name: ust-a; } .e0 { animation-name: e0-a; } .e1 { animation-name: e1-a; } .e2 { animation-name: e2-a; } .e3 { animation-name: e3-a; } .e4 { animation-name: e4-a; } }
 </style>
-<rect width="1000" height="270" rx="16" fill="#d6cfba"/><text class="anim isaret" x="96" y="118" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="54" fill="#968670" textLength="32.4" lengthAdjust="spacingAndGlyphs">#</text><text class="anim mono" x="160.8" y="118" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="54" fill="#3a3026" textLength="324.0" lengthAdjust="spacingAndGlyphs">NotDefteri</text><g class="ortu"><rect x="96" y="66" width="396.79999999999995" height="66" fill="#d6cfba"/><rect class="imlec" x="98" y="70" width="5" height="58" fill="#3a3026"/></g><text class="anim baslik" x="96" y="120" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="76" fill="#3a3026">NotDefteri</text><text class="anim slogan" x="98" y="172" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="25" fill="#605444">Notların, yapılacakların ve fikirlerin için sade bir defter — macOS ve Linux&#x27;ta.</text><g class="anim e0"><rect x="96" y="196" width="208" height="34" rx="17" fill="#c7bda6"/><text x="200" y="219" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="17" fill="#3a3026">✍️ Yazarken biçimlenir</text></g><g class="anim e1"><rect x="314" y="196" width="151" height="34" rx="17" fill="#c7bda6"/><text x="390" y="219" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="17" fill="#3a3026">✅ Yapılacaklar</text></g><g class="anim e2"><rect x="475" y="196" width="127" height="34" rx="17" fill="#c7bda6"/><text x="539" y="219" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="17" fill="#3a3026">🖼️ Görseller</text></g><g class="anim e3"><rect x="612" y="196" width="159" height="34" rx="17" fill="#c7bda6"/><text x="692" y="219" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="17" fill="#3a3026">🔗 Sayfa bağları</text></g><g class="anim e4"><rect x="781" y="196" width="184" height="34" rx="17" fill="#c7bda6"/><text x="873" y="219" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="17" fill="#3a3026">📁 Kendi dosyaların</text></g><line x1="0" y1="44" x2="1000" y2="44" stroke="#cec7b1" stroke-opacity="0.7"/><line x1="0" y1="78" x2="1000" y2="78" stroke="#cec7b1" stroke-opacity="0.7"/><line x1="0" y1="112" x2="1000" y2="112" stroke="#cec7b1" stroke-opacity="0.7"/><line x1="0" y1="146" x2="1000" y2="146" stroke="#cec7b1" stroke-opacity="0.7"/><line x1="0" y1="180" x2="1000" y2="180" stroke="#cec7b1" stroke-opacity="0.7"/><line x1="0" y1="214" x2="1000" y2="214" stroke="#cec7b1" stroke-opacity="0.7"/><line x1="0" y1="248" x2="1000" y2="248" stroke="#cec7b1" stroke-opacity="0.7"/><line x1="70" y1="0" x2="70" y2="270" stroke="#be8070" stroke-width="2"/>
+<rect width="1000" height="300" rx="18" fill="#d6cfba"/><text x="960" y="44" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="12" fill="#5f564a" text-anchor="end" letter-spacing="1.5" class="ust">MACOS · LINUX</text><text x="104" y="124" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="54" fill="#857862" textLength="32.4" lengthAdjust="spacingAndGlyphs" class="isaret gecici">#</text><text x="168.8" y="124" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="54" fill="#2f2a24" textLength="324.0" lengthAdjust="spacingAndGlyphs" class="mono gecici">NotDefteri</text><g class="ortu-gizle gecici"><g class="ortu" transform="translate(388.79999999999995 0)"><rect x="104" y="70" width="396.79999999999995" height="68" fill="#d6cfba"/><rect class="imlec" x="106" y="76" width="5" height="58" fill="#2f2a24"/></g></g><filter id="gren" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0 0.11 0 0 0 0.07 0"/></filter><rect width="1000" height="300" rx="18" filter="url(#gren)"/><line x1="0" y1="48" x2="1000" y2="48" stroke="#c9c0a9" stroke-opacity="0.55"/><line x1="0" y1="82" x2="1000" y2="82" stroke="#c9c0a9" stroke-opacity="0.55"/><line x1="0" y1="116" x2="1000" y2="116" stroke="#c9c0a9" stroke-opacity="0.55"/><line x1="0" y1="150" x2="1000" y2="150" stroke="#c9c0a9" stroke-opacity="0.55"/><line x1="0" y1="184" x2="1000" y2="184" stroke="#c9c0a9" stroke-opacity="0.55"/><line x1="0" y1="218" x2="1000" y2="218" stroke="#c9c0a9" stroke-opacity="0.55"/><line x1="0" y1="252" x2="1000" y2="252" stroke="#c9c0a9" stroke-opacity="0.55"/><line x1="0" y1="286" x2="1000" y2="286" stroke="#c9c0a9" stroke-opacity="0.55"/><line x1="74" y1="0" x2="74" y2="300" stroke="#be8070" stroke-width="2" stroke-opacity="0.8"/><text x="102" y="128" font-family="'Iowan Old Style', 'Palatino Linotype', Georgia, serif" font-size="84" fill="#2f2a24" font-weight="bold" letter-spacing="-2.5" class="baslik">NotDefteri</text><text x="104" y="178" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="24" fill="#5f564a" class="slogan">Notların, yapılacakların ve fikirlerin için sade bir defter.</text><g class="e0"><rect x="104" y="214" width="195" height="38" rx="9" fill="#f1e3bb"/><g transform="translate(117 224) scale(0.750)" fill="none" stroke="#86590a" stroke-width="2.33" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></g><text x="213" y="238.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#2f2a24" text-anchor="middle" font-weight="500">Yazarken biçimlenir</text></g><g class="e1"><rect x="309" y="214" width="143" height="38" rx="9" fill="#e0e8d4"/><g transform="translate(321.6 224) scale(0.750)" fill="none" stroke="#3f5f36" stroke-width="2.33" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></g><text x="392" y="238.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#2f2a24" text-anchor="middle" font-weight="500">Yapılacaklar</text></g><g class="e2"><rect x="461" y="214" width="121" height="38" rx="9" fill="#dce5e8"/><g transform="translate(474.40000000000003 224) scale(0.750)" fill="none" stroke="#2f5f7f" stroke-width="2.33" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17.5l4.8-4.8 3.7 3.7 2.4-2.4 4 3.5"/></g><text x="534" y="238.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#2f2a24" text-anchor="middle" font-weight="500">Görseller</text></g><g class="e3"><rect x="592" y="214" width="135" height="38" rx="9" fill="#e6dcc6"/><g transform="translate(605.0 224) scale(0.750)" fill="none" stroke="#6b5a3e" stroke-width="2.33" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2"/><circle cx="16.5" cy="11" r="2"/><circle cx="16.5" cy="18.5" r="2"/><path d="M6 7v11.5h8.5M6 11h8.5"/></g><text x="672" y="238.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#2f2a24" text-anchor="middle" font-weight="500">Sayfa ağacı</text></g><g class="e4"><rect x="737" y="214" width="172" height="38" rx="9" fill="#f0dcd3"/><g transform="translate(750.4 224) scale(0.750)" fill="none" stroke="#9a3f2d" stroke-width="2.33" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.7l2 2.2h7.3A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></g><text x="836" y="238.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#2f2a24" text-anchor="middle" font-weight="500">Kendi dosyaların</text></g>
 </svg>

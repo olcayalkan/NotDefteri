@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="374" viewBox="0 0 1000 374" role="img" aria-label="Kurulum: depoyu klonla, kısayolu kur, not yazınca uygulama açılır"><title>Kurulum: depoyu klonla, kısayolu kur, not yazınca uygulama açılır</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="380" viewBox="0 0 1000 380" role="img" aria-label="Kurulum: depoyu indir, kısayolu kur, not yazınca uygulama açılır"><title>Kurulum: depoyu indir, kısayolu kur, not yazınca uygulama açılır</title>
 <style>
-.anim { opacity: 0; }
+.gecici { opacity: 0; }
 @keyframes s0 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   4.402% { opacity: 0; animation-timing-function: linear; }
@@ -11,6 +11,7 @@
 }
 .s0 { animation: s0 13.63s infinite; }
 @keyframes o0 { 0% { transform: translateX(0); } 4.402% { transform: translateX(0); animation-timing-function: steps(54, end); } 22.230% { transform: translateX(518.4px); } 100% { transform: translateX(518.4px); } }
+.o0 { animation: o0 13.63s infinite; }
 @keyframes i0 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   4.402% { opacity: 0; animation-timing-function: linear; }
@@ -19,7 +20,7 @@
   25.906% { opacity: 0; animation-timing-function: linear; }
   100.000% { opacity: 0; animation-timing-function: linear; }
 }
-.o0 { animation: o0 13.63s infinite; } .i0 { animation: i0 13.63s infinite; }
+.i0 { animation: i0 13.63s infinite; }
 @keyframes s1 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   25.899% { opacity: 0; animation-timing-function: linear; }
@@ -39,6 +40,7 @@
 }
 .s2 { animation: s2 13.63s infinite; }
 @keyframes o2 { 0% { transform: translateX(0); } 30.301% { transform: translateX(0); animation-timing-function: steps(13, end); } 34.593% { transform: translateX(124.8px); } 100% { transform: translateX(124.8px); } }
+.o2 { animation: o2 13.63s infinite; }
 @keyframes i2 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   30.301% { opacity: 0; animation-timing-function: linear; }
@@ -47,7 +49,7 @@
   38.269% { opacity: 0; animation-timing-function: linear; }
   100.000% { opacity: 0; animation-timing-function: linear; }
 }
-.o2 { animation: o2 13.63s infinite; } .i2 { animation: i2 13.63s infinite; }
+.i2 { animation: i2 13.63s infinite; }
 @keyframes s3 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   38.261% { opacity: 0; animation-timing-function: linear; }
@@ -58,6 +60,7 @@
 }
 .s3 { animation: s3 13.63s infinite; }
 @keyframes o3 { 0% { transform: translateX(0); } 38.261% { transform: translateX(0); animation-timing-function: steps(24, end); } 46.185% { transform: translateX(230.4px); } 100% { transform: translateX(230.4px); } }
+.o3 { animation: o3 13.63s infinite; }
 @keyframes i3 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   38.261% { opacity: 0; animation-timing-function: linear; }
@@ -66,7 +69,7 @@
   49.127% { opacity: 0; animation-timing-function: linear; }
   100.000% { opacity: 0; animation-timing-function: linear; }
 }
-.o3 { animation: o3 13.63s infinite; } .i3 { animation: i3 13.63s infinite; }
+.i3 { animation: i3 13.63s infinite; }
 @keyframes s4 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   49.120% { opacity: 0; animation-timing-function: linear; }
@@ -86,6 +89,7 @@
 }
 .s5 { animation: s5 13.63s infinite; }
 @keyframes o5 { 0% { transform: translateX(0); } 54.989% { transform: translateX(0); animation-timing-function: steps(3, end); } 55.979% { transform: translateX(28.8px); } 100% { transform: translateX(28.8px); } }
+.o5 { animation: o5 13.63s infinite; }
 @keyframes i5 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   54.989% { opacity: 0; animation-timing-function: linear; }
@@ -94,7 +98,7 @@
   58.188% { opacity: 0; animation-timing-function: linear; }
   100.000% { opacity: 0; animation-timing-function: linear; }
 }
-.o5 { animation: o5 13.63s infinite; } .i5 { animation: i5 13.63s infinite; }
+.i5 { animation: i5 13.63s infinite; }
 @keyframes s6 {
   0.000% { opacity: 0; animation-timing-function: linear; }
   58.180% { opacity: 0; animation-timing-function: linear; }
@@ -131,7 +135,7 @@
   100.000% { opacity: 0; animation-timing-function: linear; }
 }
 .s9 { animation: s9 13.63s infinite; }
-@media (prefers-reduced-motion: reduce) { .anim, .satir, .ortu, .imlec { animation: none; opacity: 1; transform: none; } .ortu { display: none; } }
+@media (prefers-reduced-motion: reduce) {  }
 </style>
-<rect width="1000" height="374" rx="12" fill="#2a251f"/><path d="M0 12a12 12 0 0 1 12-12h976a12 12 0 0 1 12 12v24H0z" fill="#3a332b"/><circle cx="22" cy="18" r="6" fill="#ff5f57"/><circle cx="42" cy="18" r="6" fill="#febc2e"/><circle cx="62" cy="18" r="6" fill="#28c840"/><text x="500.0" y="23" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="14" fill="#a89a80">Terminal — NotDefteri</text><g class="anim satir s0"><text x="34" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b">$ </text><text x="53.2" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e9e0c9" textLength="518.4" lengthAdjust="spacingAndGlyphs">git clone https://github.com/olcayalkan/NotDefteri.git</text><g class="ortu o0"><rect x="53.2" y="61" width="522.4" height="23" fill="#2a251f"/><rect class="imlec i0" x="53.2" y="63" width="9" height="19" fill="#e9e0c9"/></g></g><text class="anim satir s1" x="34" y="105" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e9e0c9" textLength="268.8" lengthAdjust="spacingAndGlyphs">Cloning into &#x27;NotDefteri&#x27;...</text><g class="anim satir s2"><text x="34" y="132" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b">$ </text><text x="53.2" y="132" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e9e0c9" textLength="124.8" lengthAdjust="spacingAndGlyphs">cd NotDefteri</text><g class="ortu o2"><rect x="53.2" y="115" width="128.8" height="23" fill="#2a251f"/><rect class="imlec i2" x="53.2" y="117" width="9" height="19" fill="#e9e0c9"/></g></g><g class="anim satir s3"><text x="34" y="159" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b">$ </text><text x="53.2" y="159" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e9e0c9" textLength="230.4" lengthAdjust="spacingAndGlyphs">./scripts/kisayol-kur.sh</text><g class="ortu o3"><rect x="53.2" y="142" width="234.4" height="23" fill="#2a251f"/><rect class="imlec i3" x="53.2" y="144" width="9" height="19" fill="#e9e0c9"/></g></g><text class="anim satir s4" x="34" y="186" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a8c686" textLength="393.6" lengthAdjust="spacingAndGlyphs">Kuruldu. Terminalde &#x27;not&#x27; yazman yeterli.</text><g class="anim satir s5"><text x="34" y="213" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b">$ </text><text x="53.2" y="213" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e9e0c9" textLength="28.8" lengthAdjust="spacingAndGlyphs">not</text><g class="ortu o5"><rect x="53.2" y="196" width="32.8" height="23" fill="#2a251f"/><rect class="imlec i5" x="53.2" y="198" width="9" height="19" fill="#e9e0c9"/></g></g><text class="anim satir s6" x="34" y="240" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e9e0c9" textLength="124.8" lengthAdjust="spacingAndGlyphs">Derleniyor...</text><text class="anim satir s7" x="34" y="267" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a89a80" textLength="230.4" lengthAdjust="spacingAndGlyphs">Build complete! (41.20s)</text><text class="anim satir s8" x="34" y="294" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#e9e0c9" textLength="144.0" lengthAdjust="spacingAndGlyphs">Başlatılıyor...</text><text class="anim satir s9" x="34" y="321" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a8c686" textLength="480.0" lengthAdjust="spacingAndGlyphs">Açıldı (pid 4242). Notlar: ~/Documents/NotDefteri/</text>
+<rect width="1000" height="380" rx="14" fill="#2a251f"/><path d="M0 14a14 14 0 0 1 14-14h972a14 14 0 0 1 14 14v26H0z" fill="#36302a"/><circle cx="24" cy="20" r="6" fill="#e0645a"/><circle cx="44" cy="20" r="6" fill="#e3b341"/><circle cx="64" cy="20" r="6" fill="#5fb05a"/><text x="500.0" y="25" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" fill="#a89a80" text-anchor="middle" font-weight="500">Terminal — NotDefteri</text><g class="s0"><text x="34" y="82" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b" >$ </text><text x="53.2" y="82" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="518.4" lengthAdjust="spacingAndGlyphs">git clone https://github.com/olcayalkan/NotDefteri.git</text><g class="o0" transform="translate(518.4 0)"><rect x="53.2" y="65" width="522.4" height="23" fill="#2a251f"/><rect class="i0 gecici" x="53.2" y="67" width="9" height="19" fill="#ece4cf"/></g></g><g class="s1"><text x="34" y="109" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="268.8" lengthAdjust="spacingAndGlyphs">Cloning into &#x27;NotDefteri&#x27;...</text></g><g class="s2"><text x="34" y="136" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b" >$ </text><text x="53.2" y="136" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="124.8" lengthAdjust="spacingAndGlyphs">cd NotDefteri</text><g class="o2" transform="translate(124.8 0)"><rect x="53.2" y="119" width="128.8" height="23" fill="#2a251f"/><rect class="i2 gecici" x="53.2" y="121" width="9" height="19" fill="#ece4cf"/></g></g><g class="s3"><text x="34" y="163" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b" >$ </text><text x="53.2" y="163" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="230.4" lengthAdjust="spacingAndGlyphs">./scripts/kisayol-kur.sh</text><g class="o3" transform="translate(230.4 0)"><rect x="53.2" y="146" width="234.4" height="23" fill="#2a251f"/><rect class="i3 gecici" x="53.2" y="148" width="9" height="19" fill="#ece4cf"/></g></g><g class="s4"><text x="34" y="190" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a9c48a" textLength="393.6" lengthAdjust="spacingAndGlyphs">Kuruldu. Terminalde &#x27;not&#x27; yazman yeterli.</text></g><g class="s5"><text x="34" y="217" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#d9a95b" >$ </text><text x="53.2" y="217" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="28.8" lengthAdjust="spacingAndGlyphs">not</text><g class="o5" transform="translate(28.8 0)"><rect x="53.2" y="200" width="32.8" height="23" fill="#2a251f"/><rect class="i5 gecici" x="53.2" y="202" width="9" height="19" fill="#ece4cf"/></g></g><g class="s6"><text x="34" y="244" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="124.8" lengthAdjust="spacingAndGlyphs">Derleniyor...</text></g><g class="s7"><text x="34" y="271" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a89a80" textLength="230.4" lengthAdjust="spacingAndGlyphs">Build complete! (41.20s)</text></g><g class="s8"><text x="34" y="298" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#ece4cf" textLength="144.0" lengthAdjust="spacingAndGlyphs">Başlatılıyor...</text></g><g class="s9"><text x="34" y="325" font-family="'SF Mono', ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="16" fill="#a9c48a" textLength="480.0" lengthAdjust="spacingAndGlyphs">Açıldı (pid 4242). Notlar: ~/Documents/NotDefteri/</text></g>
 </svg>
