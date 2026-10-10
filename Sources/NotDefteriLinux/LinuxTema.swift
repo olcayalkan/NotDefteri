@@ -56,7 +56,8 @@ final class LinuxTema {
         @define-color nd-secim \(Self.css(tema.panel, tonFarki: 0.14, koyuTema: tema.koyu));
         @define-color nd-odak \(Self.css(tema.panel, tonFarki: 0.16, koyuTema: tema.koyu));
         @define-color nd-metin \(Self.css(tema.metin));
-        @define-color nd-koyu-gri alpha(@nd-metin, 0.72);
+        @define-color nd-koyu-gri \(tema.koyu ? "alpha(@nd-metin, 0.72)" : "#555555");
+        @define-color nd-metin-secimi \(tema.koyu ? "@nd-secim" : "#b3d7ff");
 
         window.notdefteri { background-color: @nd-zemin; color: @nd-metin; }
         .notdefteri label { color: inherit; }
@@ -93,7 +94,7 @@ final class LinuxTema {
 
         /* Editör: tema metni, macOS (aqua) seçim rengi. */
         .notdefteri .nd-editor, .notdefteri .nd-editor textview, .notdefteri .nd-editor textview text { background-color: @nd-zemin; color: @nd-metin; caret-color: @nd-metin; }
-        .notdefteri textview text selection { background-color: @nd-secim; color: @nd-metin; }
+        .notdefteri textview text selection { background-color: @nd-metin-secimi; color: @nd-metin; }
         /* Kod bloğu şeridi: çerçevenin üst kenarına oturan küçük etiket + Kopyala (macOS ile aynı ölçü). */
         .notdefteri .nd-kod-araci { background-color: @nd-zemin; border-radius: 4px; padding: 0 2px 0 6px; min-height: 0; }
         .notdefteri .nd-kod-araci label { font-family: monospace; font-size: 9.5px; color: alpha(@nd-metin, 0.55); opacity: 1; }
