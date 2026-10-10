@@ -69,6 +69,21 @@ final class SayfaDosyalariTestleri: GeciciKokTestCase {
         XCTAssertFalse(SayfaDosyalari.topla(sayfaKlasoru: sayfa, kok: kok).contains { $0.goreliYol == "bag.txt" })
     }
 
+    /// Not klasörü başka bir diske giden bağ olabilir; kökün kendi bağı izlenmeli (#12).
+    func testBagliKokunEkleriOkunur() throws {
+        try yaz("a.txt", "merhaba")
+        let bagliKok = kok.deletingLastPathComponent().appendingPathComponent("bagli-kok-\(UUID().uuidString)")
+        try fm.createSymbolicLink(at: bagliKok, withDestinationURL: kok)
+        defer { try? fm.removeItem(at: bagliKok) }
+        let bagliSayfa = bagliKok.appendingPathComponent("Proje")
+
+        guard case .metin(let metin) = try SayfaDosyalari.oku(bagliSayfa.appendingPathComponent("a.txt"), kok: bagliKok) else {
+            return XCTFail("metin bekleniyordu")
+        }
+        XCTAssertEqual(metin, "merhaba")
+        XCTAssertEqual(SayfaDosyalari.topla(sayfaKlasoru: bagliSayfa, kok: bagliKok).map(\.goreliYol), ["a.txt"])
+    }
+
     func testKokDisiVeUstDizinReddedilir() {
         XCTAssertThrowsError(try SayfaDosyalari.oku(URL(fileURLWithPath: "/etc/hosts"), kok: kok))
         XCTAssertThrowsError(try SayfaDosyalari.oku(URL(fileURLWithPath: sayfa.path + "/../../x.txt"), kok: kok))

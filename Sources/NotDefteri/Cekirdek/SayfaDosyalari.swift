@@ -29,8 +29,10 @@ package enum SayfaDosyalari {
         NSError(domain: "NotDefteri.SayfaDosyalari", code: 1, userInfo: [NSLocalizedDescriptionKey: mesaj])
     }
 
-    /// Her bileşen kökten itibaren openat/O_NOFOLLOW ile açılır. Kontrol ile okuma
+    /// Kökün altındaki her bileşen openat/O_NOFOLLOW ile açılır. Kontrol ile okuma
     /// arasında bir klasör sembolik bağa çevrilse de içerik dışarıdan okunamaz.
+    /// Kökün kendisi kullanıcının seçimidir; onun bağları izlenir (macOS'ta /var ve /tmp
+    /// birer bağ, not klasörü de başka diske giden bir bağ olabilir) (#12).
     private static func dosyayiAc(_ url: URL, kok: URL) throws -> Int32 {
         guard url.isFileURL, kok.isFileURL, !url.pathComponents.contains(".."),
               !kok.pathComponents.contains("..") else { throw hata("Geçersiz dosya yolu.") }
@@ -43,12 +45,11 @@ package enum SayfaDosyalari {
         guard goreli.allSatisfy({ !$0.hasPrefix(".") && $0 != "Görseller" && $0 != "node_modules" }) else {
             throw hata("Bu klasördeki dosyalar görüntülenemez.")
         }
-        var fd = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+        var fd = open(taban, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
         guard fd >= 0 else { throw hata("Dosya yolu açılamadı.") }
-        let parcalar = url.standardizedFileURL.pathComponents.dropFirst()
-        for (sira, parca) in parcalar.enumerated() {
-            let bayrak = O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC | (sira < parcalar.count - 1 ? O_DIRECTORY : 0)
-            let yeni = parca.withCString { openat(fd, $0, bayrak) }
+        for (sira, parca) in goreli.enumerated() {
+            let bayrak = O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC | (sira < goreli.count - 1 ? O_DIRECTORY : 0)
+            let yeni = String(parca).withCString { openat(fd, $0, bayrak) }
             close(fd)
             guard yeni >= 0 else { throw hata("Dosyaya erişilemiyor veya yol sembolik bağ içeriyor.") }
             fd = yeni
@@ -119,8 +120,7 @@ package enum SayfaDosyalari {
 
     /// Markdown içeren alt dallar bir başka sayfaya aittir; o dalın ekleri alınmaz.
     private static func klasoruTara(_ klasor: URL, taban: URL, kok: URL, seviye: Int) -> (mdVar: Bool, dosyalar: [SayfaDosyasi]) {
-        guard let ogeler = try? FileManager.default.contentsOfDirectory(at: klasor,
-            includingPropertiesForKeys: [.isPackageKey], options: [.skipsHiddenFiles]) else { return (true, []) }
+        guard let ogeler = try? klasorIcerigi(klasor, anahtarlar: [.isPackageKey], secenekler: [.skipsHiddenFiles]) else { return (true, []) }
         if seviye > 0, ogeler.contains(where: { $0.pathExtension.lowercased() == "md" }) { return (true, []) }
         var dosyalar: [SayfaDosyasi] = []
         for url in ogeler.sorted(by: { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }) {
