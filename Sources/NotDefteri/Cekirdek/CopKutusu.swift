@@ -27,7 +27,8 @@ package final class CopKutusu {
     private var cop: URL { kok.appendingPathComponent(".cop", isDirectory: true) }
     private let bilgiAdi = ".cop-bilgi.json"
 
-    package init(kok: URL = notlarKlasoru()) { self.kok = kok.resolvingSymlinksInPath().standardizedFileURL }
+    /// Kök çözülmez: ağaç ve listelemeler kökün verilen yazılışını kullanır (bkz. klasorIcerigi, #12).
+    package init(kok: URL = notlarKlasoru()) { self.kok = kok.standardizedFileURL }
 
     private func hata(_ mesaj: String) -> NSError {
         NSError(domain: "NotDefteri.CopKutusu", code: 1, userInfo: [NSLocalizedDescriptionKey: mesaj])
@@ -69,7 +70,7 @@ package final class CopKutusu {
     private func klasorleriOku() throws -> [URL] {
         try yoluDogrula(cop)
         guard varMi(cop) else { return [] }
-        return try fm.contentsOfDirectory(at: cop, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
+        return try klasorIcerigi(cop, anahtarlar: [.isDirectoryKey], secenekler: [.skipsHiddenFiles])
     }
 
     package func ogeler() throws -> (ogeler: [CopOgesi], hatalar: [String]) {
