@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Aynı PR'a art arda push gelirse eski koşuyu iptal et; kuyruk boşa dolmasın.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS (AppKit)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift sürümü
+        run: swift --version
+      - name: Derle (debug)
+        run: swift build
+      - name: Test
+        run: swift test
+      - name: Derle (release)
+        run: swift build -c release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NotDefteri-macos
+          path: .build/release/NotDefteri
+
+  linux:
+    name: Linux (GTK 4)
+    runs-on: ubuntu-latest
+    # README Ubuntu 22.04'ü hedefliyor; aynı dağıtımda derlemek kullanıcıyla aynı GTK sürümünü garanti eder.
+    container: swift:6.2-jammy
+    steps:
+      - uses: actions/checkout@v4
+      - name: GTK 4 kur
+        run: apt-get update && apt-get install -y --no-install-recommends libgtk-4-dev pkg-config
+      - name: Swift sürümü
+        run: swift --version
+      - name: Derle (debug)
+        run: swift build
+      - name: Test
+        run: swift test
+      - name: Derle (release)
+        run: swift build -c release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NotDefteri-linux
+          path: .build/release/NotDefteri
