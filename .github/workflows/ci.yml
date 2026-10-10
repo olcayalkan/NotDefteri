@@ -40,7 +40,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Kaynak kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Araç zinciri bilgisi
         run: |
@@ -71,7 +71,7 @@ jobs:
         run: tar -czf derleme.tgz .build
 
       - name: Derleme çıktısını yükle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: derleme-macos
           path: derleme.tgz
@@ -85,10 +85,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Kaynak kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Derleme çıktısını indir
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: derleme-macos
 
@@ -110,7 +110,7 @@ jobs:
 
       - name: Test günlüğünü yükle
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-gunlugu-macos
           path: test-sonucu.log
@@ -123,7 +123,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Kaynak kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Uygulamayı derle (release)
         run: swift build -c release
@@ -134,7 +134,7 @@ jobs:
           ls -lh .build/release/NotDefteri
 
       - name: İkiliyi yükle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: NotDefteri-macos
           path: .build/release/NotDefteri
@@ -144,12 +144,13 @@ jobs:
 
   linux-derle:
     name: Linux · 1. Derle
-    runs-on: ubuntu-latest
+    # Sabit sürüm: ubuntu-latest etiketi kendiliğinden yeni sürüme geçiyor.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     container: swift:6.2-jammy
     steps:
       - name: Kaynak kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Sistem paketlerini kur (GTK 4)
         run: |
@@ -183,7 +184,7 @@ jobs:
         run: tar -czf derleme.tgz .build
 
       - name: Derleme çıktısını yükle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: derleme-linux
           path: derleme.tgz
@@ -192,12 +193,12 @@ jobs:
   linux-test:
     name: Linux · 2. Test
     needs: linux-derle
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     container: swift:6.2-jammy
     steps:
       - name: Kaynak kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Manifest gtk4'ü pkg-config ile arıyor; test ikilisi de GTK'ya bağlı olabilir.
       - name: Sistem paketlerini kur (GTK 4)
@@ -206,7 +207,7 @@ jobs:
           apt-get install -y --no-install-recommends libgtk-4-dev pkg-config
 
       - name: Derleme çıktısını indir
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: derleme-linux
 
@@ -228,7 +229,7 @@ jobs:
 
       - name: Test günlüğünü yükle
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-gunlugu-linux
           path: test-sonucu.log
@@ -237,12 +238,12 @@ jobs:
   linux-paketle:
     name: Linux · 3. Paketle
     needs: linux-test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     container: swift:6.2-jammy
     steps:
       - name: Kaynak kodu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Sistem paketlerini kur (GTK 4)
         run: |
@@ -258,7 +259,7 @@ jobs:
           ls -lh .build/release/NotDefteri
 
       - name: İkiliyi yükle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: NotDefteri-linux
           path: .build/release/NotDefteri
@@ -271,7 +272,7 @@ jobs:
     name: CI sonucu
     if: always()
     needs: [macos-derle, macos-test, macos-paketle, linux-derle, linux-test, linux-paketle]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Tüm aşamalar geçti mi?
