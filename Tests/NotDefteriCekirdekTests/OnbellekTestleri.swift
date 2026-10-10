@@ -72,8 +72,9 @@ final class OnbellekTestleri: XCTestCase {
                                      aranabilirMetin: isaretlemeleriTemizle("# Başlık\n**kalın** metin"))
         XCTAssertFalse(girdi.aranabilirMetin.contains("**"))
         XCTAssertFalse(girdi.aranabilirMetin.contains("# "))
-        XCTAssertTrue(girdi.aranabilirMetin.contains("kalın"))
-        XCTAssertTrue(girdi.aranabilirMetin.contains("Başlık"))
+        // Girdi metni aramaya hazır, sadeleştirilmiş hâlde saklar.
+        XCTAssertTrue(girdi.aranabilirMetin.contains(aramaIcinSadelestir("kalın")))
+        XCTAssertTrue(girdi.aranabilirMetin.contains(aramaIcinSadelestir("Başlık")))
     }
 
     /// Türkçe arama önbellekteki metinde de çalışmalı (uçtan uca).
