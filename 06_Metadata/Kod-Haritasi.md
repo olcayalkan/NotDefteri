@@ -125,7 +125,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
 | Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2 |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
-| Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 12 — tema, "/" blok menüsü, ⌘P bulucu |
+| Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 
 Test yazarken: dosya sistemine dokunan çekirdek testi `GeciciKokTestCase`'ten türet. AppKit sarmalayıcıları
 (`sayfayiYenidenAdlandir` vb.) hata olunca `NSAlert.runModal()` açar ve testi kilitler; çekirdek fonksiyonu `kok:` ile çağır.
