@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/tanitim.mp4"><img src="docs/tanitim.svg" width="100%" alt="17-second intro: in the app window, to-dos are typed and checked off, a page link is created with [[, and the notes are shown as plain files in the Documents › NotDefteri folder."></a>
+  <a href="docs/tanitim.mp4"><img src="docs/tanitim.svg" width="100%" alt="20-second intro: in the app window, to-dos are typed and one is checked off, its details are linked with [[, one click opens the linked page with its chart, and the page is shown as plain files in the Documents › NotDefteri folder."></a>
 </p>
 
 ---
