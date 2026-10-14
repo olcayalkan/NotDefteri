@@ -28,6 +28,7 @@ and this project adheres to
 
 ### Fixed
 
+- NotDefteri: macOS uyarı kutusu kopyala-yapıştırda bozuluyordu: satır ortasına yapıştırılan kutunun başlığı metne karışıyor, kutunun ortasından alınan satırlar düz alıntıya dönüyor, kutu içine yapıştırınca boş başlıklı hayalet kutu doğuyor, bütün kutuyu kesince boş kutu kalıyordu.
 - NotDefteri: macOS `/table` penceresinde satır ve sütun alanlarına yazılamaması.
 - NotDefteri: macOS tablo satır zemini ve seçim vurgusunun tablo çerçevesinin dışına taşması.
 - NotDefteri: macOS uyarı/kod kutusunda yazı seçilip silinince kutunun da silinmesi; basılı tutulan geri silme boşalan kutuda durur.
