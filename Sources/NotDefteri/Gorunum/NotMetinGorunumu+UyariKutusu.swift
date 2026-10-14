@@ -145,6 +145,21 @@ extension NotMetinGorunumu {
         }
     }
 
+    /// Kutunun ortasından başlayan seçim "> metin" olarak çıkıp düz alıntıya dönüşüyordu;
+    /// ilk satır kutu başlığı alır, kopya yapıştırılınca kutu olarak kalır.
+    func uyariDevaminiBasaCevir(_ parca: NSMutableAttributedString) {
+        guard parca.length > 0, parca.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil,
+              var blok = MetinBlogu(oznitelik: parca.attribute(kMetinBloguAnahtari, at: 0, effectiveRange: nil)),
+              blok.tur == .uyari, blok.devam else { return }
+        blok.devam = false
+        blok.kaynakOnEk = nil
+        let uzunluk = blokIsaretiUzunlugu(parca)
+        let paragraf = parca.mutableString.paragraphRange(for: NSRange(location: 0, length: 0))
+        let isaret = blokIsaretiniUret(blok)
+        parca.replaceCharacters(in: NSRange(location: 0, length: uzunluk), with: isaret)
+        blokBiciminiUygula(blok, metne: parca, aralik: NSRange(location: 0, length: paragraf.length - uzunluk + isaret.length))
+    }
+
     func uyariRenkMenusu() -> NSMenu {
         let menu = NSMenu(title: "Uyarı kutusu")
         let mevcut = blok(paragrafAraligi())?.renk

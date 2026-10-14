@@ -376,6 +376,32 @@ final class NotMetinGorunumu: NSTextView {
 
     /// Kutunun ilk işareti ve son satır sonu seçimden çıkarılır; kalan yazı normal yolla
     /// silinir. Silinecek yazı kalmadıysa imleç yazının başına konur.
+    /// `super.cut` silmeyi `delete(_:)` üzerinden yapar ve oradaki kutu koruması boş kutu bırakır.
+    private func seciliAraligiDogrudanSil() {
+        let secim = selectedRange()
+        guard shouldChangeText(in: secim, replacementString: "") else { return }
+        textStorage?.replaceCharacters(in: secim, with: "")
+        didChangeText()
+        setSelectedRange(NSRange(location: secim.location, length: 0))
+    }
+
+    /// Seçim bir uyarı/kod kutusunun tamamını (işaretinden son satır sonuna) kapsıyor mu?
+    private func tumKutuSeciliMi() -> Bool {
+        let secim = selectedRange()
+        guard let depo = textStorage, secim.length > 0, NSMaxRange(secim) <= depo.length else { return false }
+        var bulundu = false
+        depo.enumerateAttribute(kBlokKimligiAnahtari, in: secim) { deger, alt, durdur in
+            guard deger != nil,
+                  depo.attribute(kUyariKutusuAnahtari, at: alt.location, effectiveRange: nil) != nil ||
+                  depo.attribute(kKodBloguAnahtari, at: alt.location, effectiveRange: nil) != nil else { return }
+            var blok = NSRange()
+            _ = depo.attribute(kBlokKimligiAnahtari, at: alt.location, longestEffectiveRange: &blok,
+                               in: NSRange(location: 0, length: depo.length))
+            if NSIntersectionRange(secim, blok) == blok { bulundu = true; durdur.pointee = true }
+        }
+        return bulundu
+    }
+
     private func kutuIcindekiSecimiDaralt(_ secim: NSRange, blok: NSRange, depo: NSTextStorage) -> Bool {
         let bas = max(secim.location, blok.location + blokIsaretiUzunlugu(depo, konum: blok.location))
         var son = NSMaxRange(secim)
@@ -708,6 +734,8 @@ final class NotMetinGorunumu: NSTextView {
         // Seçim silinmeden önce okunmalı.
         let markdown = secimiMarkdownaCevir()
         super.copy(sender)
+        // Silmede kutu yazı kalsın diye korunur; kesilen kutunun yerinde ise boş kutu kalmamalı.
+        if tumKutuSeciliMi() { seciliAraligiDogrudanSil(); panoyaYaz(markdown); return }
         if !cerceveliSecimiSil() { super.cut(sender) }
         panoyaYaz(markdown)
     }
@@ -719,7 +747,9 @@ final class NotMetinGorunumu: NSTextView {
         guard let metinDeposu = textStorage else { return nil }
         let aralik = selectedRange()
         guard aralik.length > 0, NSMaxRange(aralik) <= metinDeposu.length else { return nil }
-        let markdown = markdownMetniUret(metinDeposu.attributedSubstring(from: aralik))
+        let parca = NSMutableAttributedString(attributedString: metinDeposu.attributedSubstring(from: aralik))
+        uyariDevaminiBasaCevir(parca)
+        let markdown = markdownMetniUret(parca)
         return markdown.isEmpty ? nil : markdown
     }
 
@@ -745,12 +775,45 @@ final class NotMetinGorunumu: NSTextView {
         let icerik = kodda ? NSMutableAttributedString(string: icerik.string, attributes: typingAttributes)
             : NSMutableAttributedString(attributedString: icerik)
         if !kodda { ciplakBaglariIsaretle(icerik, aralik: NSRange(location: 0, length: icerik.length)) }
-        let aralik = selectedRange()
+        var aralik = selectedRange()
         if !kodda, icerik.length > 0, let depo = textStorage {
             let ns = depo.mutableString
-            if icerik.attribute(kKodBloguAnahtari, at: 0, effectiveRange: nil) != nil,
+            // İmleç satırın blok işaretinden hemen sonraysa satır başındadır: blok içerik işaretin
+            // ortasına değil satırın önüne girer (işaret yerinde kalmazsa satır bloğunu yitirirdi).
+            // Satır boşsa (yeni açılmış kutu) içerik o satırın yerine geçer.
+            if aralik.length == 0, aralik.location > 0, aralik.location <= ns.length,
+               icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil {
+                let paragraf = ns.paragraphRange(for: NSRange(location: aralik.location - 1, length: 0))
+                let isaret = blokIsaretiUzunlugu(depo, konum: paragraf.location)
+                if isaret > 0, aralik.location == paragraf.location + isaret {
+                    let sonu = ns.substring(with: paragraf).hasSuffix("\n") ? 1 : 0
+                    aralik = NSRange(location: paragraf.location,
+                                     length: paragraf.length - isaret <= sonu ? paragraf.length - sonu : 0)
+                    if aralik.length > 0, NSMaxRange(aralik) < ns.length, icerik.string.hasSuffix("\n"),
+                       icerik.attribute(kKodBloguAnahtari, at: icerik.length - 1, effectiveRange: nil) == nil {
+                        icerik.deleteCharacters(in: NSRange(location: icerik.length - 1, length: 1))
+                    }
+                }
+            }
+            // Blok işaretiyle başlayan içerik (kod, uyarı, liste, alıntı) satır ortasına yapışırsa
+            // işareti metne karışır ve blok bozulur; yeni satırdan başlamalı.
+            if icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil,
                aralik.location > 0, ns.character(at: aralik.location - 1) != 10 {
                 icerik.insert(NSAttributedString(string: "\n"), at: 0)
+                // Satır sonuna yapıştırılan tam satırların kapanış satır sonu, imleçten sonraki
+                // satır sonuyla çakışır; kalırsa kutunun içinde boş (hayalet) satır doğuyordu.
+                if NSMaxRange(aralik) < ns.length, ns.character(at: NSMaxRange(aralik)) == 10,
+                   icerik.string.hasSuffix("\n"),
+                   icerik.attribute(kKodBloguAnahtari, at: icerik.length - 1, effectiveRange: nil) == nil {
+                    icerik.deleteCharacters(in: NSRange(location: icerik.length - 1, length: 1))
+                }
+            }
+            // Son satırı blok olan içerik, imleçten sonraki metni kendi bloğuna katmamalı.
+            if NSMaxRange(aralik) < ns.length, ns.character(at: NSMaxRange(aralik)) != 10,
+               !icerik.string.hasSuffix("\n"),
+               icerik.attribute(kMetinBloguAnahtari, at: icerik.length - 1, effectiveRange: nil) != nil,
+               icerik.attribute(kKodBloguAnahtari, at: icerik.length - 1, effectiveRange: nil) == nil {
+                icerik.append(NSAttributedString(string: "\n"))
             }
             if NSMaxRange(aralik) < ns.length, ns.character(at: NSMaxRange(aralik)) != 10 {
                 var sonBlok = NSRange()
