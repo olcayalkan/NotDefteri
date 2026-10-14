@@ -32,6 +32,17 @@ final class MetinBloguTestleri: XCTestCase {
         XCTAssertNil(cozumle(" - tek boşluk"))
     }
 
+    /// Obsidian iç listeleri sekmeyle, CommonMark numaralı iç listeleri üç boşlukla yazar.
+    func testSekmeVeUcBoslukGirintisiListedir() throws {
+        let sekme = try XCTUnwrap(cozumle("\t\t- [x] iki sekme"))
+        XCTAssertEqual(sekme.tur, .yapilacak)
+        XCTAssertEqual(sekme.seviye, 2)
+        XCTAssertEqual(sekme.markdownOnEki, "\t\t- [x] ", "kaynak yazılışı korunur")
+        let numara = try XCTUnwrap(cozumle("   1. üç boşluk"))
+        XCTAssertEqual(numara.tur, .numarali)
+        XCTAssertEqual(numara.seviye, 1)
+    }
+
     func testUyariKutusuEmojiVeRenkOkunur() throws {
         let blok = try XCTUnwrap(cozumle("> [!🔥 kırmızı] dikkat"))
         XCTAssertEqual(blok.tur, .uyari)

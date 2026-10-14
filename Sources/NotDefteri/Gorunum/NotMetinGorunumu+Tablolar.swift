@@ -200,7 +200,8 @@ final class MacTabloYoneticisi: NSObject, NSTextFieldDelegate {
         let glifler = yerlesim.glyphRange(forCharacterRange: karakterler, actualCharacterRange: nil)
         var kare = yerlesim.boundingRect(forGlyphRange: glifler, in: kapsayici)
         kare = kare.offsetBy(dx: gorunum.textContainerOrigin.x, dy: gorunum.textContainerOrigin.y)
-        alan.frame = NSRect(x: kare.minX - 2, y: kare.minY, width: max(40, kare.width + 4), height: max(18, kare.height))
+        // Alan hücrenin satırına sığar; sabit en küçük ölçü küçük puntoda komşu çizgilerin üstüne taşıyordu.
+        alan.frame = NSRect(x: kare.minX - 2, y: kare.minY, width: kare.width + 4, height: kare.height)
         alan.font = gorunum.textStorage?.attribute(.font, at: karakterler.location, effectiveRange: nil) as? NSFont
         alan.textColor = kMetinRenk
         alan.backgroundColor = aktifTema.arkaplan

@@ -93,10 +93,18 @@ extension MetinBlogu {
     }
 }
 
+// Girinti sekme de olabilir (Obsidian iç listeleri sekmeyle yazar). Numaralı listenin içi
+// CommonMark'ta üç boşlukla hizalanır; tek boşluk ise yazım kazası sayılır, liste değildir.
 private let kBlokOnEkDeseni = try! NSRegularExpression(
-    pattern: #"^( *)(- \[[ xX]\] |\[ \] |\[\] |[-*] |[0-9]+\. |> |---$)"#)
+    pattern: #"^([ \t]*)(- \[[ xX]\] |\[ \] |\[\] |[-*] |[0-9]+\. |> |---$)"#)
 private let kUyariOnEkDeseni = try! NSRegularExpression(
     pattern: #"^( *)> \[!([^\]\s]+) (gri|mavi|sarı|kırmızı|yeşil)\](?: |$)"#)
+
+/// Girinti düzeyi: her sekme bir düzey, her iki boşluk bir düzey (üç boşluk → 1).
+/// Kaynak yazılışı `kaynakOnEk` ile korunduğu için kayıt değişmez.
+private func girintiDuzeyi(_ girinti: String) -> Int {
+    girinti.filter { $0 == "\t" }.count + girinti.filter { $0 == " " }.count / 2
+}
 
 package func emojiGecerliMi(_ deger: String) -> Bool {
     let tusEmojisi = deger.unicodeScalars.contains { $0.value == 0x20E3 }
@@ -118,8 +126,8 @@ package func metinBlogunuCozumle(_ satir: String) -> (blok: MetinBlogu, uzunluk:
         }
     }
     guard let eslesme = kBlokOnEkDeseni.firstMatch(in: satir, range: NSRange(location: 0, length: ns.length)) else { return nil }
-    let bosluklar = eslesme.range(at: 1).length
-    guard bosluklar % 2 == 0 else { return nil }
+    let girinti = ns.substring(with: eslesme.range(at: 1))
+    guard girinti != " " else { return nil }
     let onEk = ns.substring(with: eslesme.range(at: 2))
     var blok: MetinBlogu
     if onEk == "---" { blok = MetinBlogu(tur: .ayirici) }
@@ -131,7 +139,7 @@ package func metinBlogunuCozumle(_ satir: String) -> (blok: MetinBlogu, uzunluk:
         guard let numara = Int(onEk.dropLast(2)), numara > 0 else { return nil }
         blok = MetinBlogu(tur: .numarali, numara: numara)
     }
-    blok.seviye = bosluklar / 2
+    blok.seviye = girintiDuzeyi(girinti)
     blok.kaynakOnEk = ns.substring(with: eslesme.range)
     return (blok, eslesme.range.length)
 }

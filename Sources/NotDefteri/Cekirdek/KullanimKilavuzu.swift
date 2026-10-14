@@ -16,6 +16,7 @@ Not Defteri, notları normal Markdown dosyaları olarak saklar. Bu sayfa günlü
 - Yazmayı bıraktıktan sonra not otomatik kaydedilir; isterseniz Kaydet komutunu kullanın.
 - Sayfaları soldaki ağaçta sürükleyip bırakarak sıralayın veya bir sayfanın altına taşıyın.
 - Sayfaya sağ tıklayarak alt sayfa ekleyin, yeniden adlandırın, sabitleyin ya da silin.
+- Kenar panelde sayfaya iki kez tıklamak adını düzenler; üç kez tıklamak sayfayı yalnızca içeriğiyle ayrı bir pencerede (salt okunur) açar.
 
 ## Temel kısayollar
 
@@ -53,7 +54,7 @@ Varsayılan gövde yazısı **14 pt**'dir; desteklenen aralık **10–28 pt**'di
 
 Kenar panelindeki punto göstergesi, imlecin veya seçili metnin güncel boyutunu gösterir. Başlıkların boyutu başlık düzeyinden gelir; gövde metninin puntosunu değiştirmek en tutarlı sonuçtur.
 
-**Görünüm → Küçük yazı**, yalnızca o sayfanın ekrandaki görünümünü küçültür; Markdown içeriğini değiştirmez. **Tam genişlik** metin alanını sayfanın tamamına yayar.
+**Görünüm → Küçük yazı**, yalnızca o sayfanın ekrandaki görünümünü küçültür; Markdown içeriğini değiştirmez.
 
 ## Başlıklar, bloklar ve içindekiler
 
@@ -80,7 +81,7 @@ Başlıklar sağdaki **İçindekiler** panelinde görünür. Bir başlığa tık
 
 ## Bağlantılar, arama ve sayfalar
 
-- Bir sayfaya bağlantı vermek için `[[` yazın; önerilerden yön tuşları ve Enter ile seçim yapın.
+- Bir sayfaya bağlantı vermek için `[[` yazın; önerilerden yön tuşları ve Enter ile seçim yapın. Bağ, imleç üzerinde değilken 📄 emojisi ve sayfa adıyla (mavi, altı çizili) görünür; imleç bağa girince `[[ ]]` yazımı düzenlemek için geri gelir.
 - Bağlantı veren sayfalar sağdaki içindekiler alanında listelenir.
 - Sol panel araması açık not ağacını süzer. Hızlı Sayfa Bulucu tüm sayfalarda geçiş içindir.
 - Arama Türkçe karakterleri normalleştirir: `istanbul`, `İstanbul` sonucunu da bulur.
@@ -88,12 +89,14 @@ Başlıklar sağdaki **İçindekiler** panelinde görünür. Bir başlığa tık
 
 ## Tema, görseller ve kod
 
-**Görünüm → Tema** menüsünde Sepya, Terminal, Yeşilimsi Kağıt, Gri Kağıt ve Krem seçenekleri bulunur. Terminal koyu arka planlıdır; tema seçimi uygulama genelinde saklanır.
+**Görünüm → Tema** menüsünde (sağ tıkta doğrudan **Görünüm** altında) Sepya, Terminal, Yeşilimsi Kağıt ve Gri Kağıt seçenekleri bulunur. Varsayılan tema Sepya'dır. Terminal koyu arka planlıdır; tema seçimi uygulama genelinde saklanır.
 
 - `- [ ]` görevleri Ana Sayfa'da bir araya gelir; kutuya tıklayınca tamamlanır.
 - Görseli sürükleyip bırakın veya yapıştırın. İlgili sayfanın `Görseller/` klasörüne kaydedilir.
 - Kod bloğu eklerken **Otomatik** seçeneği; anahtar kelime, metin, yorum, sayı, tür, fonksiyon ve operatörleri renklendirir. Daha kesin sonuç için `swift`, `python` veya `json` gibi bir dil de seçebilirsiniz.
-- Uyarı kutusunu blok menüsünden ekleyin; sağ tıklayarak rengini değiştirin.
+- Kod bloğunda `(`, `[`, `{`, `"` ve `'` kapanışıyla birlikte eklenir; kapanışı yazınca üstünden geçilir, boş eşi geri silmek ikisini birden siler.
+- Kod bloğunda satıra yalnızca `try`, `if`, `else`, `for`, `while`, `switch`, `func` veya `class` yazıp **Tab**'a basınca bloğun diline uygun kalıp açılır (ör. Swift'te `do { } catch { }`, Python'da `try: … except`).
+- Uyarı kutusunu blok menüsünden ekleyin; sağ tıklayarak rengini değiştirin. Kod bloğu gibi, boş satırda Enter kutunun içinde kalır; kutudan **Ctrl+Enter** ile çıkılır.
 
 ## Geçmiş, silme ve dışa aktarma
 

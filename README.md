@@ -30,7 +30,7 @@ okunabilir kalır; Obsidian, VS Code ya da herhangi bir metin düzenleyiciyle a�
 - **Çöp kutusu.** Silinen sayfalar 30 gün boyunca geri yüklenebilir.
 - **Dışa aktarma.** PDF, tek dosya HTML ya da Markdown.
 - **Katlama.** Başlıkların altındaki bölümler katlanabilir.
-- **Temalar.** Sepya, Terminal, Yeşilimsi Kağıt, Gri Kağıt, Krem.
+- **Temalar.** Sepya (varsayılan), Terminal, Yeşilimsi Kağıt, Gri Kağıt.
 - **Pencereyi üstte tutma (📌).** Pencere diğer pencerelerin üstünde kalır.
 
 ---

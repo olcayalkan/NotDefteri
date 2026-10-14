@@ -56,6 +56,7 @@ final class BaslikCubugu: NSView {
         notAdiEtiketi.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         notAdiEtiketi.textColor = temaSimgeRengi()
         notAdiEtiketi.lineBreakMode = .byTruncatingTail
+        notAdiEtiketi.alignment = .center
         yol.orientation = .horizontal
         yol.spacing = 3
         yol.distribution = .fillProportionally
@@ -113,10 +114,14 @@ final class BaslikCubugu: NSView {
             buton.frame = NSRect(x: solX + (boyut + bosluk) * CGFloat(sira), y: y, width: boyut, height: boyut)
         }
 
-        let etiketX = solX + (boyut + bosluk) * 4
-        let etiketGenislik = max(0, sabitleButon.frame.minX - 8 - etiketX)
-        notAdiEtiketi.frame = NSRect(x: etiketX, y: (bounds.height - 16) / 2, width: etiketGenislik, height: 16)
-        yol.frame = NSRect(x: etiketX, y: y, width: etiketGenislik, height: boyut)
+        // Sayfa adı macOS başlığı gibi pencerenin tam ortasında durur: iki yandaki düğmelere
+        // eşit uzak bir alan ayrılır, ad onun ortasına yazılır, sığmazsa kısaltılır. Ad
+        // dışarıdan değiştiği için genişliği metne değil bu simetrik alana bağlıdır.
+        let solSinir = solX + (boyut + bosluk) * 4
+        let yari = max(0, min(bounds.midX - solSinir, sabitleButon.frame.minX - 8 - bounds.midX))
+        notAdiEtiketi.frame = NSRect(x: bounds.midX - yari, y: (bounds.height - 16) / 2, width: yari * 2, height: 16)
+        let yolGenislik = min(yol.fittingSize.width, yari * 2)
+        yol.frame = NSRect(x: bounds.midX - yolGenislik / 2, y: y, width: yolGenislik, height: boyut)
     }
 
     func sayfaYolunuGoster(_ yeni: [URL]) {

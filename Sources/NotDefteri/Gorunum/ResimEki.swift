@@ -61,7 +61,23 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
 
     override func draw(withFrame cellFrame: NSRect, in controlView: NSView?) {
         if controlView is NotMetinGorunumu { cizimCercevesi = cellFrame }
-        image?.draw(in: cellFrame, from: .zero, operation: .sourceOver, fraction: 1.0, respectFlipped: true, hints: nil)
+        // Görsel, köşeleri yuvarlak ve hafif gölgeli bir kart olarak çizilir. Gölge hücrenin
+        // içinde kalır: dışına taşan gölge, yalnızca komşu satır yeniden çizilince siliniyordu.
+        let kart = cellFrame.insetBy(dx: 4, dy: 4)
+        let yol = NSBezierPath(roundedRect: kart, xRadius: 8, yRadius: 8)
+        NSGraphicsContext.saveGraphicsState()
+        let golge = NSShadow()
+        golge.shadowColor = NSColor.black.withAlphaComponent(0.22)
+        golge.shadowBlurRadius = 4
+        golge.shadowOffset = NSSize(width: 0, height: -1.5)   // Gölge ekran uzayında: aşağı.
+        golge.set()
+        aktifTema.arkaplan.setFill()
+        yol.fill()
+        NSGraphicsContext.restoreGraphicsState()
+        NSGraphicsContext.saveGraphicsState()
+        yol.addClip()
+        image?.draw(in: kart, from: .zero, operation: .sourceOver, fraction: 1.0, respectFlipped: true, hints: nil)
+        NSGraphicsContext.restoreGraphicsState()
         if tutamaclarGorunur || boyutlandiriliyor { tutamaclariCiz(cellFrame) }
     }
 

@@ -81,8 +81,8 @@ final class KodBloguEnterTestleri: XCTestCase {
         XCTAssertEqual(markdownMetniUret(belge), "```swift\nilkson\n```\n")
     }
 
-    func testBosListeVeUyariEnterIleCikmayaDevamEder() throws {
-        for blok in [MetinBlogu(tur: .madde), MetinBlogu(tur: .uyari, uyariKimligi: "uyari")] {
+    func testBosListeEnterIleCikmayaDevamEder() throws {
+        for blok in [MetinBlogu(tur: .madde)] {
             let belge = NSMutableAttributedString(attributedString: blokIsaretiniUret(blok))
             belge.append(NSAttributedString(string: "\n", attributes: blok.oznitelikler))
             let imlec = belge.length - 1
@@ -92,5 +92,22 @@ final class KodBloguEnterTestleri: XCTestCase {
             XCTAssertNil(degisim.yazim[kMetinBloguAnahtari])
             XCTAssertNil(belge.attribute(kMetinBloguAnahtari, at: degisim.imlec, effectiveRange: nil))
         }
+    }
+
+    /// Uyarı kutusu kod bloğu gibi: boş satırda Enter kutuda yeni satır açar (yazı kutunun
+    /// dışına düşmez), Ctrl+Enter kutunun altına çıkar.
+    func testBosUyariSatirindaEnterKutudaKalirCtrlEnterCikar() throws {
+        let blok = MetinBlogu(tur: .uyari, uyariKimligi: "uyari")
+        let belge = NSMutableAttributedString(attributedString: blokIsaretiniUret(blok))
+        belge.append(NSAttributedString(string: "\n", attributes: blok.oznitelikler))
+        let enter = try XCTUnwrap(yapiEnterKurali(belge, imlec: NSRange(location: belge.length - 1, length: 0)))
+        let hedef = uygula(enter, belge: belge)
+        XCTAssertEqual(belge.attribute(kUyariKutusuAnahtari, at: hedef, effectiveRange: nil) as? String, "uyari")
+        XCTAssertEqual(MetinBlogu(oznitelik: enter.yazim[kMetinBloguAnahtari])?.tur, .uyari)
+        let cikis = try XCTUnwrap(yapiEnterKurali(belge, imlec: NSRange(location: hedef, length: 0), koddanCik: true))
+        let disari = uygula(cikis, belge: belge)
+        XCTAssertNil(belge.attribute(kMetinBloguAnahtari, at: disari, effectiveRange: nil))
+        XCTAssertNil(belge.attribute(kUyariKutusuAnahtari, at: disari, effectiveRange: nil))
+        XCTAssertEqual(markdownMetniUret(belge), "> [!💡 sarı] \n> \n\n")
     }
 }

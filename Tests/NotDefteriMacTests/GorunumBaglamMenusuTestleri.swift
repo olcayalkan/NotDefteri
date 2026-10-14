@@ -4,15 +4,20 @@ import XCTest
 @testable import NotDefteriMac
 
 final class GorunumBaglamMenusuTestleri: XCTestCase {
-    func testTemaMenusuTumTemalariVeSecimiTasir() {
+    /// #18: Görünüm ara bir "Tema" adımı olmadan temaları doğrudan listeler.
+    func testGorunumTemalariDogrudanListelerVeSecimiTasir() throws {
         _ = NSApplication.shared
         let eski = gTemaIndex
         defer { gTemaIndex = eski }
         gTemaIndex = 1
         let menu = gorunumBaglamMenusunuEkle(NSMenu(), hedef: nil)
-        let temalar = menu.item(withTitle: "Görünüm")?.submenu?.item(withTitle: "Tema")?.submenu
-        XCTAssertEqual(temalar?.items.map(\.title), temaListesi.map(\.ad))
-        XCTAssertEqual(temalar?.items.filter { $0.state == .on }.map { $0.representedObject as? Int }, [1])
+        let gorunum = try XCTUnwrap(menu.item(withTitle: "Görünüm")?.submenu)
+        XCTAssertNil(gorunum.item(withTitle: "Tema"))
+        XCTAssertEqual(gorunum.items.prefix(temaListesi.count).map(\.title), temaListesi.map(\.ad))
+        let temalar = gorunum.items.filter { $0.action == #selector(NotPenceresi.temaSecKomutu(_:)) }
+        XCTAssertEqual(temalar.filter { $0.state == .on }.map { $0.representedObject as? Int }, [1])
+        XCTAssertNotNil(gorunum.item(withTitle: "Küçük yazı"))
+        XCTAssertNil(gorunum.item(withTitle: "Tam genişlik"), "Tam genişlik kaldırıldı")
     }
 
     func testMevcutMenuEylemleriKorunurVeGorunumTekKalir() {

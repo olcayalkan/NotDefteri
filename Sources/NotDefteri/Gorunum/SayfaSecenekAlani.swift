@@ -1,9 +1,12 @@
 import AppKit
 import NotDefteriCekirdek
 
-/// Editörün üstündeki ince şerit; fare üzerindeyken "•••" sayfa seçenekleri düğmesini gösterir.
+/// Editörün sol üstündeki küçük alan; fare üzerindeyken "•••" sayfa seçenekleri düğmesini
+/// gösterir. Yalnızca düğme kadar geniştir: editör boyunca uzandığında sağ üstteki
+/// görünümlerin üstünü kapatıp fare olaylarını yutuyordu.
 final class SayfaSecenekAlani: NSView {
     static let yukseklik: CGFloat = 36
+    static let genislik: CGFloat = 52
     let dugme = NSButton(title: "•••", target: nil, action: nil)
     private var izleme: NSTrackingArea?
 
@@ -22,7 +25,7 @@ final class SayfaSecenekAlani: NSView {
 
     override func layout() {
         super.layout()
-        dugme.frame = NSRect(x: 8, y: bounds.height - 30, width: 40, height: 26)
+        dugme.frame = NSRect(x: 6, y: bounds.height - 30, width: 40, height: 26)
     }
 
     override func updateTrackingAreas() {

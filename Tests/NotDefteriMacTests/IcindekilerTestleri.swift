@@ -81,4 +81,14 @@ final class IcindekilerTestleri: XCTestCase {
             XCTAssertEqual(kaydirma.frame, kare, "yükseklik \(yukseklik)")
         }
     }
+
+    /// Ekran görüntüsü aracı pencereyi kaplarken liste açık kalır; fare gerçekten çıkınca kapanır.
+    func testListeYalnizcaFareGercektenCikincaKapanir() {
+        XCTAssertFalse(IcindekilerPaneli.kapanmali(paneldeMi: true, penceredeMi: true, usttekiBizimMi: false))
+        XCTAssertFalse(IcindekilerPaneli.kapanmali(paneldeMi: true, penceredeMi: true, usttekiBizimMi: true))
+        XCTAssertFalse(IcindekilerPaneli.kapanmali(paneldeMi: false, penceredeMi: true, usttekiBizimMi: false),
+                       "kaplama sürerken bölge seçimi")
+        XCTAssertTrue(IcindekilerPaneli.kapanmali(paneldeMi: false, penceredeMi: true, usttekiBizimMi: true))
+        XCTAssertTrue(IcindekilerPaneli.kapanmali(paneldeMi: false, penceredeMi: false, usttekiBizimMi: false))
+    }
 }

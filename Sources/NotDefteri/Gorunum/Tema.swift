@@ -17,31 +17,38 @@ struct Tema {
     }
 }
 
+/// Değerler main'deki kağıt renkleridir; hepsi `kTemaZeminParlakligi` ile aynı oranda koyulaşır.
+private func zemin(_ kirmizi: CGFloat, _ yesil: CGFloat, _ mavi: CGFloat,
+                   oran: CGFloat = CGFloat(kTemaZeminParlakligi)) -> NSColor {
+    NSColor(calibratedRed: kirmizi * oran, green: yesil * oran, blue: mavi * oran, alpha: 1.0)
+}
+
+/// Kağıt temasının başlık çubuğu ve kenar paneli: editörden ayrışsın diye ek koyulaşır.
+private func cerceve(_ kirmizi: CGFloat, _ yesil: CGFloat, _ mavi: CGFloat) -> NSColor {
+    zemin(kirmizi, yesil, mavi, oran: CGFloat(kTemaZeminParlakligi * kTemaCerceveParlakligi))
+}
+
+/// Sıra kayıtlı indekstir (bkz. `temaSeciminiYukle`); değiştirmek seçimleri kaydırır.
 let temaListesi: [Tema] = [
     Tema(ad: "Sepya",
-         arkaplan: NSColor(calibratedRed: 0.84, green: 0.81, blue: 0.73, alpha: 1.0),
-         baslikCubugu: NSColor(calibratedRed: 0.78, green: 0.74, blue: 0.65, alpha: 1.0),
-         kenarPanel: NSColor(calibratedRed: 0.80, green: 0.77, blue: 0.69, alpha: 1.0),
+         arkaplan: zemin(0.84, 0.81, 0.73),
+         baslikCubugu: cerceve(0.78, 0.74, 0.65),
+         kenarPanel: cerceve(0.80, 0.77, 0.69),
          metin: .black),
     Tema(ad: "Terminal",
-         arkaplan: NSColor(calibratedRed: 23 / 255, green: 20 / 255, blue: 33 / 255, alpha: 1.0),
-         baslikCubugu: NSColor(calibratedRed: 16 / 255, green: 14 / 255, blue: 24 / 255, alpha: 1.0),
-         kenarPanel: NSColor(calibratedRed: 33 / 255, green: 29 / 255, blue: 43 / 255, alpha: 1.0),
+         arkaplan: zemin(23 / 255, 20 / 255, 33 / 255),
+         baslikCubugu: zemin(16 / 255, 14 / 255, 24 / 255),
+         kenarPanel: zemin(33 / 255, 29 / 255, 43 / 255),
          metin: NSColor(calibratedRed: 0.95, green: 0.94, blue: 0.97, alpha: 1.0)),
     Tema(ad: "Yeşilimsi Kağıt",
-         arkaplan: NSColor(calibratedRed: 0.79, green: 0.83, blue: 0.76, alpha: 1.0),
-         baslikCubugu: NSColor(calibratedRed: 0.72, green: 0.77, blue: 0.70, alpha: 1.0),
-         kenarPanel: NSColor(calibratedRed: 0.75, green: 0.80, blue: 0.73, alpha: 1.0),
+         arkaplan: zemin(0.79, 0.83, 0.76),
+         baslikCubugu: cerceve(0.72, 0.77, 0.70),
+         kenarPanel: cerceve(0.75, 0.80, 0.73),
          metin: .black),
     Tema(ad: "Gri Kağıt",
-         arkaplan: NSColor(calibratedRed: 0.80, green: 0.80, blue: 0.80, alpha: 1.0),
-         baslikCubugu: NSColor(calibratedRed: 0.73, green: 0.73, blue: 0.73, alpha: 1.0),
-         kenarPanel: NSColor(calibratedRed: 0.76, green: 0.76, blue: 0.76, alpha: 1.0),
-         metin: .black),
-    Tema(ad: "Krem",
-         arkaplan: NSColor(calibratedRed: 0.86, green: 0.83, blue: 0.76, alpha: 1.0),
-         baslikCubugu: NSColor(calibratedRed: 0.80, green: 0.76, blue: 0.67, alpha: 1.0),
-         kenarPanel: NSColor(calibratedRed: 0.82, green: 0.79, blue: 0.71, alpha: 1.0),
+         arkaplan: zemin(0.80, 0.80, 0.80),
+         baslikCubugu: cerceve(0.73, 0.73, 0.73),
+         kenarPanel: cerceve(0.76, 0.76, 0.76),
          metin: .black),
 ]
 
@@ -60,8 +67,24 @@ func aramaKutuRengi() -> NSColor { aktifTema.kenarPanel.tonFarki(0.07, koyuTema:
 /// Arama kutusuna odaklanıldığında kullanılan, biraz daha koyu vurgu rengi.
 func aramaOdakRengi() -> NSColor { aktifTema.kenarPanel.tonFarki(0.16, koyuTema: aktifTema.koyuMu) }
 
-/// Başlık simgeleri ve ikincil metinler için tema zeminine uygun ön plan rengi.
-func temaSimgeRengi() -> NSColor { aktifTema.koyuMu ? aktifTema.metin.withAlphaComponent(0.72) : .darkGray }
+/// Sayfa bağı ve dış bağlantı rengi: kağıtta koyu, mürekkep mavisi; koyu temada açık mavi.
+func bagRengi() -> NSColor {
+    aktifTema.koyuMu ? NSColor(srgbRed: 0.56, green: 0.72, blue: 0.92, alpha: 1)
+                     : NSColor(srgbRed: 0.18, green: 0.37, blue: 0.50, alpha: 1)
+}
+
+/// Tamamlanan görev kutusunun dolgusu; beyaz tik bu zeminde okunur.
+func tamamlananGorevRengi() -> NSColor { NSColor(srgbRed: 0.25, green: 0.42, blue: 0.27, alpha: 1) }
+
+/// Bağlantıların ortak görünümü (dış bağlantı `linkTextAttributes`, sayfa bağı geçici öznitelik).
+func bagOznitelikleri() -> [NSAttributedString.Key: Any] {
+    [.foregroundColor: bagRengi(), .underlineStyle: NSUnderlineStyle.single.rawValue]
+}
+
+/// Başlık simgeleri ve ikincil metinler için tema zeminine uygun ön plan rengi. Açık
+/// temada main'in `.darkGray`'inden koyudur: panel koyulaşınca kontrast main düzeyinde kalır.
+func temaSimgeRengi() -> NSColor { aktifTema.koyuMu ? aktifTema.metin.withAlphaComponent(0.72) : kAcikTemaSimgeRengi }
+let kAcikTemaSimgeRengi = NSColor(calibratedWhite: 0.2, alpha: 1)
 
 extension NSColor {
     /// Main'deki açık tema davranışı ve API'si korunur.

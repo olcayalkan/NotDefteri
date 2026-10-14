@@ -624,13 +624,13 @@ final class LinuxEditor {
         degisiklikKancalariniBildir()
     }
 
-    /// Okunur genişlik: Mac'teki gibi ~760 pt ortalanmış; sayfa "tam" ise tüm genişlik.
+    /// Okunur genişlik: Mac'teki gibi ~760 pt ortalanmış. Eski `genislik: tam` satırı korunur ama etkisizdir.
     private func kenarlariAyarla() {
         let genislik = Double(gtk_widget_get_width(kaydirma))
         guard genislik > 0 else { return }
         let yanPay = min(48, max(0, (genislik - 48) / 2))
         let kullanilabilir = max(1, genislik - yanPay * 2)
-        let kap = ustbilgi.genislik == "tam" ? kullanilabilir : min(760, kullanilabilir)
+        let kap = min(760, kullanilabilir)
         let kenar = Int32(max(0, (genislik - kap) / 2))
         guard kenar != gtk_text_view_get_left_margin(gorunum) else { return }
         gtk_text_view_set_left_margin(gorunum, kenar)

@@ -79,7 +79,7 @@ extension NotMetinGorunumu {
                              in: NSRange(location: 0, length: depo.length)) != nil,
               selectedRange().location <= aralik.location + blokIsaretiUzunlugu(depo, konum: aralik.location) else { return false }
         let govde = kodBloguGovdesi(depo.attributedSubstring(from: aralik))
-        if govde.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if govde.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !geriSilmeTekrari {
             blokDuzenle(aralik, yeni: NSAttributedString(string: govde),
                         secim: NSRange(location: aralik.location, length: 0), yazim: [:])
         }
@@ -251,6 +251,7 @@ extension NotMetinGorunumu {
         var isaret = yazim
         isaret[kBlokIsaretiAnahtari] = true
         yeni.insert(NSAttributedString(string: "\u{200B}", attributes: isaret), at: 0)
+        kutuAltinaBosSatirEkle(yeni, paragraf: paragraf)
         blokDuzenle(paragraf, yeni: yeni, secim: NSRange(location: paragraf.location + 1, length: 0), yazim: yazim)
     }
 }

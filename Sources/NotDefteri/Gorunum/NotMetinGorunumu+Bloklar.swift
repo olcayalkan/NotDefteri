@@ -280,8 +280,10 @@ extension NotMetinGorunumu {
         let konum = characterIndexForInsertion(at: nokta)
         let paragraf = depo.mutableString.paragraphRange(for: NSRange(location: min(konum, depo.length), length: 0))
         guard var blok = blok(paragraf), blok.tur == .yapilacak else { return false }
-        guard let kare = guvenliKare(karakter: NSRange(location: paragraf.location, length: 1))?
-            .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y).insetBy(dx: -3, dy: -2),
+        // Tıklama alanı çizilen kutudur; görünmez işaret karakteri küçük fontla dizilir.
+        let cizilen = (layoutManager as? NotYerlesimYoneticisi)?.yapilacakKutusu(paragraf.location)?.kare
+        guard let kare = (cizilen ?? guvenliKare(karakter: NSRange(location: paragraf.location, length: 1)))?
+            .offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y).insetBy(dx: -4, dy: -3),
               kare.contains(nokta) else { return false }
         blok.tamamlandi.toggle()
         blok.kaynakOnEk = nil
@@ -332,6 +334,47 @@ extension NotMetinGorunumu {
 
 extension NotMetinGorunumu {
     /// Menü de ortak paragraf biçimi ve tek işlem undo yolunu kullanır.
+    /// Yeni uyarı/kod kutusunun altında boş bir normal satır bırakılır: kutu belgenin sonunda
+    /// kalmaz, altına yazmak için kutudan çıkmak gerekmez. Altında zaten boş satır varsa eklenmez.
+    func kutuAltinaBosSatirEkle(_ yeni: NSMutableAttributedString, paragraf: NSRange) {
+        guard let depo = textStorage, yeni.length > 0 else { return }
+        let ns = depo.string as NSString
+        if NSMaxRange(paragraf) < ns.length {
+            let alt = ns.paragraphRange(for: NSRange(location: NSMaxRange(paragraf), length: 0))
+            let bos = ns.substring(with: alt).trimmingCharacters(in: .newlines).isEmpty
+            let yapili = [kKodBloguAnahtari, kUyariKutusuAnahtari, kMetinBloguAnahtari].contains {
+                depo.attribute($0, at: alt.location, effectiveRange: nil) != nil
+            }
+            if bos && !yapili { return }
+        }
+        if !yeni.string.hasSuffix("\n") {
+            // Kutunun satırını kapatan satır sonu kutuya aittir ama görünmez işaretin parçası değildir.
+            var kutu = yeni.attributes(at: yeni.length - 1, effectiveRange: nil)
+            kutu[kBlokIsaretiAnahtari] = nil
+            yeni.append(NSAttributedString(string: "\n", attributes: kutu))
+        }
+        yeni.append(NSAttributedString(string: "\n", attributes: duzYazim))
+    }
+
+    /// Ctrl+Enter kutudan çıkar: altında zaten boş normal satır varsa imleç oraya geçer, yeni
+    /// satır eklenmez (kutu eklenirken bırakılan boş satır her çıkışta çoğalmasın).
+    func kutuAltindakiBosSatiraGec() -> Bool {
+        guard let depo = textStorage, selectedRange().length == 0, depo.length > 0 else { return false }
+        let konum = min(selectedRange().location, depo.length - 1)
+        let tumu = NSRange(location: 0, length: depo.length)
+        var kutu = NSRange()
+        guard depo.attribute(kKodBloguAnahtari, at: konum, longestEffectiveRange: &kutu, in: tumu) != nil ||
+              depo.attribute(kUyariKutusuAnahtari, at: konum, longestEffectiveRange: &kutu, in: tumu) != nil else { return false }
+        let alt = NSMaxRange(kutu)
+        guard alt < depo.length, (depo.string as NSString).character(at: alt) == 10,
+              ![kKodBloguAnahtari, kUyariKutusuAnahtari, kMetinBloguAnahtari, kBaslikSeviyesiAnahtari].contains(where: {
+                  depo.attribute($0, at: alt, effectiveRange: nil) != nil }) else { return false }
+        setSelectedRange(NSRange(location: alt, length: 0))
+        typingAttributes = duzYazim
+        scrollRangeToVisible(selectedRange())
+        return true
+    }
+
     func menuBlogunuUygula(_ blok: MetinBlogu?, kod: Bool = false, komutAraligi: NSRange) {
         guard let depo = textStorage else { return }
         let paragraf = depo.mutableString.paragraphRange(for: selectedRange())
@@ -364,6 +407,7 @@ extension NotMetinGorunumu {
             yeni.insert(NSAttributedString(string: "\u{200B}", attributes: isaret), at: 0)
             isaretUzunlugu = 1
         }
+        if kod || blok?.tur == .uyari { kutuAltinaBosSatirEkle(yeni, paragraf: paragraf) }
         blokDuzenle(paragraf, yeni: yeni,
                     secim: NSRange(location: paragraf.location + isaretUzunlugu, length: 0),
                     yazim: yazim, numarala: blok?.listeMi == true)
