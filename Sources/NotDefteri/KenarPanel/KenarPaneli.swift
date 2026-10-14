@@ -59,7 +59,12 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     /// Başlık düğmelerine (B1/B2/B3/Aa) basıldığında tetiklenir; 0 = normal metin.
     var baslikSeviyesiIstendi: ((Int) -> Void)?
 
-    let tablo = NSOutlineView()
+    let tablo = KenarAgaci()
+    let sayfalarBasligi = SayfalarBasligi()
+    /// Çift tıklamanın ad düzenlemesi, üçüncü tıklama gelmeyeceği anlaşılana kadar bekler.
+    var bekleyenAdDuzenleme: DispatchWorkItem?
+    /// Üç tıklanan sayfa yalnızca içeriğiyle ayrı pencerede açılır (bkz. `IcerikPenceresi`).
+    var icerikPenceresindeAcIstendi: ((URL) -> Void)?
     let kaydirmaGorunumu = NSScrollView()
     let aramaKutusu = NSView()
     let aramaIkonu = NSImageView()
@@ -150,6 +155,7 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         tablo.autoresizesOutlineColumn = false
         tablo.target = self
         tablo.doubleAction = #selector(cifteTiklandi)
+        tablo.tiklamaGeldi = { [weak self] sayi, satir in self?.agacTiklandi(sayi, satir: satir) ?? false }
         // Sayfaları sürükleyerek başka sayfanın altına taşıma (bkz. KenarPaneli+SurukleBirak).
         tablo.registerForDraggedTypes([kSayfaSurukleTipi])
         tablo.setDraggingSourceOperationMask(.move, forLocal: true)
@@ -187,6 +193,9 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         kaydirmaGorunumu.drawsBackground = false
         kaydirmaGorunumu.borderType = .noBorder
         addSubview(kaydirmaGorunumu)
+        // Fare takılınca çubuk görünür alanı daraltır; panel boyutu değişmediği için layout çalışmaz.
+        NotificationCenter.default.addObserver(self, selector: #selector(kaydirmaStiliDegisti),
+                                               name: NSScroller.preferredScrollerStyleDidChangeNotification, object: nil)
 
         baslikCubuguKur()
         puntoCubuguKur()
@@ -371,6 +380,14 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         let listeUstu = bounds.height - 34 - aramaAlaniYuksekligi - ustBosluk * 2
         let listeAlti = baslikCubugu.frame.maxY + altBosluk
         kaydirmaGorunumu.frame = NSRect(x: 0, y: listeAlti, width: bounds.width, height: max(0, listeUstu - listeAlti))
+        // Satır görünür genişliği aşınca seçim kapsülü sağdan kırpılıyor, sayfa adı
+        // satırda ortada durmuyordu. Sütun, kaydırma çubuğu payı düşülmüş genişliğe oturur.
+        tablo.sizeLastColumnToFit()
+    }
+
+    /// Kaydırma görünümü stilini aynı bildirimde günceller; sütun ondan sonra sığdırılır.
+    @objc private func kaydirmaStiliDegisti() {
+        DispatchQueue.main.async { [weak self] in self?.tablo.sizeLastColumnToFit() }
     }
 
     /// Arama kutusuna odaklanma/odak kaybı durumunda rengi yumuşak geçişle koyulaştırır.

@@ -36,7 +36,7 @@ extension KenarPaneli {
 
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo,
                      proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
-        guard !(item is KenarBolumu),
+        guard !(item is KenarBolumu), !(item is SayfalarBasligi),
               !((item as? AgacDugumu).map { kisaYolMu($0) } ?? false),
               let surukleneN = suruklenenYollar(info) else { return [] }
         let hedefKlasor = birakmaHedefi(item)
@@ -62,7 +62,7 @@ extension KenarPaneli {
     func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo,
                      item: Any?, childIndex index: Int) -> Bool {
         sonTasimaDogrulamasi = nil
-        guard !(item is KenarBolumu),
+        guard !(item is KenarBolumu), !(item is SayfalarBasligi),
               !((item as? AgacDugumu).map { kisaYolMu($0) } ?? false),
               let suruklenen = suruklenenYollar(info) else { return false }
         let hedefKlasor = birakmaHedefi(item)
@@ -132,10 +132,10 @@ extension KenarPaneli {
     // MARK: Yardımcılar
 
     /// Araya bırakmada üst düğümün çocukları ve çocuk dizinindeki kayma
-    /// (kökte Son açılanlar bölümü önce gelir).
+    /// (kökte Son açılanlar bölümü ve "Sayfalar" başlığı önce gelir).
     private func kardesListesi(_ item: Any?) -> (liste: [AgacDugumu], kayma: Int) {
         if let dugum = item as? AgacDugumu { return (dugum.cocuklar, 0) }
-        return (kokDugumler, kenarBolumleri.count)
+        return (kokDugumler, kokBasliklari.count)
     }
 
     /// Aynı kaynak/hedef çifti için sonuç 2 sn boyunca yeniden kullanılır (hover başına disk doğrulaması yok).

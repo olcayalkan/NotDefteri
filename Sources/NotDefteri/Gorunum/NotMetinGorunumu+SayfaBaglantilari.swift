@@ -92,13 +92,99 @@ extension NotMetinGorunumu: NSTextStorageDelegate {
         let aralik = aralik ?? NSRange(location: 0, length: depo.length)
         yerlesim.removeTemporaryAttribute(.foregroundColor, forCharacterRange: aralik)
         yerlesim.removeTemporaryAttribute(.underlineStyle, forCharacterRange: aralik)
+        // İçerik penceresinde sayfa dizini yok; bağlar çözülmüş sayılır.
         let baglantilar = (window as? NotPenceresi)?.kenarPaneli.sayfaBaglantilari
         depo.enumerateAttribute(kSayfaBagiAnahtari, in: aralik) { deger, alt, _ in
             guard let hedef = deger as? String else { return }
-            let renk = NSColor.systemBlue.withAlphaComponent(baglantilar?.coz(hedef) == nil ? 0.35 : 1)
-            yerlesim.addTemporaryAttributes([.foregroundColor: renk, .underlineStyle: NSUnderlineStyle.single.rawValue],
-                                            forCharacterRange: alt)
+            let cozuldu = baglantilar.map { $0.coz(hedef) != nil } ?? true
+            let renk = bagRengi().withAlphaComponent(cozuldu ? 1 : 0.4)
+            yerlesim.addTemporaryAttributes([.foregroundColor: renk], forCharacterRange: alt)
+            // Alt çizgi yalnızca sayfa adının altında; emoji ve "[[ ]]" çizilmez.
+            let ns = depo.string as NSString
+            var ad = alt
+            if alt.length > 4, ns.substring(with: NSRange(location: alt.location, length: 2)) == "[[",
+               ns.substring(with: NSRange(location: NSMaxRange(alt) - 2, length: 2)) == "]]" {
+                ad = NSRange(location: alt.location + 2, length: alt.length - 4)
+            }
+            yerlesim.addTemporaryAttributes([.underlineStyle: NSUnderlineStyle.single.rawValue], forCharacterRange: ad)
         }
+    }
+
+    // MARK: Bağ işaretleri
+
+    /// İmleç bir sayfa bağına girince/çıkınca o bağın "[[ ]]" işaretleri görünür/gizlenir:
+    /// bağ okurken yalnızca sayfa adı (tanıtımdaki gibi) görünür, düzenlerken kaynak yazımı.
+    /// Gizleme glif düzeyindedir; Markdown ve depo metni değişmez.
+    func etkinSayfaBaginiGuncelle() {
+        let yeni = imlectekiSayfaBagi()
+        guard yeni != etkinSayfaBagi else { return }
+        let eskiler = [etkinSayfaBagi, yeni].compactMap { $0 }
+        etkinSayfaBagi = yeni
+        let yenile = { [weak self] in
+            guard let self, let depo = self.textStorage, let yerlesim = self.layoutManager else { return }
+            for aralik in eskiler {
+                let kirpik = NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length))
+                guard kirpik.length > 0 else { continue }
+                yerlesim.invalidateGlyphs(forCharacterRange: kirpik, changeInLength: 0, actualCharacterRange: nil)
+                yerlesim.invalidateLayout(forCharacterRange: kirpik, actualCharacterRange: nil)
+            }
+            self.needsDisplay = true
+        }
+        // Depo düzenlemesi sürerken glifler geçersizlenmez; düzenleme bitince yapılır.
+        if textStorage?.editedMask.isEmpty == false { DispatchQueue.main.async(execute: yenile) } else { yenile() }
+    }
+
+    private func imlectekiSayfaBagi() -> NSRange? {
+        guard let depo = textStorage, depo.length > 0 else { return nil }
+        let secim = selectedRange()
+        let tumu = NSRange(location: 0, length: depo.length)
+        // İmleç bağın hemen önünde ya da hemen arkasındayken de bağ etkindir.
+        for konum in [secim.location, secim.location - 1] where konum >= 0 && konum < depo.length {
+            var aralik = NSRange()
+            if depo.attribute(kSayfaBagiAnahtari, at: konum, longestEffectiveRange: &aralik, in: tumu) != nil { return aralik }
+        }
+        return nil
+    }
+
+    /// Glif üretiminde etkin olmayan bağların işaretleri: ilk "[" sayfa emojisinin yerini
+    /// tutan boşluğa (`simgeler`), kalan "[" ve "]]" görünmez gliflere (`gizliler`) dönüşür.
+    func bagIsaretleri(_ aralik: NSRange) -> (simgeler: Set<Int>, gizliler: Set<Int>) {
+        guard let depo = textStorage, aralik.length > 0 else { return ([], []) }
+        let tumu = NSRange(location: 0, length: depo.length)
+        let ns = depo.string as NSString
+        var simgeler = Set<Int>(), gizliler = Set<Int>()
+        depo.enumerateAttribute(kSayfaBagiAnahtari, in: NSIntersectionRange(aralik, tumu)) { deger, alt, _ in
+            guard deger != nil else { return }
+            var bag = NSRange()
+            _ = depo.attribute(kSayfaBagiAnahtari, at: alt.location, longestEffectiveRange: &bag, in: tumu)
+            guard bag != etkinSayfaBagi, bag.length > 4,
+                  ns.substring(with: NSRange(location: bag.location, length: 2)) == "[[",
+                  ns.substring(with: NSRange(location: NSMaxRange(bag) - 2, length: 2)) == "]]" else { return }
+            simgeler.insert(bag.location)
+            gizliler.formUnion([bag.location + 1, NSMaxRange(bag) - 2, NSMaxRange(bag) - 1])
+        }
+        return (simgeler, gizliler)
+    }
+
+    /// Sayfa bağının adından önce çizilen emoji (bkz. `NotYerlesimYoneticisi`).
+    static let sayfaBagiEmojisi = "📄"
+
+    /// Emojinin bağ adının fontundaki genişliği ve ada olan boşluğu.
+    func bagSimgesiGenisligi(_ karakter: Int) -> CGFloat {
+        let font = textStorage.flatMap { depo in
+            karakter + 2 < depo.length ? depo.attribute(.font, at: karakter + 2, effectiveRange: nil) as? NSFont : nil
+        } ?? varsayilanFont()
+        return Self.bagEmojisiMetni(font).size().width + 3
+    }
+
+    static func bagEmojisiMetni(_ font: NSFont) -> NSAttributedString {
+        NSAttributedString(string: sayfaBagiEmojisi, attributes: [.font: NSFont.systemFont(ofSize: font.pointSize * 0.85)])
+    }
+
+    func layoutManager(_ layoutManager: NSLayoutManager, boundingBoxForControlGlyphAt glyphIndex: Int,
+                       for textContainer: NSTextContainer, proposedLineFragment proposedRect: NSRect,
+                       glyphPosition: NSPoint, characterIndex charIndex: Int) -> NSRect {
+        NSRect(x: glyphPosition.x, y: 0, width: bagSimgesiGenisligi(charIndex), height: proposedRect.height)
     }
 
     func sayfaBagYaziminiTemizle() {

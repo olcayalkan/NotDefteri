@@ -94,7 +94,8 @@ final class KisayolPenceresi: NSWindowController, NSSearchFieldDelegate {
     private var editorKisayollari: [(String, String)] {
         [("# ", "Başlık"), ("- ", "Madde listesi"), ("1. ", "Numaralı liste"), ("[] ", "Yapılacak"),
          ("> ", "Alıntı"), ("---", "Ayırıcı"), ("```", "Kod bloğu"), ("/", "Blok menüsü"),
-         ("[[", "Sayfa bağlantısı"), ("Tab / ⇧Tab", "Girintiyi artır / azalt")]
+         ("[[", "Sayfa bağlantısı"), ("Tab / ⇧Tab", "Girintiyi artır / azalt"),
+         ("try + Tab", "Kod bloğunda kalıp (if, for, while, switch, func, class…)")]
     }
 
     private func menuKisayollari() -> [(String, [(String, String)])] {

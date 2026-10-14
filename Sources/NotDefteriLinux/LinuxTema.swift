@@ -6,19 +6,25 @@ import NotDefteriCekirdek
 final class LinuxTema {
     private typealias RGB = (r: Double, g: Double, b: Double)
     private typealias Palet = (zemin: RGB, baslik: RGB, panel: RGB, metin: RGB, koyu: Bool)
-    // Tema.swift ile aynı sıra ve RGB değerleri.
+    // Tema.swift ile aynı sıra ve RGB değerleri; zeminler `zemin()`, kağıt başlık/paneli `cerceve()` ile koyulaşır.
     private static let renkler: [Palet] = [
-        ((0.84, 0.81, 0.73), (0.78, 0.74, 0.65), (0.80, 0.77, 0.69), (0, 0, 0), false),
-        ((23.0 / 255, 20.0 / 255, 33.0 / 255), (16.0 / 255, 14.0 / 255, 24.0 / 255),
-         (33.0 / 255, 29.0 / 255, 43.0 / 255), (0.95, 0.94, 0.97), true),
-        ((0.79, 0.83, 0.76), (0.72, 0.77, 0.70), (0.75, 0.80, 0.73), (0, 0, 0), false),
-        ((0.80, 0.80, 0.80), (0.73, 0.73, 0.73), (0.76, 0.76, 0.76), (0, 0, 0), false),
-        ((0.86, 0.83, 0.76), (0.80, 0.76, 0.67), (0.82, 0.79, 0.71), (0, 0, 0), false)
+        (zemin(0.84, 0.81, 0.73), cerceve(0.78, 0.74, 0.65), cerceve(0.80, 0.77, 0.69), (0, 0, 0), false),
+        (zemin(23.0 / 255, 20.0 / 255, 33.0 / 255), zemin(16.0 / 255, 14.0 / 255, 24.0 / 255),
+         zemin(33.0 / 255, 29.0 / 255, 43.0 / 255), (0.95, 0.94, 0.97), true),
+        (zemin(0.79, 0.83, 0.76), cerceve(0.72, 0.77, 0.70), cerceve(0.75, 0.80, 0.73), (0, 0, 0), false),
+        (zemin(0.80, 0.80, 0.80), cerceve(0.73, 0.73, 0.73), cerceve(0.76, 0.76, 0.76), (0, 0, 0), false)
     ]
     /// `renkler` ile aynı sıra; Görünüm > Tema menüsü bunu listeler.
-    static let adlar = ["Sepya", "Terminal", "Yeşilimsi Kağıt", "Gri Kağıt", "Krem"]
+    static let adlar = ["Sepya", "Terminal", "Yeşilimsi Kağıt", "Gri Kağıt"]
     static var koyuMu: Bool { renkler.indices.contains(gTemaIndex) && renkler[gTemaIndex].koyu }
     static var metinRengi: String { css(renkler.indices.contains(gTemaIndex) ? renkler[gTemaIndex].metin : renkler[0].metin) }
+    private static func zemin(_ r: Double, _ g: Double, _ b: Double, oran: Double = kTemaZeminParlakligi) -> RGB {
+        (r * oran, g * oran, b * oran)
+    }
+    /// Kağıt temasının başlık ve paneli editörden ayrışsın diye ek koyulaşır (bkz. Tema.swift).
+    private static func cerceve(_ r: Double, _ g: Double, _ b: Double) -> RGB {
+        zemin(r, g, b, oran: kTemaZeminParlakligi * kTemaCerceveParlakligi)
+    }
     private let display: OpaquePointer
     private let saglayici = gtk_css_provider_new()!
 
@@ -56,7 +62,7 @@ final class LinuxTema {
         @define-color nd-secim \(Self.css(tema.panel, tonFarki: 0.14, koyuTema: tema.koyu));
         @define-color nd-odak \(Self.css(tema.panel, tonFarki: 0.16, koyuTema: tema.koyu));
         @define-color nd-metin \(Self.css(tema.metin));
-        @define-color nd-koyu-gri \(tema.koyu ? "alpha(@nd-metin, 0.72)" : "#555555");
+        @define-color nd-koyu-gri \(tema.koyu ? "alpha(@nd-metin, 0.72)" : "#333333");
         @define-color nd-metin-secimi \(tema.koyu ? "@nd-secim" : "#b3d7ff");
 
         window.notdefteri { background-color: @nd-zemin; color: @nd-metin; }

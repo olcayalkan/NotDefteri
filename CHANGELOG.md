@@ -10,13 +10,32 @@ and this project adheres to
 
 ### Added
 
-- NotDefteri: macOS not, ana sayfa ve kenar panel sağ tık menülerinde Görünüm → Tema seçimi.
+- NotDefteri: macOS not, ana sayfa ve kenar panel sağ tık menülerinde Görünüm altında doğrudan tema seçimi.
 - NotDefteri: `/table` ve `/tablo` ile tablo ekleme, kaynak Markdown yazılışını koruyan hücre düzenleme.
 - NotDefteri: Terminal teması, kayıtlı tema seçimi için tek seferlik geçiş ve macOS/Linux tema yenilemesi.
 - NotDefteri: Dil etiketi olmayan veya tanınmayan kod bloklarında genel sözdizimi renklendirmesi.
+- NotDefteri: macOS kod bloğunda `(`, `[`, `{`, `"`, `'` otomatik kapanış; anahtar kelime + Tab ile dile göre try/catch, if, for, while, switch, fonksiyon ve sınıf kalıpları.
+
+### Changed
+
+- NotDefteri: Uyarı kutusu kod bloğu gibi yazılır: boş satırda Enter kutuda kalır, Ctrl+Enter kutudan çıkar (altında boş satır varsa oraya geçer); ilk satır boşken geri silme kutuyu bozmaz.
+- NotDefteri: macOS arayüzü tanıtımla uyumlu: sayfa bağları 📄 emojisiyle, köşeli parantezsiz mavi ve altı çizili (imleç bağdayken `[[ ]]` görünür), tamamlanan görevde yeşil tik, görseller yuvarlak köşeli gölgeli kart, kenar panelde "Sayfalar" başlığı ve alt sayfalı sayfalarda klasör simgesi.
+- NotDefteri: macOS kenar panelde sayfaya üç tıklama sayfayı yalnızca içeriğiyle ayrı, salt okunur bir pencerede açar; iki tıklama yeniden adlandırır.
+- NotDefteri: Uyarı kutusu ve kod bloğu eklenince altına boş bir satır gelir; uyarı renkleri ve çerçevesi koyulaştı.
+- NotDefteri: Numaralı listede numaralar sağa hizalanır; 10 ve üstü numaralar metni kaydırmaz.
+- NotDefteri: "Tam genişlik" sayfa seçeneği kaldırıldı (eski sayfalardaki `genislik: tam` satırı korunur, etkisizdir). "•••" sayfa seçenekleri alanı yalnızca düğme kadar geniş.
+- NotDefteri: Krem teması kaldırıldı; kayıtlı Krem seçimi Sepya'ya döner. Tema zeminleri göz yormaması için aynı oranda koyulaştırıldı; kağıt temalarda başlık çubuğu ve kenar panel editörden ayrışacak kadar ek koyulaştı, ikincil yazılar kontrastı korumak için koyulaştı.
 
 ### Fixed
 
+- NotDefteri: macOS `/table` penceresinde satır ve sütun alanlarına yazılamaması.
+- NotDefteri: macOS tablo satır zemini ve seçim vurgusunun tablo çerçevesinin dışına taşması.
+- NotDefteri: macOS uyarı/kod kutusunda yazı seçilip silinince kutunun da silinmesi; basılı tutulan geri silme boşalan kutuda durur.
+- NotDefteri: macOS'ta Enter'la açılan boş görevin kutusunun üstteki satıra binmesi.
+- NotDefteri: macOS yapılacak kutularının (☐/☑) farklı boyutta çizilmesi ve boş kutulu satırların daha yüksek olması.
+- NotDefteri: Sekmeyle (Obsidian) ya da üç boşlukla girintilenmiş iç listelerin ham metin görünmesi.
+- NotDefteri: macOS başlık çubuğunda sayfa adı/yolunun pencerenin ortasında durmaması.
+- NotDefteri: macOS İçindekiler listesinin odak kaybında ve ekran görüntüsü alınırken kapanması.
 - NotDefteri: Kod bloğunda boş Enter satırlarını koruma ve Ctrl+Enter ile açık çıkış.
 - NotDefteri: Ekransız Linux testlerinde GTK başlatma sonucunu paylaşarak yanlış pencere oluşturmayı önleme.
 - NotDefteri: Tema değişiminde metin/kod renklerinin güncellenmesi ve Türkçe arama normalizasyonuna uygun önbellek testi beklentileri.

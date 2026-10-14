@@ -55,13 +55,14 @@ extension NotMetinGorunumu {
             guard anahtar != kKodBloguAnahtari else { blokCercevesiniCiz(kare, renk: kMetinRenk, cizgi: 0.7); continue }
             let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
             let r = kUyariRenkleri[blok?.renk ?? ""] ?? kUyariRenkleri["gri"]!
-            blokCercevesiniCiz(kare, renk: NSColor(srgbRed: r.r, green: r.g, blue: r.b, alpha: 1), cizgi: kUyariCizgiOpakligi)
+            blokCercevesiniCiz(kare, renk: NSColor(srgbRed: r.r, green: r.g, blue: r.b, alpha: 1), cizgi: kUyariCizgiOpakligi,
+                               dolgu: kUyariDolguOpakligi)
         }
     }
 
-    func blokCercevesiniCiz(_ kare: NSRect, renk: NSColor, cizgi: CGFloat) {
+    func blokCercevesiniCiz(_ kare: NSRect, renk: NSColor, cizgi: CGFloat, dolgu: CGFloat = kKutuDolguOpakligi) {
         let cerceve = NSBezierPath(roundedRect: kare.insetBy(dx: 0.5, dy: 0.5), xRadius: 6, yRadius: 6)
-        renk.withAlphaComponent(kKutuDolguOpakligi).setFill()
+        renk.withAlphaComponent(dolgu).setFill()
         cerceve.fill()
         renk.withAlphaComponent(cizgi).setStroke()
         cerceve.lineWidth = 1
@@ -87,8 +88,19 @@ extension NotMetinGorunumu {
         guard let mevcut = blok(paragraf), mevcut.tur == .uyari,
               selectedRange().location <= paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location) else { return false }
         let eski = depo.attributedSubstring(from: paragraf)
-        if kodBloguGovdesi(eski).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            menuBlogunuUygula(nil, komutAraligi: NSRange(location: paragraf.location, length: 0))
+        // Kod bloğu gibi: ara satırda geri silme satırı üsttekine katar (boş satır da olsa);
+        // kutu yalnızca bütünüyle boşken ilk satırında, ayrı bir basışla kalkar. Boş ara satırı
+        // düz paragrafa çevirmek kutuyu ikiye bölüyordu.
+        var tum = NSRange()
+        _ = depo.attribute(kUyariKutusuAnahtari, at: paragraf.location, longestEffectiveRange: &tum,
+                           in: NSRange(location: 0, length: depo.length))
+        if paragraf.location <= tum.location {
+            let kutuBos = kodBloguGovdesi(depo.attributedSubstring(from: tum)).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            if kutuBos, !geriSilmeTekrari {
+                let sonu = (depo.string as NSString).substring(with: tum).hasSuffix("\n") ? "\n" : ""
+                blokDuzenle(tum, yeni: NSAttributedString(string: sonu),
+                            secim: NSRange(location: tum.location, length: 0), yazim: [:])
+            }
             return true
         }
         guard paragraf.location > 0,

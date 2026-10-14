@@ -93,7 +93,6 @@ func anaMenuyuOlustur(delege: UygulamaDelegesi) -> NSMenu {
     let tamEkranOgesi = NSMenuItem(title: "Tam Ekran", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
     tamEkranOgesi.keyEquivalentModifierMask = [.command, .control]
     gorunumMenu.addItem(tamEkranOgesi)
-    gorunumMenu.addItem(withTitle: "Tam genişlik", action: #selector(NotPenceresi.tamGenislikKomutu(_:)), keyEquivalent: "")
     gorunumMenu.addItem(withTitle: "Küçük yazı", action: #selector(NotPenceresi.kucukYaziKomutu(_:)), keyEquivalent: "")
     gorunumMenu.addItem(NSMenuItem.separator())
     let puntoArttirOgesi = NSMenuItem(title: "Puntoyu Büyüt", action: #selector(NotPenceresi.yaziBuyutKomutu(_:)), keyEquivalent: "*")
@@ -167,26 +166,20 @@ extension UygulamaDelegesi {
 }
 
 /// Sağ tık menüsü aynı pencere komutlarını kullanır; belgeye görünüm verisi yazmaz.
+/// Temalar ara bir "Tema" alt menüsü olmadan doğrudan Görünüm'ün altında listelenir.
 @discardableResult
 func gorunumBaglamMenusunuEkle(_ menu: NSMenu, hedef: NotPenceresi?) -> NSMenu {
     if let eski = menu.item(withTitle: "Görünüm") { menu.removeItem(eski) }
     let gorunum = NSMenu(title: "Görünüm")
-    let tema = NSMenu(title: "Tema")
     for (index, palet) in temaListesi.enumerated() {
         let oge = NSMenuItem(title: palet.ad, action: #selector(NotPenceresi.temaSecKomutu(_:)), keyEquivalent: "")
         oge.target = hedef
         oge.representedObject = index
         oge.state = index == gTemaIndex ? .on : .off
-        tema.addItem(oge)
+        gorunum.addItem(oge)
     }
-    let temaOgesi = NSMenuItem(title: "Tema", action: nil, keyEquivalent: "")
-    temaOgesi.submenu = tema
-    gorunum.addItem(temaOgesi)
-    for (ad, eylem) in [("Tam genişlik", #selector(NotPenceresi.tamGenislikKomutu(_:))),
-                         ("Küçük yazı", #selector(NotPenceresi.kucukYaziKomutu(_:)))] {
-        let oge = gorunum.addItem(withTitle: ad, action: eylem, keyEquivalent: "")
-        oge.target = hedef
-    }
+    gorunum.addItem(.separator())
+    gorunum.addItem(withTitle: "Küçük yazı", action: #selector(NotPenceresi.kucukYaziKomutu(_:)), keyEquivalent: "").target = hedef
     let oge = NSMenuItem(title: "Görünüm", action: nil, keyEquivalent: "")
     oge.submenu = gorunum
     if !menu.items.isEmpty, menu.items.last?.isSeparatorItem != true { menu.addItem(.separator()) }

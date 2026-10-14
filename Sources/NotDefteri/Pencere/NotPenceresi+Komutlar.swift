@@ -103,29 +103,11 @@ extension NotPenceresi {
     }
 
     private func tabloEklemePenceresiniAc(_ aralik: NSRange) {
-        let uyari = NSAlert()
-        uyari.messageText = "Tablo ekle"
-        uyari.informativeText = "Başlık satırı dahil satır ve sütun sayısını girin."
-        uyari.addButton(withTitle: "Ekle")
-        uyari.addButton(withTitle: "Vazgeç")
-        let satir = NSTextField(string: "3")
-        let sutun = NSTextField(string: "3")
-        let kutu = NSStackView()
-        kutu.orientation = .vertical
-        kutu.alignment = .leading
-        kutu.spacing = 8
-        for (etiket, alan) in [("Satır (başlık dahil)", satir), ("Sütun", sutun)] {
-            let satirKutusu = NSStackView(views: [NSTextField(labelWithString: etiket), alan])
-            satirKutusu.orientation = .horizontal
-            satirKutusu.spacing = 12
-            alan.frame.size = NSSize(width: 72, height: 24)
-            kutu.addArrangedSubview(satirKutusu)
-        }
-        uyari.accessoryView = kutu
+        let (uyari, satir, sutun) = tabloBoyutUyarisi()
         uyari.beginSheetModal(for: self) { [weak self] sonuc in
             guard let self, sonuc == .alertFirstButtonReturn,
-                  let satirSayisi = Int(satir.stringValue.trimmingCharacters(in: .whitespaces)),
-                  let sutunSayisi = Int(sutun.stringValue.trimmingCharacters(in: .whitespaces)),
+                  let satirSayisi = tabloBoyutu(satir.stringValue, kTabloEnAzSatir...kTabloEnCokSatir),
+                  let sutunSayisi = tabloBoyutu(sutun.stringValue, kTabloEnAzSutun...kTabloEnCokSutun),
                   let markdown = tabloMarkdownUret(satir: satirSayisi, sutun: sutunSayisi) else {
                 return
             }
@@ -199,4 +181,42 @@ extension NotPenceresi {
         metinGorunumu.undoManager?.removeAllActions()
         gecmisDugmeleriniGuncelle()
     }
+}
+
+// MARK: - Tablo boyutu sorusu
+
+/// `/tablo` boyut penceresi. NSAlert aksesuarı otomatik yerleşimle boyutlanmaz:
+/// çerçevesi sıfır kalan yığın görünümünde alanlar 0×0 olur, tıklanamaz ve yazı
+/// almaz. Izgara kendi ölçüsüyle kurulur, ilk odak satır alanına verilir.
+func tabloBoyutUyarisi() -> (uyari: NSAlert, satir: NSTextField, sutun: NSTextField) {
+    let uyari = NSAlert()
+    uyari.messageText = "Tablo ekle"
+    uyari.informativeText = "Satır sayısına başlık satırı dahildir. Satır \(kTabloEnAzSatir)–\(kTabloEnCokSatir), "
+        + "sütun \(kTabloEnAzSutun)–\(kTabloEnCokSutun) arasında olabilir."
+    uyari.addButton(withTitle: "Ekle")
+    uyari.addButton(withTitle: "Vazgeç")
+    let satir = NSTextField(string: "3")
+    let sutun = NSTextField(string: "3")
+    for alan in [satir, sutun] {
+        alan.alignment = .right
+        alan.widthAnchor.constraint(equalToConstant: 64).isActive = true
+    }
+    satir.nextKeyView = sutun
+    sutun.nextKeyView = satir
+    let izgara = NSGridView(views: [[NSTextField(labelWithString: "Satır (başlık dahil)"), satir],
+                                    [NSTextField(labelWithString: "Sütun"), sutun]])
+    izgara.rowSpacing = 8
+    izgara.columnSpacing = 12
+    izgara.rowAlignment = .firstBaseline
+    izgara.column(at: 0).xPlacement = .trailing
+    izgara.frame = NSRect(origin: .zero, size: izgara.fittingSize)
+    uyari.accessoryView = izgara
+    uyari.window.initialFirstResponder = satir
+    return (uyari, satir, sutun)
+}
+
+/// Sayı olmayan girdi tablo eklemez; sınır dışı sayı en yakın geçerli boyuta çekilir
+/// (sınırlar pencerede yazılıdır).
+func tabloBoyutu(_ metin: String, _ sinir: ClosedRange<Int>) -> Int? {
+    Int(metin.trimmingCharacters(in: .whitespaces)).map { min(max($0, sinir.lowerBound), sinir.upperBound) }
 }

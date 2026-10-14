@@ -13,20 +13,24 @@ package let gAyarlar: UserDefaults = {
 }()
 
 /// Seçili temanın kayıtlı indeksi; geçerliliğini platformun görünümü denetler.
-/// Sürüm 2'de Terminal teması ikinci sıraya eklendi. Eski 1...3 seçimleri aynı
+/// Sürüm 2'de Terminal teması ikinci sıraya eklendi. Eski 1...2 seçimleri aynı
 /// kağıt temasını göstermeye devam etsin diye yalnızca bir kez ileri taşınır.
 package var gTemaIndex: Int = {
     temaSeciminiYukle(gAyarlar)
 }()
+
+/// Sepya, Terminal, Yeşilimsi Kağıt, Gri Kağıt. Krem kaldırıldı; onun eski (3) ve
+/// sürüm 2'deki (4) indeksi geçersiz sayılır ve Sepya açılır.
+package let kTemaSayisi = 4
 
 /// Bozuk/elle değiştirilmiş eski indeksler taşma yaratmadan Sepya'ya döner.
 /// Ayrı depo parametresi göçün gerçek kullanıcı ayarlarına dokunmadan sınanmasını sağlar.
 package func temaSeciminiYukle(_ ayarlar: UserDefaults) -> Int {
     let kayitli = ayarlar.integer(forKey: "temaIndex")
     guard ayarlar.integer(forKey: "temaDuzeniSurumu") < 2 else {
-        return (0...4).contains(kayitli) ? kayitli : 0
+        return (0..<kTemaSayisi).contains(kayitli) ? kayitli : 0
     }
-    let tasinmis = (1...3).contains(kayitli) ? kayitli + 1 : 0
+    let tasinmis = (1...2).contains(kayitli) ? kayitli + 1 : 0
     ayarlar.set(tasinmis, forKey: "temaIndex")
     ayarlar.set(2, forKey: "temaDuzeniSurumu")
     return tasinmis

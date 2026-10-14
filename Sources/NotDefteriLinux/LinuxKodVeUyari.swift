@@ -134,6 +134,7 @@ private final class KodVeUyariAraclari {
     private struct Cerceve {
         let kare: GdkRectangle
         let renk: GdkRGBA
+        let dolgu: Double
     }
     private var cerceveler: [Cerceve] = []
     private var sonAlan = GdkRectangle()
@@ -697,7 +698,8 @@ private final class KodVeUyariAraclari {
                 let renk = GdkRGBA(red: Float(r.r), green: Float(r.g), blue: Float(r.b), alpha: Float(kod ? 0.3 : kUyariCizgiOpakligi))
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
                 let x = gtk_text_view_get_left_margin(gorunum) + seviye
-                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: icEn - seviye, alan: alan), renk: renk))
+                cerceveler.append(Cerceve(kare: cerceveKaresi(blok, x: x, en: icEn - seviye, alan: alan), renk: renk,
+                                          dolgu: kod ? kKutuDolguOpakligi : kUyariDolguOpakligi))
             }
         }
     }
@@ -720,7 +722,7 @@ private final class KodVeUyariAraclari {
             cairo_arc(cr, x + r, y + boy - r, r, .pi / 2, .pi)
             cairo_arc(cr, x + r, y + r, r, .pi, .pi * 1.5)
             cairo_close_path(cr)
-            cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), kKutuDolguOpakligi)
+            cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), cerceve.dolgu)
             cairo_fill_preserve(cr)
             cairo_set_source_rgba(cr, Double(renk.red), Double(renk.green), Double(renk.blue), Double(renk.alpha))
             cairo_set_line_width(cr, 1)

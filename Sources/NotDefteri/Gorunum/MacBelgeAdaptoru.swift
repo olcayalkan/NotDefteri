@@ -60,9 +60,6 @@ final class MacBelgeAdaptoru {
          .verticalGlyphForm, .textEffect, .superscript]
     private static var solukRenk: NSColor { kMetinRenk.withAlphaComponent(0.45) }
     private static var kodArkaplani: NSColor { kMetinRenk.withAlphaComponent(0.08) }
-    private static var tabloArkaplani: NSColor { kMetinRenk.withAlphaComponent(0.075) }
-    private static var tabloAlternatifArkaplani: NSColor { kMetinRenk.withAlphaComponent(0.035) }
-    private static var tabloBaslikArkaplani: NSColor { kMetinRenk.withAlphaComponent(0.20) }
     private static var tabloCerceveRengi: NSColor { kMetinRenk.withAlphaComponent(0.62) }
     private static let vurguArkaplani = NSColor.systemYellow.withAlphaComponent(0.3)
     private static var fontlar: [String: NSFont] = [:]
@@ -331,15 +328,20 @@ final class MacBelgeAdaptoru {
         g[.font] = font(o)
         g[.foregroundColor] = soluk ? Self.solukRenk : (g[.foregroundColor] ?? kMetinRenk)
         if soluk || o[kUstuCiziliAnahtari] as? Bool == true { g[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
+        if blok?.tur == .yapilacak, o[kBlokIsaretiAnahtari] as? Bool == true {
+            // Kutuyu `NotYerlesimYoneticisi` çizer. ☐ sistem fontunda yok, yedek font satırı
+            // uzatıyordu; ☑ ise başka boyutta çiziliyordu. İşaret yerinde kalır ama görünmez.
+            let punto = (g[.font] as? NSFont)?.pointSize ?? kTabanPunto
+            g[.font] = NSFont(name: "AppleSymbols", size: punto * 0.6) ?? g[.font]
+            g[.foregroundColor] = NSColor.clear
+        }
         if o[kVurguAnahtari] as? Bool == true {
             g[.backgroundColor] = Self.vurguArkaplani
         } else if o[kSatirIciKodAnahtari] as? Bool == true {
             g[.backgroundColor] = Self.kodArkaplani
-        } else if let tablo = o[kTabloSatiriAnahtari] as? String {
-            if tablo == TabloSatiriTuru.baslik.rawValue { g[.backgroundColor] = Self.tabloBaslikArkaplani }
-            else if tablo == TabloSatiriTuru.govdeAlternatif.rawValue { g[.backgroundColor] = Self.tabloAlternatifArkaplani }
-            else { g[.backgroundColor] = Self.tabloArkaplani }
-            if tablo == TabloSatiriTuru.cerceve.rawValue { g[.foregroundColor] = Self.tabloCerceveRengi }
+        } else if o[kTabloSatiriAnahtari] as? String == TabloSatiriTuru.cerceve.rawValue {
+            // Satır zeminleri öznitelik değil: `NotYerlesimYoneticisi` çerçevenin içine çizer.
+            g[.foregroundColor] = Self.tabloCerceveRengi
         }
         if let bag = o[kBaglantiAnahtari] { g[.link] = bag }
         // Kodun görsel girintisi yalnızca Mac stilidir; gövdeye ve kayda sekme eklenmez.
@@ -351,7 +353,15 @@ final class MacBelgeAdaptoru {
                    "satirSonuKirma": true]
             : o[kParagrafGeometrisiAnahtari] as? [String: Any]
         if let stil = paragrafStili(geometri) {
-            g[.paragraphStyle] = stil
+            if blok?.tur == .yapilacak, let metinFontu = font(o) as NSFont? {
+                // Yeni (boş) görevde satırda yalnızca küçük, görünmez işaret vardır; satır kısalıp
+                // çizilen kutu üstteki satıra biniyordu. Satır metin fontunun yüksekliğinde tutulur.
+                let sabit = stil.mutableCopy() as! NSMutableParagraphStyle
+                sabit.minimumLineHeight = max(sabit.minimumLineHeight, NSLayoutManager().defaultLineHeight(for: metinFontu))
+                g[.paragraphStyle] = sabit
+            } else {
+                g[.paragraphStyle] = stil
+            }
         }
         return g
     }
@@ -361,13 +371,22 @@ final class MacBelgeAdaptoru {
         guard let g else { return nil }
         func deger(_ ad: String) -> CGFloat { CGFloat((g[ad] as? Double) ?? 0) }
         var govde = deger("govdeGirintisi")
+        var ilk = deger("ilkSatirGirintisi")
         if let numara = g["numaraMetni"] as? String, !numara.isEmpty {
-            let isaret = max(deger("isaretEnAzGenisligi"),
-                             (numara as NSString).size(withAttributes: [.font: varsayilanFont()]).width + deger("isaretSonuBoslugu"))
-            govde += isaret - deger("isaretEnAzGenisligi")
+            // Numara sağa hizalanır: noktalar alt alta gelir, metin her numarada aynı yerden
+            // başlar ("10." metni itip hizayı bozuyordu). Sütuna sığmayan üç basamaklı
+            // numara metni iter; numara hiçbir zaman kesilmez.
+            let genislik = (numara as NSString).size(withAttributes: [.font: varsayilanFont()]).width
+            let bosluk: CGFloat = 4
+            let bas = govde - bosluk - genislik
+            if bas >= -1.5 {
+                ilk = max(0, bas)
+            } else {
+                govde = ilk + genislik + bosluk
+            }
         }
         let stil = NSMutableParagraphStyle()
-        stil.firstLineHeadIndent = deger("ilkSatirGirintisi")
+        stil.firstLineHeadIndent = ilk
         stil.headIndent = govde
         stil.tabStops = [NSTextTab(textAlignment: .left, location: govde)]
         stil.defaultTabInterval = deger("sekmeAraligi")

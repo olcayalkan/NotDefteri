@@ -84,6 +84,12 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
         kenarPaneli.isHidden = kenarPanelGizli
         kenarPaneli.gorunumGuncellemeleriniAyarla(!kenarPanelGizli)
         kenarPaneli.notSecildi = { [weak self] url in self?.notuAc(url, panelYenile: false) }
+        kenarPaneli.icerikPenceresindeAcIstendi = { [weak self] url in
+            guard let self else { return }
+            // Ana pencerede açıksa son yazılanlar önce diske gider; içerik penceresi dosyadan okur.
+            if self.mevcutDosyaURL == url { _ = self.mevcutNotuKaybolmayacakSekildeKaydet() }
+            IcerikPenceresi.ac(url, yanindaki: self)
+        }
         kenarPaneli.notSilindi = { [weak self] url in self?.notSilindiIsleyici(url) }
         kenarPaneli.notYenidenAdlandirildi = { [weak self] eski, yeni in self?.notYenidenAdlandirildiIsleyici(eski: eski, yeni: yeni) }
         kenarPaneli.tasinmadanOnce = { [weak self] in self?.mevcutNotuKaybolmayacakSekildeKaydet() ?? false }
@@ -144,7 +150,7 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
         metinGorunumu.isAutomaticQuoteSubstitutionEnabled = false
         metinGorunumu.isAutomaticDashSubstitutionEnabled = false
         metinGorunumu.isAutomaticTextReplacementEnabled = false
-        metinGorunumu.linkTextAttributes = [.foregroundColor: kMetinRenk, .underlineStyle: NSUnderlineStyle.single.rawValue]
+        metinGorunumu.linkTextAttributes = bagOznitelikleri()
         metinGorunumu.allowsUndo = true
         metinGorunumu.usesFindBar = true
         metinGorunumu.isIncrementalSearchingEnabled = true

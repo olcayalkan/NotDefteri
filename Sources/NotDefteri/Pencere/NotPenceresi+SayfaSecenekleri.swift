@@ -11,9 +11,7 @@ extension NotPenceresi {
 
     @objc private func sayfaSecenekMenusunuAc(_ sender: NSButton) {
         let menu = NSMenu(title: "Sayfa seçenekleri")
-        for (ad, eylem) in [("Tam genişlik", #selector(tamGenislikKomutu(_:))), ("Küçük yazı", #selector(kucukYaziKomutu(_:)))] {
-            menu.addItem(withTitle: ad, action: eylem, keyEquivalent: "").target = self
-        }
+        menu.addItem(withTitle: "Küçük yazı", action: #selector(kucukYaziKomutu(_:)), keyEquivalent: "").target = self
         menu.addItem(.separator())
         let aktar = NSMenu(title: "Dışa aktar")
         for (ad, eylem) in [("PDF", #selector(disaAktarPDF(_:))), ("HTML", #selector(disaAktarHTML(_:))), ("Markdown", #selector(disaAktarMarkdown(_:)))] {
@@ -54,12 +52,6 @@ extension NotPenceresi {
         gecmisDugmeleriniGuncelle()
     }
 
-    @objc func tamGenislikKomutu(_ sender: Any?) {
-        var bilgi = sayfaUstbilgisi
-        bilgi.genislik = bilgi.genislik == "tam" ? "" : "tam"
-        sayfaUstbilgisiniDegistir(bilgi)
-    }
-
     @objc func kucukYaziKomutu(_ sender: Any?) {
         var bilgi = sayfaUstbilgisi
         bilgi.yazi = bilgi.yazi == "kucuk" ? "" : "kucuk"
@@ -89,7 +81,9 @@ extension NotPenceresi {
         // Çok dar editörde bile mevcut görselin asgari eni için yer bırak.
         let yanPay = min(48, max(0, (genislik - kEnKucukResimEni - kapsayici.lineFragmentPadding * 2) / 2))
         let kullanilabilir = max(1, genislik - yanPay * 2)
-        let kapGenisligi = sayfaUstbilgisi.genislik == "tam" ? kullanilabilir : min(760, kullanilabilir)
+        // "Tam genişlik" seçeneği kaldırıldı; eski sayfalardaki `genislik: tam` satırı dosyada
+        // korunur ama okunur genişliği değiştirmez.
+        let kapGenisligi = min(760, kullanilabilir)
         let inset = NSSize(width: max(0, (genislik - kapGenisligi) / 2), height: 12)
         if metinGorunumu.textContainerInset != inset { metinGorunumu.textContainerInset = inset }
         // Boy veya yalnızca merkez değiştiğinde bütün belgeyi yeniden dizme.
@@ -99,7 +93,7 @@ extension NotPenceresi {
         let sol = clip.convert(NSPoint(x: clip.bounds.minX, y: 0), to: icerikGorunum).x + inset.width
         let baslikPayi = min(14, inset.width)
         sayfaSecenekAlani.frame.origin.x = sol - baslikPayi
-        sayfaSecenekAlani.frame.size.width = kapGenisligi + baslikPayi * 2
+        sayfaSecenekAlani.frame.size.width = min(SayfaSecenekAlani.genislik, kapGenisligi + baslikPayi * 2)
         sayfaAltBilgisi.frame.origin.x = sol + kapsayici.lineFragmentPadding
         sayfaAltBilgisi.frame.size.width = max(0, kapGenisligi - kapsayici.lineFragmentPadding * 2)
         sayfaDosyalariAlani.frame = NSRect(x: sayfaAltBilgisi.frame.minX, y: 26,
@@ -109,7 +103,7 @@ extension NotPenceresi {
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         if !anaSayfa.isHidden {
-            let editorKomutlari: [Selector] = [#selector(tamGenislikKomutu(_:)), #selector(kucukYaziKomutu(_:)),
+            let editorKomutlari: [Selector] = [#selector(kucukYaziKomutu(_:)),
                 #selector(kaydetKomutu(_:)), #selector(geriAlKomutu(_:)), #selector(ileriAlKomutu(_:)),
                 #selector(kalinKomutu(_:)), #selector(italikKomutu(_:)), #selector(ustuCiziliKomutu(_:)),
                 #selector(satirIciKodKomutu(_:)), #selector(vurguKomutu(_:)), #selector(baglantiKomutu(_:)),
@@ -121,8 +115,6 @@ extension NotPenceresi {
         switch menuItem.action {
         case #selector(acilistaAnaSayfaKomutu(_:)):
             menuItem.state = gAcilistaAnaSayfa ? .on : .off
-        case #selector(tamGenislikKomutu(_:)):
-            menuItem.state = sayfaUstbilgisi.genislik == "tam" ? .on : .off
         case #selector(kucukYaziKomutu(_:)):
             menuItem.state = sayfaUstbilgisi.yazi == "kucuk" ? .on : .off
         default: return super.validateMenuItem(menuItem)

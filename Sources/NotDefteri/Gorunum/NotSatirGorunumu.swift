@@ -19,9 +19,23 @@ final class NotSatirGorunumu: NSTableRowView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    /// Kısa yol bölümünde açık sayfanın satırı: kapsül hücrenin başından başlar. Hücre
+    /// katmanına boyanınca sağ kenarı seçim kapsülünden kısa kalıyordu; ikisi aynı kenarda biter.
+    var kisaYolVurgulu = false {
+        didSet {
+            guard kisaYolVurgulu != oldValue else { return }
+            needsLayout = true
+            vurguGorunumu.alphaValue = isSelected || kisaYolVurgulu ? 1 : 0
+        }
+    }
+
     override func layout() {
         super.layout()
-        vurguGorunumu.frame = bounds.insetBy(dx: 4, dy: 1)
+        var kare = bounds.insetBy(dx: 4, dy: 1)
+        if kisaYolVurgulu, !isSelected, let hucre = subviews.first(where: { $0 is NSTableCellView }) {
+            kare = NSRect(x: hucre.frame.minX, y: kare.minY, width: max(0, kare.maxX - hucre.frame.minX), height: kare.height)
+        }
+        vurguGorunumu.frame = kare
     }
 
     override var isSelected: Bool {
@@ -30,10 +44,11 @@ final class NotSatirGorunumu: NSTableRowView {
             let degisti = super.isSelected != newValue
             super.isSelected = newValue
             guard degisti else { return }
+            needsLayout = true
             NSAnimationContext.runAnimationGroup { baglam in
                 baglam.duration = 0.16
                 baglam.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                vurguGorunumu.animator().alphaValue = newValue ? 1 : 0
+                vurguGorunumu.animator().alphaValue = newValue || kisaYolVurgulu ? 1 : 0
             }
         }
     }

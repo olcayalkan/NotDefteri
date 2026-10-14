@@ -31,6 +31,9 @@ final class IcindekilerPaneli: NSView {
     private var depoIzleyicisi: NSObjectProtocol?
     private(set) var acik = false
     private var izlemeAlani: NSTrackingArea?
+    /// Fare panelden çıkmış görünür ama bir kaplama (ekran görüntüsü aracı) altında kalmışsa
+    /// açık liste korunur; bu zamanlayıcı farenin gerçekten çıkmasını bekler.
+    private var kapanmaZamanlayicisi: Timer?
     private var satirlar: [SatirGorunumu] = []
 
     private let kaydirma = NSScrollView()
@@ -72,6 +75,7 @@ final class IcindekilerPaneli: NSView {
 
     deinit {
         guncellemeZamanlayicisi?.invalidate()
+        kapanmaZamanlayicisi?.invalidate()
         if let depoIzleyicisi { NotificationCenter.default.removeObserver(depoIzleyicisi) }
         NotificationCenter.default.removeObserver(self)
     }
@@ -244,15 +248,51 @@ final class IcindekilerPaneli: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let izlemeAlani { removeTrackingArea(izlemeAlani) }
+        // Pencere odağı kaybedince (ekran görüntüsü aracı öne gelince) liste kapanmasın;
+        // .activeInKeyWindow odak giderken çıkış olayı gönderiyordu.
         let yeni = NSTrackingArea(rect: bounds,
-                                   options: [.activeInKeyWindow, .mouseEnteredAndExited, .inVisibleRect],
+                                   options: [.activeAlways, .mouseEnteredAndExited, .inVisibleRect],
                                    owner: self, userInfo: nil)
         addTrackingArea(yeni)
         izlemeAlani = yeni
     }
 
-    override func mouseEntered(with event: NSEvent) { aciklikAyarla(true) }
-    override func mouseExited(with event: NSEvent) { aciklikAyarla(false) }
+    override func mouseEntered(with event: NSEvent) {
+        kapanmaZamanlayicisi?.invalidate()
+        kapanmaZamanlayicisi = nil
+        aciklikAyarla(true)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        guard acik, !fareCikti() else { aciklikAyarla(false); return }
+        kapanmaZamanlayicisi?.invalidate()
+        let zamanlayici = Timer(timeInterval: 0.25, repeats: true) { [weak self] zamanlayici in
+            guard let self else { zamanlayici.invalidate(); return }
+            guard self.fareCikti() else { return }
+            zamanlayici.invalidate()
+            self.kapanmaZamanlayicisi = nil
+            self.aciklikAyarla(false)
+        }
+        kapanmaZamanlayicisi = zamanlayici
+        RunLoop.main.add(zamanlayici, forMode: .common)
+    }
+
+    /// Ekran görüntüsü aracı ekranı kaplayınca fare yerinden oynamadan çıkış olayı gelir;
+    /// bölge seçerken fare panelden uzaklaşsa da kaplama sürdükçe liste açık kalır.
+    private func fareCikti() -> Bool {
+        guard let pencere = window else { return true }
+        let fare = NSEvent.mouseLocation
+        let ustteki = NSWindow.windowNumber(at: fare, belowWindowWithWindowNumber: 0)
+        return Self.kapanmali(paneldeMi: pencere.convertToScreen(convert(bounds, to: nil)).contains(fare),
+                              penceredeMi: pencere.frame.contains(fare),
+                              usttekiBizimMi: NSApp.windows.contains { $0.windowNumber == ustteki })
+    }
+
+    /// Fare panelin dışındaysa ve ya pencereden çıkmış ya da üstünde yine bizim penceremiz
+    /// varsa kapanır. Pencerenin üstünü başka bir uygulama kaplıyorsa beklenir.
+    static func kapanmali(paneldeMi: Bool, penceredeMi: Bool, usttekiBizimMi: Bool) -> Bool {
+        !paneldeMi && (!penceredeMi || usttekiBizimMi)
+    }
 
     private func aciklikAyarla(_ yeniDurum: Bool) {
         guard acik != yeniDurum, !bos else { return }
