@@ -1,6 +1,9 @@
 import AppKit
 import NotDefteriCekirdek
 
+/// Kök sayfaların üstündeki "Sayfalar" başlığı: seçilmez, katlanmaz, sürükleme hedefi değildir.
+final class SayfalarBasligi: NSObject {}
+
 final class KenarBolumu: NSObject {
     let ad: String
     let anahtar: String
@@ -28,6 +31,12 @@ extension KenarPaneli {
     var kenarBolumleri: [KenarBolumu] {
         guard !aramaFiltresiEtkin else { return [] }
         return [sonAcilanBolumu]
+    }
+
+    /// Kökte sayfalardan önce gelen satırlar: kısa yol bölümleri ve "Sayfalar" başlığı.
+    var kokBasliklari: [Any] {
+        guard !aramaFiltresiEtkin, !kokDugumler.isEmpty else { return kenarBolumleri }
+        return kenarBolumleri + [sayfalarBasligi]
     }
 
     func kisaYolMu(_ dugum: AgacDugumu) -> Bool {
@@ -75,6 +84,7 @@ extension KenarPaneli {
     }
 
     func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
+        if item is SayfalarBasligi { return false }
         if let bolum = item as? KenarBolumu {
             if outlineView.isItemExpanded(bolum) { outlineView.collapseItem(bolum) }
             else { outlineView.expandItem(bolum) }

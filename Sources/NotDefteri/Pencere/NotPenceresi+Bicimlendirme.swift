@@ -170,17 +170,34 @@ extension NotPenceresi {
         guard let index = sender.representedObject as? Int, temaListesi.indices.contains(index) else { return }
         gTemaIndex = index
         gAyarlar.set(index, forKey: "temaIndex")
+        // Sağ tık Görünüm menüsünde temalar diğer görünüm komutlarıyla aynı listede durur.
+        for oge in sender.menu?.items ?? [] where oge.action == #selector(temaSecKomutu(_:)) {
+            oge.state = (oge.representedObject as? Int) == index ? .on : .off
+        }
+        if let anaTema = NSApp.mainMenu?.item(withTitle: "Görünüm")?.submenu?.item(withTitle: "Tema")?.submenu {
+            for oge in anaTema.items {
+                oge.state = (oge.representedObject as? Int) == index ? .on : .off
+            }
+        }
+        temaGorunumunuUygula()
         temaUygulaTumUI()
+        NotificationCenter.default.post(name: .notDefteriTemaDegisti, object: nil)
     }
 
     private func temaUygulaTumUI() {
         backgroundColor = aktifTema.arkaplan
         icerikGorunum.layer?.backgroundColor = aktifTema.arkaplan.cgColor
         metinGorunumu.backgroundColor = aktifTema.arkaplan
+        metinGorunumu.insertionPointColor = kMetinRenk
+        metinGorunumu.linkTextAttributes = bagOznitelikleri()
+        metinGorunumu.belgeGorunumunuYenile()
+        metinGorunumu.sayfaBaglariniBoya()
         baslikCubugu.temayiUygula()
         kenarPaneli.temayiUygula()
         anaSayfa.temayiUygula()
         icindekiler.temayiUygula()
+        sayfaDosyalariAlani.temayiUygula()
+        sayfaAltBilgisi.textColor = kMetinRenk.withAlphaComponent(0.6)
         metinGorunumu.blokMenusunuGuncelle()
         metinGorunumu.secimCubugunuGuncelle()
     }

@@ -15,8 +15,7 @@ final class SayfaDosyalariAlani: NSView, NSTableViewDataSource, NSTableViewDeleg
     override init(frame: NSRect) {
         super.init(frame: frame)
         isHidden = true
-        // Kâğıt temaları açık renklidir; koyu sistem görünümünde grup satırı ve seçim koyu çizilmesin.
-        appearance = NSAppearance(named: .aqua)
+        // Açık/koyu görünümü uygulamanın seçili temasından devral.
         baslik.isBordered = false
         baslik.alignment = .left
         baslik.font = .systemFont(ofSize: 12, weight: .medium)
@@ -48,6 +47,13 @@ final class SayfaDosyalariAlani: NSView, NSTableViewDataSource, NSTableViewDeleg
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) desteklenmiyor") }
+
+    func temayiUygula() {
+        basligiGuncelle()
+        let secim = tablo.selectedRowIndexes
+        tablo.reloadData()
+        tablo.selectRowIndexes(secim, byExtendingSelection: false)
+    }
 
     func guncelle(_ dosyalar: [SayfaDosyasi]) {
         dosyaSayisi = dosyalar.count

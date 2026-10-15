@@ -41,17 +41,26 @@ final class LinuxAnaSayfa {
         gtk_widget_set_vexpand(kaydirma, 1)
         gtk_widget_set_hexpand(kaydirma, 1)
         gtk_box_append(nd_box(pencere.anaSayfaYuvasi), kaydirma)
-        // macOS AnaSayfa ile aynı: metin siyah %90 (soluk %60), kart kenar panel renginde ve üstünde
-        // başlık çubuğu renginde 38 px şerit. Renkler LinuxTema'nın @nd-* tanımlarından gelir.
+        // Ana sayfanın sınıfları genel `.notdefteri label` kuralından daha seçici:
+        // sistem GTK temasının rengi, seçili açık/koyu paleti bastırmasın.
         gtk_css_provider_load_from_data(stil, """
-        .nd-ana-selam { font-size: 28px; font-weight: 700; color: alpha(black, 0.9); }
-        .nd-ana-bolum { font-size: 16px; font-weight: 600; color: alpha(black, 0.9); }
-        .nd-ana-soluk { color: alpha(black, 0.6); }
-        .nd-ana-kart-baslik { font-weight: 600; color: alpha(black, 0.9); }
-        button.nd-ana-kart { background-image: none; background-color: @nd-panel; border: none; box-shadow: none; border-radius: 8px; padding: 0; }
-        button.nd-ana-kart:hover { background-color: @nd-grup; }
-        .nd-ana-kart-serit { background-color: @nd-baslik; min-height: 38px; }
-        .nd-ana-kart .nd-ana-soluk { font-size: 11px; }
+        .notdefteri .nd-ana-sayfa { color: @nd-metin; }
+        .notdefteri .nd-ana-sayfa label.nd-ana-selam { font-size: 30px; font-weight: 700; color: @nd-metin; }
+        .notdefteri .nd-ana-sayfa label.nd-ana-bolum { font-size: 16px; font-weight: 700; color: @nd-metin; }
+        .notdefteri .nd-ana-sayfa label.nd-ana-soluk { color: alpha(@nd-metin, 0.76); }
+        .notdefteri .nd-ana-sayfa label.nd-ana-kart-baslik { font-weight: 600; color: @nd-metin; }
+        .notdefteri .nd-ana-bolum-kutusu { background-color: alpha(@nd-metin, 0.035); border: 1px solid alpha(@nd-metin, 0.12); border-radius: 12px; padding: 16px; }
+        .notdefteri .nd-ana-sayfa button { color: @nd-metin; }
+        .notdefteri button.nd-ana-kart { background-image: none; background-color: @nd-panel; border: 1px solid alpha(@nd-metin, 0.16); box-shadow: none; border-radius: 10px; padding: 0; }
+        .notdefteri button.nd-ana-kart:hover { background-color: @nd-grup; }
+        .notdefteri .nd-ana-kart-serit { background-color: @nd-baslik; min-height: 38px; }
+        .notdefteri .nd-ana-kart label.nd-ana-soluk { font-size: 12px; }
+        .notdefteri button.nd-ana-eylem { background-image: none; background-color: @nd-panel; color: @nd-metin; border: 1px solid alpha(@nd-metin, 0.18); border-radius: 10px; box-shadow: none; padding: 12px 14px; }
+        .notdefteri button.nd-ana-eylem:hover { background-color: @nd-grup; border-color: alpha(@nd-metin, 0.35); }
+        .notdefteri button.nd-ana-eylem:active { background-color: @nd-secim; }
+        .notdefteri button.nd-ana-eylem:focus-visible, .notdefteri button.nd-ana-kart:focus-visible { outline: 2px solid @nd-metin; outline-offset: 2px; }
+        .notdefteri .nd-ana-eylem image { color: @nd-metin; }
+        .notdefteri .nd-ana-eylem label.nd-ana-soluk { font-size: 12px; }
         """, -1)
         gtk_style_context_add_provider_for_display(ekran, nd_style_provider(stil),
                                                    guint(GTK_STYLE_PROVIDER_PRIORITY_APPLICATION))
@@ -122,7 +131,8 @@ final class LinuxAnaSayfa {
         let ayar = gtk_scrolled_window_get_vadjustment(OpaquePointer(kaydirma))!
         let konum = basaDonulsun ? 0 : gtk_adjustment_get_value(ayar)
         basaDonulsun = false
-        let icerik = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14)!
+        let icerik = gtk_box_new(GTK_ORIENTATION_VERTICAL, 18)!
+        gtk_widget_add_css_class(icerik, "nd-ana-sayfa")
         gtk_widget_set_margin_top(icerik, 28)
         gtk_widget_set_margin_bottom(icerik, 28)
         gtk_widget_set_margin_start(icerik, 24)
@@ -156,10 +166,12 @@ final class LinuxAnaSayfa {
         return alan
     }
 
-    private func bolumBasligi(_ kutu: Parca, _ ad: String) {
-        let baslik = etiket(ad, sinif: "nd-ana-bolum")
-        gtk_widget_set_margin_top(baslik, 8)
-        ekle(kutu, baslik)
+    private func bolumKutusu(_ ust: Parca, _ ad: String) -> Parca {
+        let kutu = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12)!
+        gtk_widget_add_css_class(kutu, "nd-ana-bolum-kutusu")
+        ekle(kutu, etiket(ad, sinif: "nd-ana-bolum"))
+        ekle(ust, kutu)
+        return kutu
     }
 
     private func selamBolumu(_ kutu: Parca) {
@@ -172,9 +184,9 @@ final class LinuxAnaSayfa {
     }
 
     private func kartBolumu(_ kutu: Parca, _ ad: String, _ kartlar: [(url: URL, tarih: Date?)]) {
-        bolumBasligi(kutu, ad)
+        let bolum = bolumKutusu(kutu, ad)
         guard !kartlar.isEmpty else {
-            ekle(kutu, etiket("Henüz açılmış sayfa yok.", sinif: "nd-ana-soluk"))
+            ekle(bolum, etiket("Henüz açılmış sayfa yok.", sinif: "nd-ana-soluk"))
             return
         }
         let seritKaydirma = gtk_scrolled_window_new()!
@@ -209,13 +221,13 @@ final class LinuxAnaSayfa {
             ekle(serit, dugme)
         }
         gtk_scrolled_window_set_child(OpaquePointer(seritKaydirma), serit)
-        ekle(kutu, seritKaydirma)
+        ekle(bolum, seritKaydirma)
     }
 
     private func yapilacakBolumu(_ kutu: Parca, _ yapilacaklar: [BekleyenYapilacak]) {
-        bolumBasligi(kutu, "Bekleyen yapılacaklar")
+        let bolum = bolumKutusu(kutu, "Bekleyen yapılacaklar")
         guard !yapilacaklar.isEmpty else {
-            ekle(kutu, etiket("Bekleyen yapılacak yok.", sinif: "nd-ana-soluk"))
+            ekle(bolum, etiket("Bekleyen yapılacak yok.", sinif: "nd-ana-soluk"))
             return
         }
         var sonURL: URL?
@@ -223,7 +235,7 @@ final class LinuxAnaSayfa {
             if sonURL != gorev.url {
                 let grup = etiket(sayfaAdi(gorev.url), sinif: "nd-ana-kart-baslik")
                 gtk_widget_set_tooltip_text(grup, sayfaBagYolu(gorev.url))
-                ekle(kutu, grup)
+                ekle(bolum, grup)
                 sonURL = gorev.url
             }
             let satir = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6)!
@@ -247,25 +259,36 @@ final class LinuxAnaSayfa {
             }
             ekle(satir, kutucuk)
             ekle(satir, bag)
-            ekle(kutu, satir)
+            ekle(bolum, satir)
         }
-        if yapilacaklar.count > 20 { ekle(kutu, etiket("+\(yapilacaklar.count - 20) daha", sinif: "nd-ana-soluk")) }
+        if yapilacaklar.count > 20 { ekle(bolum, etiket("+\(yapilacaklar.count - 20) daha", sinif: "nd-ana-soluk")) }
     }
 
     private func eylemBolumu(_ kutu: Parca) {
-        bolumBasligi(kutu, "Hızlı eylemler")
-        let eylemler: [(String, () -> Void)] = [
-            ("Yeni sayfa", { [weak self] in self?.yeniSayfa() }),
-            ("Günlük not", { [weak self] in self?.gunlukNotuAc() }),
-            ("Şablondan…", { [weak self] in self?.sablondanSayfaOlustur() })
+        let bolum = bolumKutusu(kutu, "Hızlı eylemler")
+        let eylemler: [(String, String, String, () -> Void)] = [
+            ("Yeni sayfa", "Düşüncelerini boş bir sayfaya yaz.", "document-new-symbolic", { [weak self] in self?.yeniSayfa() }),
+            ("Günlük not", "Bugünün notunu aç veya oluştur.", "x-office-calendar-symbolic", { [weak self] in self?.gunlukNotuAc() }),
+            ("Şablondan…", "Hazır bir düzenle başla.", "view-grid-symbolic", { [weak self] in self?.sablondanSayfaOlustur() })
         ]
-        for (ad, eylem) in eylemler {
-            let dugme = gtk_button_new_with_label(ad)!
-            gtk_widget_add_css_class(dugme, "flat")
-            gtk_widget_set_halign(dugme, GTK_ALIGN_START)
+        for (ad, aciklama, simge, eylem) in eylemler {
+            let dugme = gtk_button_new()!
+            gtk_widget_add_css_class(dugme, "nd-ana-eylem")
+            gtk_widget_set_hexpand(dugme, 1)
             gtk_widget_set_focus_on_click(dugme, 0)
+            let satir = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 14)!
+            let ikon = gtk_image_new_from_icon_name(simge)!
+            gtk_image_set_pixel_size(OpaquePointer(ikon), 22)
+            ekle(satir, ikon)
+            let yazilar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4)!
+            gtk_widget_set_hexpand(yazilar, 1)
+            ekle(yazilar, etiket(ad, sinif: "nd-ana-kart-baslik"))
+            ekle(yazilar, etiket(aciklama, sinif: "nd-ana-soluk"))
+            ekle(satir, yazilar)
+            gtk_button_set_child(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(dugme)), satir)
+            gtk_widget_set_tooltip_text(dugme, ad + " — " + aciklama)
             GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(dugme), "clicked") { [weak self] in self?.ertele(eylem) }
-            ekle(kutu, dugme)
+            ekle(bolum, dugme)
         }
     }
 

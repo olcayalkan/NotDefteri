@@ -45,6 +45,12 @@ extension NotMetinGorunumu {
         let olcek: CGFloat = kucuk ? 0.85 : 1
         guard belgeAdaptoru.olcek != olcek else { return }
         belgeAdaptoru.olcek = olcek
+        belgeGorunumunuYenile()
+    }
+
+    /// Tema/ölçek yalnızca görünüm özniteliklerini değiştirir. Depo delegeleri
+    /// bunu kullanıcı düzenlemesi sanıp tekrar biçimlendirmemeli.
+    func belgeGorunumunuYenile() {
         if let depo = textStorage, !yaziOlcegiUygulaniyor {
             yaziOlcegiUygulaniyor = true
             depo.beginEditing()
@@ -53,6 +59,7 @@ extension NotMetinGorunumu {
             yaziOlcegiUygulaniyor = false
         }
         yazimOlceginiGuncelle()
+        tabloYoneticisi.konumlandir()
     }
 
     /// Yazım görünümü (ölçekli font) güncel anlamsaldan yeniden türetilir.

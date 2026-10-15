@@ -23,7 +23,7 @@ extension KenarPaneli {
 
     private func cocuklar(_ item: Any?) -> [Any] {
         if let bolum = item as? KenarBolumu { return bolum.sayfalar }
-        guard let dugum = item as? AgacDugumu else { return kenarBolumleri + kokDugumler.map { $0 as Any } }
+        guard let dugum = item as? AgacDugumu else { return kokBasliklari + kokDugumler.map { $0 as Any } }
         return dugum.cocuklar
     }
 
@@ -38,10 +38,10 @@ extension KenarPaneli {
     }
 
     func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
-        if let bolum = item as? KenarBolumu {
-            let etiket = NSTextField(labelWithString: bolum.ad)
+        if item is KenarBolumu || item is SayfalarBasligi {
+            let etiket = NSTextField(labelWithString: (item as? KenarBolumu)?.ad ?? "Sayfalar")
             etiket.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
-            etiket.textColor = .secondaryLabelColor
+            etiket.textColor = kMetinRenk.withAlphaComponent(0.6)
             return etiket
         }
         guard let dugum = item as? AgacDugumu else { return nil }
@@ -61,7 +61,7 @@ extension KenarPaneli {
 
             let etiket = NSTextField(labelWithString: "")
             etiket.font = NSFont.systemFont(ofSize: 12.5)
-            etiket.textColor = .darkGray
+            etiket.textColor = temaSimgeRengi()
             etiket.lineBreakMode = .byTruncatingTail
             etiket.translatesAutoresizingMaskIntoConstraints = false
             hucre.addSubview(etiket)
@@ -89,25 +89,30 @@ extension KenarPaneli {
                 etiket.centerYAnchor.constraint(equalTo: hucre.centerYAnchor)
             ])
         }
-        // Alt sayfası olan sayfa dolu, olmayan boş belge simgesiyle gösterilir.
-        let sembol: String
-        if !dugum.sayfaMi {
-            sembol = "folder"
-        } else {
-            sembol = dugum.cocuklar.isEmpty ? "doc.text" : "doc.on.doc"
-        }
-        hucre.imageView?.image = renklendirilmisSembol(sembol,
-                                                        renk: NSColor.black.withAlphaComponent(dugum.sayfaMi ? 0.45 : 0.6),
-                                                        boyut: 12)
-        hucre.wantsLayer = true
-        hucre.layer?.cornerRadius = 6
-        hucre.layer?.backgroundColor = kisaYolMu(dugum) && dugum.icerikURL == acikNotURL
-            ? secimVurguRengi().cgColor : NSColor.clear.cgColor
+        notHucresininTemasiniUygula(hucre, dugum: dugum)
         hucre.textField?.stringValue = dugum.ad
         (hucre.subviews.first { $0.identifier?.rawValue == "Raptiye" } as? NSTextField)?.stringValue =
             dugum.sabit && !kisaYolMu(dugum) ? "📌" : ""
         hucre.textField?.font = NSFont.systemFont(ofSize: 12.5, weight: dugum.sayfaMi ? .regular : .medium)
         return hucre
+    }
+
+    /// Hücreyi değiştirmeden renkleri yenile; ad düzenleme ve seçim bozulmasın.
+    func notHucresininTemasiniUygula(_ hucre: NSTableCellView, dugum: AgacDugumu) {
+        let sembol: String
+        // Alt sayfası olan sayfa da klasör gibi gösterilir; tek sayfa belge simgesiyle.
+        sembol = !dugum.sayfaMi || !dugum.cocuklar.isEmpty ? "folder" : "doc.text"
+        hucre.imageView?.image = renklendirilmisSembol(sembol,
+                                                        renk: kMetinRenk.withAlphaComponent(dugum.sayfaMi ? 0.45 : 0.6),
+                                                        boyut: 12)
+        hucre.textField?.textColor = temaSimgeRengi()
+    }
+
+    /// Satır görünümleri yeniden kullanılır; açık sayfa vurgusu her eklemede yeniden kurulur.
+    func outlineView(_ outlineView: NSOutlineView, didAdd rowView: NSTableRowView, forRow row: Int) {
+        guard let satir = rowView as? NotSatirGorunumu else { return }
+        let dugum = outlineView.item(atRow: row) as? AgacDugumu
+        satir.kisaYolVurgulu = dugum.map { kisaYolMu($0) && $0.icerikURL == acikNotURL } ?? false
     }
 
     func outlineViewSelectionDidChange(_ notification: Notification) {
@@ -129,11 +134,42 @@ extension KenarPaneli {
         }
     }
 
-    /// Çift tıklamak adı satırın üzerinde düzenlemeye açar (Finder gibi).
+    /// Çift tıklamak adı satırın üzerinde düzenlemeye açar (Finder gibi). Düzenleme çift
+    /// tıklama süresi dolunca başlar: üçüncü tıklama gelirse sayfa içerik penceresinde açılır.
     @objc func cifteTiklandi() {
         let satir = tablo.clickedRow
         guard satir >= 0, let dugum = tablo.item(atRow: satir) as? AgacDugumu else { return }
-        adiYerindeDuzenle(dugum: dugum, satir: satir)
+        bekleyenAdDuzenleme?.cancel()
+        let duzenleme = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.bekleyenAdDuzenleme = nil
+            // İlk tıklama sayfayı açıp kısa yolları yeniden kurmuş olabilir; satır yeniden bulunur.
+            guard let guncel = self.satirBul(dugum) else { return }
+            self.adiYerindeDuzenle(dugum: self.tablo.item(atRow: guncel) as? AgacDugumu ?? dugum, satir: guncel)
+        }
+        bekleyenAdDuzenleme = duzenleme
+        DispatchQueue.main.asyncAfter(deadline: .now() + NSEvent.doubleClickInterval, execute: duzenleme)
+    }
+
+    /// Yeni tıklama dizisi bekleyen ad düzenlemesini iptal eder; üçüncü tıklama içerik penceresini açar.
+    func agacTiklandi(_ sayi: Int, satir: Int) -> Bool {
+        if sayi != 2 {
+            bekleyenAdDuzenleme?.cancel()
+            bekleyenAdDuzenleme = nil
+        }
+        guard sayi == 3, satir >= 0, let url = (tablo.item(atRow: satir) as? AgacDugumu)?.icerikURL else { return false }
+        icerikPenceresindeAcIstendi?(url)
+        return true
+    }
+
+    /// Düğüm aynı nesne olarak ağaçta değilse aynı sayfanın aynı türdeki (kısa yol/ağaç) satırı.
+    private func satirBul(_ dugum: AgacDugumu) -> Int? {
+        let satir = tablo.row(forItem: dugum)
+        if satir >= 0 { return satir }
+        return (0..<tablo.numberOfRows).first { sira in
+            guard let aday = tablo.item(atRow: sira) as? AgacDugumu else { return false }
+            return aday.icerikURL == dugum.icerikURL && kisaYolMu(aday) == kisaYolMu(dugum)
+        }
     }
 
     func adiYerindeDuzenle(dugum: AgacDugumu, satir: Int) {
@@ -159,7 +195,7 @@ extension KenarPaneli {
         alan.isSelectable = false
         alan.isBordered = false
         alan.drawsBackground = false
-        alan.textColor = .darkGray
+        alan.textColor = temaSimgeRengi()
         guard let dugum = duzenlenenDugum else { return }
         duzenlenenDugum = nil
 

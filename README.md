@@ -43,7 +43,7 @@ Click a card to jump to the section that explains how to use it.
 - **Trash.** Deleted pages can be restored for 30&nbsp;days.
 - **Export.** Save a page as PDF, a web page or plain text.
 - **Section folding.** Fold the content under a heading to tidy up long pages.
-- **Paper themes.** Sepia, Greenish Paper, Gray Paper, Cream.
+- **Themes.** Sepia (default), Greenish Paper, Gray Paper, Terminal.
 - **Keep on top.** The pin button keeps the window above other windows.
 
 ## Installation

@@ -368,15 +368,25 @@ extension NotMetinGorunumu {
     func layoutManager(_ layoutManager: NSLayoutManager, shouldGenerateGlyphs glyphs: UnsafePointer<CGGlyph>,
                        properties: UnsafePointer<NSLayoutManager.GlyphProperty>, characterIndexes: UnsafePointer<Int>,
                        font: NSFont, forGlyphRange glyphRange: NSRange) -> Int {
-        guard glyphRange.length > 0, !katlama.gizliAraliklar.isEmpty else { return 0 }
-        var sira = katlama.gizliAraliklar.partitionIndex { NSMaxRange($0) <= characterIndexes[0] }
+        guard glyphRange.length > 0 else { return 0 }
+        let ilk = characterIndexes[0], son = characterIndexes[glyphRange.length - 1]
+        let bag = bagIsaretleri(NSRange(location: ilk, length: max(0, son - ilk) + 1))
+        guard !katlama.gizliAraliklar.isEmpty || !bag.gizliler.isEmpty || !bag.simgeler.isEmpty else { return 0 }
+        var sira = katlama.gizliAraliklar.partitionIndex { NSMaxRange($0) <= ilk }
         var yeni = Array(UnsafeBufferPointer(start: properties, count: glyphRange.length))
         var degisti = false
         for i in 0..<glyphRange.length {
             let konum = characterIndexes[i]
             while sira < katlama.gizliAraliklar.count, NSMaxRange(katlama.gizliAraliklar[sira]) <= konum { sira += 1 }
-            if sira < katlama.gizliAraliklar.count, NSLocationInRange(konum, katlama.gizliAraliklar[sira]) {
+            if sira < katlama.gizliAraliklar.count && NSLocationInRange(konum, katlama.gizliAraliklar[sira]) {
                 yeni[i] = .null
+                degisti = true
+            } else if bag.gizliler.contains(konum) {
+                yeni[i] = .null
+                degisti = true
+            } else if bag.simgeler.contains(konum) {
+                // Emoji için yer: denetim glifi boşluk gibi dizilir, genişliği temsilciden gelir.
+                yeni[i] = .controlCharacter
                 degisti = true
             }
         }
@@ -387,6 +397,8 @@ extension NotMetinGorunumu {
 
     func layoutManager(_ layoutManager: NSLayoutManager, shouldUse action: NSLayoutManager.ControlCharacterAction,
                        forControlCharacterAt charIndex: Int) -> NSLayoutManager.ControlCharacterAction {
-        katlama.gizliMi(charIndex) ? .zeroAdvancement : action
+        if katlama.gizliMi(charIndex) { return .zeroAdvancement }
+        if bagIsaretleri(NSRange(location: charIndex, length: 1)).simgeler.contains(charIndex) { return .whitespace }
+        return action
     }
 }

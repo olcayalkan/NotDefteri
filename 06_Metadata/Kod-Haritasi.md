@@ -26,7 +26,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | Dosya | Satır | İçerik |
 |---|---|---|
 | `YapistirmaBicimlendirme.swift` | 159 | **Dış içeriği nota uydurma** — `disIcerigiNotBicimineCevir()` (RTF/HTML biçimini notun diline indirger), `disMetniNotBicimineCevir()`, `yapistirmaMetniniSadelestir()` |
-| `MetinBlogu.swift` | 222 | Blok türü, uyarı kutusu başlığı/kimliği, girinti, kaynak öneki, paragraf öznitelikleri ve yerel liste numaralama |
+| `MetinBlogu.swift` | 230 | Blok türü (iç liste girintisi sekme/boşluk, `girintiDuzeyi()`), uyarı kutusu başlığı/kimliği, girinti, kaynak öneki, paragraf öznitelikleri ve yerel liste numaralama |
 | `HtmlCevirici.swift` | 109 | Dışa aktarımda mevcut Markdown okuyucusundan kaçırılmış HTML, izinli href, gömülü PNG ve açık/koyu inline CSS üretimi |
 | `MarkdownCevirici.swift` | 847 | **Çift yönlü çevirici**: başlık/bloklar, satır içi biçimler, bağlantı/kod/wikilink, paragraf kaynak yazılışı; `sayfaMarkdownunuUret()` üstbilgiyle kaydeder; font yardımcıları; satır parçaları tek seferde birleşir (Linux'ta append karesel), bağ algılayıcı ön elemesi `bagIcerebilir()` |
 | `SayfaBaglantilari.swift` | 322 | Sayfa hedefi indeksi, Türkçe bulanık arama, ortak son açılanlar/açılma tarihleri ve değişim geri çağrısı, olmayan yolları düşürme, bağlantı çözümleme ve yeniden yazma; `kodBloguKapanisi()` düzenli ifade yerine satır taraması (kopya yok) |
@@ -39,8 +39,9 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `CopKutusu.swift` | 203 | Uygulama içi `.cop` deposu: metadata, iki düzen için geri alınabilir taşıma, çakışmada köke geri yükleme, yol doğrulamalı kalıcı silme ve 30 günlük temizlik |
 | `DosyaSistemi.swift` | 205 | `notlarKlasoru()`, `gorsellerKlasoru()`, LaunchAgent |
 | `DosyaAdi.swift` | 69 | `guvenliDosyaAdi()`, `benzersizDosyaYolu()`, `gorselDosyasiniKopyala()` — görsel adlarını Markdown-güvenli yapar |
-| `Sabitler.swift` | 25 | `kTabanPunto`, `kMinYaziBoyutu`, `kOtomatikKayitAraligi`… |
-| `Ayarlar.swift` | 32 | `UserDefaults` destekli durum: `gTemaIndex`, `gKenarPanelGenislik`, `gYaziBoyutu`, varsayılan açık `gAcilistaAnaSayfa` |
+| `Sabitler.swift` | 52 | `kTabanPunto`, `kMinYaziBoyutu`, `kOtomatikKayitAraligi`, iki platformun ortak tema oranları `kTemaZeminParlakligi` (tüm zeminler) ve `kTemaCerceveParlakligi` (kağıt başlık/panel ek koyuluğu)… |
+| `Ayarlar.swift` | 53 | `UserDefaults` destekli durum: `gTemaIndex` (`temaSeciminiYukle()` eski/Krem seçimlerini taşır, `kTemaSayisi`), `gKenarPanelGenislik`, `gYaziBoyutu`, varsayılan açık `gAcilistaAnaSayfa` |
+| `KodYazimYardimi.swift` | 130 | Kod bloğu yazım yardımı (AppKit'siz): `kodEsiEylemi()` eşli karakter kararı, `kodKalibi()` dile göre try/if/for/while/switch/func/class kalıpları |
 | `MetinNormallestirme.swift` | 18 | `aramaIcinSadelestir()` — Türkçe duyarlı arama |
 
 ## Gorunum/ — görünümler
@@ -49,29 +50,32 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|---|
 | `AnaSayfa.swift` | 220 | Selamlama/tarih, yatay son açılan/favori kartları, ilk 20 gruplu yapılacak ve hızlı eylemler; tema renkleri |
 | `ResimEki.swift` | 225 | `ResimEki`, `ResimEkiHucresi` — sürüklenerek boyutlandırma |
-| `BaslikCubugu.swift` | 181 | Özel pencere kontrolleri, tıklanabilir ata sayfa yolu |
-| `SayfaSecenekAlani.swift` | 38 | Editör üstündeki ince şerit; hover'da "•••" sayfa seçenekleri düğmesi |
+| `BaslikCubugu.swift` | 195 | Özel pencere kontrolleri, tıklanabilir ata sayfa yolu; sayfa adı/yolu düğmelere eşit uzak alanda pencerenin ortasında |
+| `SayfaSecenekAlani.swift` | 41 | Editörün sol üstünde yalnızca düğme kadar (`genislik` 52 pt) alan; hover'da "•••" sayfa seçenekleri (Küçük yazı, dışa aktar, geçmiş) |
 | `NotMetinGorunumu+Bloklar.swift` | 404 | Blok kısayolları, Enter/Tab/Backspace, kutu/çizim; menü aynı paragraf/undo yolunu kullanır |
 | `NotMetinGorunumu+Sayfa.swift` | 62 | Artımlı kelime sayımı, kaynak puntoyu koruyan küçük yazı ölçeği |
-| `NotMetinGorunumu+SayfaBaglantilari.swift` | 198 | Değişen paragrafta bağlantı işaretleme, geçici renk, [[ tamamlayıcı, tıklama ve undo ile yeniden yazma |
+| `NotMetinGorunumu+SayfaBaglantilari.swift` | 284 | İmleç dışındaki bağın `[[ ]]` işaretlerini glif düzeyinde gizleme, ilk `[` emoji boşluğu (`etkinSayfaBagi`, `bagIsaretleri()`, `boundingBoxForControlGlyphAt`, katlamayla aynı glif temsilcisi); Değişen paragrafta bağlantı işaretleme, geçici renk, [[ tamamlayıcı, tıklama ve undo ile yeniden yazma |
 | `CopKutusuPaneli.swift` | 146 | Çöp popover’ı: önbellekte ad arama, sayfa/klasör simgesi ve göreli tarih, geri yükleme, kalıcı silme/boşaltma onayı |
 | `HizliBulucu.swift` | 204 | ⌘P ve [[ için ortak AppKit arama/listesi, üst yol ve klavye gezinmesi |
-| `NotMetinGorunumu+UyariKutusu.swift` | 181 | Görünür callout çizimi, yerel sınır düzeltme, renk menüsü ve sistem emoji paleti |
+| `NotMetinGorunumu+UyariKutusu.swift` | 207 | Görünür callout çizimi, yerel sınır düzeltme, renk menüsü ve sistem emoji paleti; kutu ortasından kopyalanan satıra başlık verme (`uyariDevaminiBasaCevir()`) |
 | `KagitKaydirici.swift` | 20 | Oluk çizmeyen kaydırma çubuğu; kağıt zemininde beyaz şerit oluşmasın (sistem 'çubukları göster' ayarı) |
-| `NotMetinGorunumu.swift` | 759 | `NSTextView` alt sınıfı: görsel/pano işlemleri, slash tuşları, yüzen görünümler, bağlantı tıklaması ve satır içi sayfa bulucu |
+| `NotMetinGorunumu.swift` | 899 | `NSTextView` alt sınıfı: görsel/pano işlemleri, slash tuşları, yüzen görünümler, bağlantı tıklaması ve satır içi sayfa bulucu |
 | `BlokMenusu.swift` | 253 | Türkçe filtreli blok ve uyarı rengi seçenekleri, klavye gezinmesi ve odağı koruyan çocuk panel |
 | `SecimCubugu.swift` | 34 | Seçim üzerinde altı biçim düğmesi; pencerenin biçim komutlarını çağırır |
-| `Tema.swift` | 57 | `Tema`, `temaListesi`, `aktifTema`, renk türetme |
+| `Tema.swift` | 111 | `Tema`, `temaListesi` (Sepya varsayılan; zeminler main renklerinin `kTemaZeminParlakligi` katı, kağıt başlık/panel `cerceve()` ile ek koyu), `aktifTema`, renk türetme, açık temada `kAcikTemaSimgeRengi`; `bagRengi()`/`bagOznitelikleri()` bağ görünümü, `tamamlananGorevRengi()` |
+| `NotMetinGorunumu+KodYazimi.swift` | 78 | Kod bloğunda eşli karakter yazımı/silmesi ve anahtar kelime + Tab kalıbı; `koddakiDil()` |
+| `NotYerlesimYoneticisi.swift` | 225 | Editörün `NSLayoutManager`'ı: tablo satır zeminlerini çerçeve çizgilerinin içine çizer, seçim/zemin dikdörtgenlerini tablo kutusuna kırpar; yapılacak kutularını (`yapilacakKutusu()`) çizer, işaret karakteri görünmezdir; okunur sayfa bağının 📄 emojisini çizer |
 | `NotSatirGorunumu.swift` | 59 | Kenar panel satır vurgusu + sürükle-bırak hedefi vurgusu |
 | `KenarPaneliSurukleTutamaci.swift` | 38 | Panel genişliği tutamacı |
-| `IcindekilerPaneli.swift` | 423 | **Sağ kenar içindekiler** — başlıklardan üretilir, hover'da açılır, tıklayınca kaydırır; kaydırılan bölümün başlığı etkin ve ortada; altında bağlantı veren sayfalar |
+| `IcindekilerPaneli.swift` | 469 | **Sağ kenar içindekiler** — başlıklardan üretilir, hover'da açılır (odak kaybında ve ekran görüntüsü kaplamasında kapanmaz, `kapanmali()`), tıklayınca kaydırır; kaydırılan bölümün başlığı etkin ve ortada; altında bağlantı veren sayfalar |
 | `SembolBoyama.swift` | 22 | `renklendirilmisSembol()` |
 
 ## KenarPanel/
 
 | Dosya | Satır | İçerik |
 |---|---|---|
-| `KenarPaneli.swift` | 398 | Sınıf gövdesi, UI kurulumu, boyut değişince yerleşim; kapalı/geçişteki panelde görünüm güncellemelerini erteleme; Ana Sayfa üst satırı ve açık dosyadan ayrı seçim durumu; altta Çöp kutusu düğmesi |
+| `KenarPaneli.swift` | 442 | Sınıf gövdesi, UI kurulumu, boyut değişince yerleşim (ağaç sütunu görünür genişliğe `sizeLastColumnToFit()`, kaydırma çubuğu stili değişince de); kapalı/geçişteki panelde görünüm güncellemelerini erteleme; Ana Sayfa üst satırı ve açık dosyadan ayrı seçim durumu; altta Çöp kutusu düğmesi |
+| `KenarAgaci.swift` | 16 | `NSOutlineView` alt sınıfı: tıklama sayısını panele iletir (üçüncü tıklama içerik penceresi, çift tıklama gecikmeli ad düzenleme) |
 | `KenarPaneli+AgacVeriKaynagi.swift` | 198 | `NSOutlineView` veri kaynağı + delegesi, hücre üretimi ve önbellekten emoji gösterimi |
 | `KenarPaneli+DosyaIslemleri.swift` | 266 | Sayfa ekleme (gizliyken güncel açık notun klasörüne), yeniden adlandırma, silme, sağ tık menüsü (📌 Sabitle), `acikDaliTasindiOlarakIsle()` |
 | `KenarPaneli+SurukleBirak.swift` | 182 | **Sürükle-bırak** — üstüne bırak: alt sayfa/köke taşıma; araya bırak: sıra değiştirme (`.sira.json`, sabit bölge sınırı) (`kSayfaSurukleTipi`) |
@@ -105,27 +109,27 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 ## Testler
 
-335 test, iki hedefte. `swift test` ile çalıştır; CI her PR'da macOS ve Linux'ta koşar.
+`swift test` platforma uygun hedefleri çalıştırır; CI her PR'da macOS ve Linux'ta koşar.
 
-**`Tests/NotDefteriCekirdekTests/`** — AppKit'siz, macOS ve Linux'ta koşar (21 dosya)
+**`Tests/NotDefteriCekirdekTests/`** — AppKit'siz, macOS ve Linux'ta koşar
 
 | Alan | Dosyalar |
 |---|---|
 | Ortak temel | `GeciciKokTestCase` — her test geçici kökte, `NOTDEFTERI_KOK` oraya ayarlı; gerçek notlara dokunmaz |
-| Markdown | `CeviriciTestleri` 24, `MetinBloguTestleri` 14, `YapiEnterTestleri` 10, `KodVurgulayiciTestleri` 8, `SablonTestleri` 6 |
-| Sayfa ağacı ve dosya sistemi | `SayfaAgaciTestleri` 24, `CopKutusuTestleri` 14, `SayfaSirasiTestleri` 13, `DosyaSistemiTestleri` 12, `DosyaAdiTestleri` 11, `SayfaDosyalariTestleri` 9 |
+| Markdown | `CeviriciTestleri` 24, `MetinBloguTestleri` 14, `YapiEnterTestleri` 10, `KodVurgulayiciTestleri` 11, `SablonTestleri` 6 |
+| Sayfa ağacı ve dosya sistemi | `SayfaAgaciTestleri` 24, `CopKutusuTestleri` 14, `SayfaSirasiTestleri` 13, `DosyaSistemiTestleri` 12, `DosyaAdiTestleri` 11, `SayfaDosyalariTestleri` 10 |
 | Bağlantı, arama, Ana Sayfa | `SayfaBaglantilariTestleri` 17, `AnaSayfaVerisiTestleri` 11, `FavorilerTestleri` 10, `OnbellekTestleri` 6 |
 | Kayıt, geçmiş, dışa aktarım | `KaydediciTestleri` 13, `HtmlCeviriciTestleri` 12, `SayfaGecmisiTestleri` 10, `MarkdownDisaAktarTestleri` 7, `PerformansTestleri` 4 |
 
-**`Tests/NotDefteriMacTests/`** — AppKit, yalnızca macOS (11 dosya)
+**`Tests/NotDefteriMacTests/`** — AppKit, yalnızca macOS
 
 | Alan | Dosyalar |
 |---|---|
 | Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
-| Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 8 |
-| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2 |
+| Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
+| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır) |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
-| Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 12 — tema, "/" blok menüsü, ⌘P bulucu |
+| Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 
 Test yazarken: dosya sistemine dokunan çekirdek testi `GeciciKokTestCase`'ten türet. AppKit sarmalayıcıları
 (`sayfayiYenidenAdlandir` vb.) hata olunca `NSAlert.runModal()` açar ve testi kilitler; çekirdek fonksiyonu `kok:` ile çağır.
@@ -146,3 +150,21 @@ Yalnızca tek dosyada kullanılanlar `private` kaldı.
 - [[Markdown-Formati]] — çeviricinin ürettiği biçim
 - [[Acik-Isler]] — sıradaki işler
 - [[ozet]] — projenin tam analizi
+
+## Tema, tablo ve Linux bütünleşmesi
+
+- `Cekirdek/Tablo.swift`, `TabloModeli.swift`: tablo üretimi, hücre kaynak yazılışı ve Markdown/görsel aralık eşlemesi.
+- `Cekirdek/ArkaPlanYenileyici.swift`: nesil kontrolüyle arka planda ağaç yenileme.
+- `Cekirdek/KullanimKilavuzu.swift`: ortak kullanım kılavuzu içeriği.
+- `Gorunum/NotMetinGorunumu+Tablolar.swift`: AppKit yerel hücre editörü, gezinme ve belge geri alma yolu.
+- `Pencere/IcerikPenceresi.swift`: kenar panelde üç tıklanan sayfayı yalnızca içeriğiyle, salt okunur açan pencere; öne gelince dosyadan yenilenir, `.notDefteriTemaDegisti` ile temayı izler.
+- `Gorunum/NotYerlesimYoneticisi.swift`: tablo zemini ve seçim vurgusunun çerçeve dışına taşmaması (köşe glif mürekkebinden ölçülen kutu).
+- `Pencere/NotPenceresi+Komutlar.swift`: `/tablo` boyut penceresi `tabloBoyutUyarisi()` (ızgara aksesuarı kendi ölçüsüyle), `tabloBoyutu()` sınıra çekme.
+- `Uygulama/Menu.swift`: ana menü ve not/ana sayfa/kenar panel için ortak Görünüm bağlam alt menüsü; temalar ara adım olmadan Görünüm altında.
+- `Sources/NotDefteriLinux/LinuxTablolar.swift`: GTK hücre editörü, konumlandırma ve kayıt/geri alma.
+- `Sources/NotDefteriLinux/LinuxTamEkranKontrolleri.swift`: tam ekran kontrol görünürlüğü.
+- `Tests/NotDefteriMacTests/TanitimUyumuTestleri.swift`, `IcerikPenceresiTestleri.swift`: tanıtımla uyumlu bağ görünümü/işaret gizleme ve "Sayfalar" başlığı; üç tıklama içerik penceresi ve gecikmeli ad düzenleme.
+- `Tests/NotDefteriMacTests/IsaretciVeKutuTestleri.swift`: kutuda yazı silmenin kutuyu koruması, yeni kutunun altındaki boş satır, yapılacak kutusu boyutu/satır yüksekliği, numara hizası, sekmeli iç liste.
+- `Tests/NotDefteriMacTests/GorunumBaglamMenusuTestleri.swift`, `TabloDuzenlemeTestleri.swift`, `TabloCizimTestleri.swift`: sağ tık tema, hücre düzenleme, boyut penceresi, vurgunun çerçevede kalması (piksel) ve kenar panel satır genişliği.
+- `Tests/NotDefteriLinuxTests/GrafikTestOrtami.swift`: tüm grafik testleri için tek GTK başlatma ve gerçek ekran denetimi.
+- `Tests/NotDefteriCekirdekTests/Tablo*`, `KodBloguEnterTestleri`, `TemaAyarlariTestleri`: tablo kaynağı, açık kod çıkışı ve tema ayarı geçişi.

@@ -65,6 +65,7 @@ private final class SayfaBulucusu {
     private weak var editor: LinuxEditor?
     private let baglantilar: SayfaBaglantilari
     private let panel = gtk_popover_new()!
+    private var gizleniyor = false
     private let arama = gtk_search_entry_new()!
     private let liste = gtk_list_box_new()!
     private let kaydirma = gtk_scrolled_window_new()!
@@ -216,7 +217,8 @@ private final class SayfaBulucusu {
     }
 
     func merkezdeAc(sorgu: String = "") {
-        guard !kapandi, diyalog == nil, let pencere else { return }
+        guard !kapandi, diyalog == nil, let pencere,
+              nd_popup_hedefi_hazir(pencere.pencere) != 0 else { return }
         gizle()
         indeksiYenile()
         satirIci = false
@@ -229,6 +231,7 @@ private final class SayfaBulucusu {
         gtk_editable_set_text(OpaquePointer(arama), sorgu)
         paneliBagla()
         filtrele(sorgu)
+        guard acik else { return }
         gtk_popover_popup(popover)
         gtk_widget_grab_focus(arama)
     }
@@ -236,7 +239,7 @@ private final class SayfaBulucusu {
     private func paneliBagla() {
         guard let pencere else { return }
         // Arama alanının tuşları editörün capture controller'ından geçmemeli.
-        // Konum/dağıtım aşağıda present ile, kapanışta sahiplik unparent ile yönetilir.
+        // Yerleşimi pencerenin layout manager'ı, kapanışı gizle() yönetir.
         if gtk_widget_get_parent(panel) == nil { gtk_widget_set_parent(panel, pencere.pencere) }
         acik = true
     }
@@ -289,6 +292,7 @@ private final class SayfaBulucusu {
 
     private func konumlandir() {
         guard acik, let editor, let pencere, !editor.yokEdildi else { return }
+        guard nd_popup_hedefi_hazir(pencere.pencere) != 0 else { gizle(odagiGeriVer: false); return }
         // Parent pencere: pointing_to pencere koordinatındadır; TextView overlay'i değildir.
         var kare = satirIci ? editor.imlecKaresi() : GdkRectangle(
             x: gtk_widget_get_width(pencere.pencere) / 2,
@@ -302,7 +306,9 @@ private final class SayfaBulucusu {
         gtk_widget_measure(panel, GTK_ORIENTATION_VERTICAL, -1, nil, &boy, nil, nil)
         gtk_popover_set_offset(popover, 0, satirIci ? 0 : -boy / 2)
         gtk_popover_set_pointing_to(popover, &kare)
-        gtk_popover_present(popover)
+        // GtkWindow'ın layout manager'ı native çocukların yerleşimini yapar.
+        // İçerik/scrollbar ölçümü sürerken senkron present ile tekrar girmeyin.
+        gtk_widget_queue_allocate(pencere.pencere)
     }
 
     func tus(_ tus: UInt32, _ durum: UInt32) -> Bool {
@@ -487,6 +493,11 @@ private final class SayfaBulucusu {
     }
 
     private func gizle(odagiGeriVer: Bool = true) {
+        // popdown eşzamanlı closed sinyali üretebilir. Aynı widget'ı iki kez
+        // unparent etmek ve odağı iki kez bırakmak geçersiz nesne erişimidir.
+        guard !gizleniyor else { return }
+        gizleniyor = true
+        defer { gizleniyor = false }
         acik = false
         aramaIptal?()
         aramaIptal = nil
@@ -520,7 +531,7 @@ private final class SayfaBulucusu {
     }
 
     private func baglariBoya() {
-        guard let editor else { return }
+        guard let editor, editor.editorEtkin else { return }
         boyamayiSifirla()
         var bas = GtkTextIter(), son = GtkTextIter()
         gtk_text_buffer_get_bounds(editor.tampon, &bas, &son)

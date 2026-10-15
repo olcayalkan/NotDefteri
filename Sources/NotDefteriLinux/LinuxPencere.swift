@@ -209,7 +209,10 @@ final class LinuxPencere {
     /// 046'nın seçim çıkışı, 047'nin editörüne buradan bağlanır.
     func notSecildi(_ url: URL) { editor?.notuAc(url) }
 
-    func temayiUygula() { tema.uygula() }
+    func temayiUygula() {
+        tema.uygula()
+        editor?.temayiUygula()
+    }
 
     func kenarPaneliniAcKapa() {
         kenarPanelGizli.toggle()
@@ -225,6 +228,16 @@ final class LinuxPencere {
     }
 
     private let tamEkranDugmesi = gtk_button_new_from_icon_name("view-fullscreen-symbolic")!
+    private lazy var tamEkranKontrolleri = LinuxTamEkranKontrolleri(cik: { [weak self] in
+        self?.tamEkraniAcKapa()
+    }, kucult: { [weak self] in
+        guard let self else { return }
+        gtk_window_unfullscreen(nd_window(self.pencere))
+        gtk_window_minimize(nd_window(self.pencere))
+    }, kapat: { [weak self] in
+        guard let self else { return }
+        gtk_window_close(nd_window(self.pencere))
+    })
 
     /// F11, Görünüm menüsü ve başlık çubuğu düğmesi aynı yoldan geçer.
     func tamEkraniAcKapa() {
@@ -234,6 +247,7 @@ final class LinuxPencere {
 
     private func tamEkranSimgesiniGuncelle() {
         let tam = gtk_window_is_fullscreen(nd_window(pencere)) != 0
+        tamEkranKontrolleri.gorunurluguAyarla(tamEkran: tam)
         gtk_button_set_icon_name(GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(tamEkranDugmesi)),
                                  tam ? "view-restore-symbolic" : "view-fullscreen-symbolic")
         gtk_widget_set_tooltip_text(tamEkranDugmesi, tam ? "Tam Ekrandan Çık (F11)" : "Tam Ekran (F11)")
@@ -342,7 +356,11 @@ final class LinuxPencere {
         gKenarPanelGenislik = min(max(kayitli, kKenarPanelMinGenislik), kKenarPanelMaksGenislik)
         gtk_paned_set_position(nd_paned(bolme), Int32(gKenarPanelGenislik))
         gtk_widget_set_visible(kenarPanelYuvasi, kenarPanelGizli ? 0 : 1)
-        gtk_window_set_child(nd_window(pencere), bolme)
+        let pencereIcerigi = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0)!
+        gtk_box_append(nd_box(pencereIcerigi), tamEkranKontrolleri.widget)
+        gtk_widget_set_vexpand(bolme, 1)
+        gtk_box_append(nd_box(pencereIcerigi), bolme)
+        gtk_window_set_child(nd_window(pencere), pencereIcerigi)
     }
 
     private func panelGenisliginiKaydet() {

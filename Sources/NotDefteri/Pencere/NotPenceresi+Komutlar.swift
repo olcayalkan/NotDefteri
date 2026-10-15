@@ -78,6 +78,8 @@ extension NotPenceresi {
             metinGorunumu.menuBlogunuUygula(MetinBlogu(tur: tur), komutAraligi: aralik)
         case .kod:
             metinGorunumu.kodDilSeciminiBaslat(aralik)
+        case .tablo:
+            tabloEklemePenceresiniAc(aralik)
         case .sayfa, .gorsel:
             guard metinGorunumu.textStorage != nil else { return }
             metinGorunumu.blokDuzenle(aralik, yeni: NSAttributedString(),
@@ -98,6 +100,27 @@ extension NotPenceresi {
             }
         }
         puntoGostergesiniGuncelle()
+    }
+
+    private func tabloEklemePenceresiniAc(_ aralik: NSRange) {
+        let (uyari, satir, sutun) = tabloBoyutUyarisi()
+        uyari.beginSheetModal(for: self) { [weak self] sonuc in
+            guard let self, sonuc == .alertFirstButtonReturn,
+                  let satirSayisi = tabloBoyutu(satir.stringValue, kTabloEnAzSatir...kTabloEnCokSatir),
+                  let sutunSayisi = tabloBoyutu(sutun.stringValue, kTabloEnAzSutun...kTabloEnCokSutun),
+                  let markdown = tabloMarkdownUret(satir: satirSayisi, sutun: sutunSayisi) else {
+                return
+            }
+            guard let depo = self.metinGorunumu.textStorage, NSMaxRange(aralik) <= depo.length,
+                  (depo.string as NSString).substring(with: aralik).hasPrefix("/") else { return }
+            let taban = self.mevcutDosyaURL.map(sayfaKlasoru) ?? notlarKlasoru()
+            let yeni = self.metinGorunumu.belgeAdaptoru.gorunumluBelge(markdowndenAttributedStringUret(markdown, taban: taban))
+            let ilk = tabloIlkHucreAraligi(sutun: sutunSayisi)
+            self.metinGorunumu.blokDuzenle(aralik, yeni: yeni,
+                                           secim: NSRange(location: aralik.location + ilk.location, length: ilk.length),
+                                           yazim: self.metinGorunumu.typingAttributes)
+            self.puntoGostergesiniGuncelle()
+        }
     }
 
     func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
@@ -158,4 +181,42 @@ extension NotPenceresi {
         metinGorunumu.undoManager?.removeAllActions()
         gecmisDugmeleriniGuncelle()
     }
+}
+
+// MARK: - Tablo boyutu sorusu
+
+/// `/tablo` boyut penceresi. NSAlert aksesuarı otomatik yerleşimle boyutlanmaz:
+/// çerçevesi sıfır kalan yığın görünümünde alanlar 0×0 olur, tıklanamaz ve yazı
+/// almaz. Izgara kendi ölçüsüyle kurulur, ilk odak satır alanına verilir.
+func tabloBoyutUyarisi() -> (uyari: NSAlert, satir: NSTextField, sutun: NSTextField) {
+    let uyari = NSAlert()
+    uyari.messageText = "Tablo ekle"
+    uyari.informativeText = "Satır sayısına başlık satırı dahildir. Satır \(kTabloEnAzSatir)–\(kTabloEnCokSatir), "
+        + "sütun \(kTabloEnAzSutun)–\(kTabloEnCokSutun) arasında olabilir."
+    uyari.addButton(withTitle: "Ekle")
+    uyari.addButton(withTitle: "Vazgeç")
+    let satir = NSTextField(string: "3")
+    let sutun = NSTextField(string: "3")
+    for alan in [satir, sutun] {
+        alan.alignment = .right
+        alan.widthAnchor.constraint(equalToConstant: 64).isActive = true
+    }
+    satir.nextKeyView = sutun
+    sutun.nextKeyView = satir
+    let izgara = NSGridView(views: [[NSTextField(labelWithString: "Satır (başlık dahil)"), satir],
+                                    [NSTextField(labelWithString: "Sütun"), sutun]])
+    izgara.rowSpacing = 8
+    izgara.columnSpacing = 12
+    izgara.rowAlignment = .firstBaseline
+    izgara.column(at: 0).xPlacement = .trailing
+    izgara.frame = NSRect(origin: .zero, size: izgara.fittingSize)
+    uyari.accessoryView = izgara
+    uyari.window.initialFirstResponder = satir
+    return (uyari, satir, sutun)
+}
+
+/// Sayı olmayan girdi tablo eklemez; sınır dışı sayı en yakın geçerli boyuta çekilir
+/// (sınırlar pencerede yazılıdır).
+func tabloBoyutu(_ metin: String, _ sinir: ClosedRange<Int>) -> Int? {
+    Int(metin.trimmingCharacters(in: .whitespaces)).map { min(max($0, sinir.lowerBound), sinir.upperBound) }
 }

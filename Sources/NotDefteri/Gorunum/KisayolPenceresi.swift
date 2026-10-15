@@ -80,7 +80,7 @@ final class KisayolPenceresi: NSWindowController, NSSearchFieldDelegate {
             guard !eslesenler.isEmpty else { continue }
             let baslikEtiketi = NSTextField(labelWithString: baslik)
             baslikEtiketi.font = .systemFont(ofSize: 13, weight: .semibold)
-            baslikEtiketi.textColor = .secondaryLabelColor
+            baslikEtiketi.textColor = kMetinRenk.withAlphaComponent(0.6)
             liste.addArrangedSubview(baslikEtiketi)
             for (ad, tus) in eslesenler {
                 let etiket = NSTextField(labelWithString: "\(ad)    \(tus)")
@@ -94,7 +94,8 @@ final class KisayolPenceresi: NSWindowController, NSSearchFieldDelegate {
     private var editorKisayollari: [(String, String)] {
         [("# ", "Başlık"), ("- ", "Madde listesi"), ("1. ", "Numaralı liste"), ("[] ", "Yapılacak"),
          ("> ", "Alıntı"), ("---", "Ayırıcı"), ("```", "Kod bloğu"), ("/", "Blok menüsü"),
-         ("[[", "Sayfa bağlantısı"), ("Tab / ⇧Tab", "Girintiyi artır / azalt")]
+         ("[[", "Sayfa bağlantısı"), ("Tab / ⇧Tab", "Girintiyi artır / azalt"),
+         ("try + Tab", "Kod bloğunda kalıp (if, for, while, switch, func, class…)")]
     }
 
     private func menuKisayollari() -> [(String, [(String, String)])] {

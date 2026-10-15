@@ -54,6 +54,9 @@ final class AnaSayfa: NSScrollView {
 
     required init?(coder: NSCoder) { fatalError() }
     override var acceptsFirstResponder: Bool { true }
+    override func menu(for event: NSEvent) -> NSMenu? {
+        gorunumBaglamMenusunuEkle(super.menu(for: event) ?? NSMenu(), hedef: window as? NotPenceresi)
+    }
 
     func guncelle(sonlar: [AnaSayfaKarti], yapilacaklar: [BekleyenYapilacak]) {
         self.sonlar = sonlar
@@ -201,6 +204,9 @@ final class AnaSayfa: NSScrollView {
 
 private final class AnaSayfaBelgesi: NSView {
     override var isFlipped: Bool { true }
+    override func menu(for event: NSEvent) -> NSMenu? {
+        gorunumBaglamMenusunuEkle(super.menu(for: event) ?? NSMenu(), hedef: window as? NotPenceresi)
+    }
 }
 
 private final class AnaSayfaDugmesi: NSButton {

@@ -44,11 +44,11 @@ final class YuzerPanel: NSPanel {
 
 final class BlokMenusu: NSView {
     enum Komut: Int, CaseIterable {
-        case baslik1, baslik2, baslik3, madde, numarali, yapilacak, alinti, kod, ayirici, sayfa, gorsel
+        case baslik1, baslik2, baslik3, madde, numarali, yapilacak, alinti, kod, ayirici, sayfa, gorsel, tablo
         case uyari, uyariGri, uyariMavi, uyariSari, uyariKirmizi, uyariYesil
         var ad: String {
             ["Başlık 1", "Başlık 2", "Başlık 3", "Madde listesi", "Numaralı liste", "Yapılacak", "Alıntı", "Kod bloğu", "Ayırıcı", "Alt sayfa", "Görsel",
-             "Uyarı kutusu", "Uyarı: Gri", "Uyarı: Mavi", "Uyarı: Sarı", "Uyarı: Kırmızı", "Uyarı: Yeşil"][rawValue]
+             "Tablo", "Uyarı kutusu", "Uyarı: Gri", "Uyarı: Mavi", "Uyarı: Sarı", "Uyarı: Kırmızı", "Uyarı: Yeşil"][rawValue]
         }
         var kisayollar: [String] {
             switch self {
@@ -56,6 +56,7 @@ final class BlokMenusu: NSView {
             case .baslik2: return ["2", "b2"]
             case .baslik3: return ["3", "b3"]
             case .sayfa: return ["page", "sayfa"]
+            case .tablo: return ["table", "tablo"]
             case .kod: return ["code", "kod"]
             case .uyari: return ["att", "uyari"]
             default: return []
@@ -133,7 +134,7 @@ final class BlokMenusu: NSView {
             sorgu.isEmpty || $0.contains(sorgu) || dilAdiniNormallestir(sorgu) == $0
         }
         secili = 0
-        dugmeleriHazirla(dilEslesmeleri.map { $0.isEmpty ? "Dil yok" : $0 })
+        dugmeleriHazirla(dilEslesmeleri.map { $0.isEmpty ? "Otomatik" : $0 })
         dilBasligi.stringValue = sorgu.isEmpty ? "Dil: yazarak filtrele" : "Dil: " + dilSorgusu
         dilBasligi.font = .systemFont(ofSize: 12)
         dilBasligi.textColor = kMetinRenk
@@ -191,7 +192,7 @@ extension NotMetinGorunumu {
               depo.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
               depo.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else { return false }
         let sorgu = ns.substring(with: NSRange(location: slash.location + 1, length: imlec - slash.location - 1))
-        guard let komut = [BlokMenusu.Komut.kod, .uyari].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
+        guard let komut = [BlokMenusu.Komut.kod, .uyari, .tablo].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
         let aralik = NSRange(location: slash.location, length: imlec - slash.location)
         blokMenusu.gizle()
         slashAraligi = nil

@@ -54,8 +54,9 @@ final class BaslikCubugu: NSView {
         kapatButon.action = #selector(kapatButonaTiklandi)
 
         notAdiEtiketi.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-        notAdiEtiketi.textColor = .darkGray
+        notAdiEtiketi.textColor = temaSimgeRengi()
         notAdiEtiketi.lineBreakMode = .byTruncatingTail
+        notAdiEtiketi.alignment = .center
         yol.orientation = .horizontal
         yol.spacing = 3
         yol.distribution = .fillProportionally
@@ -77,13 +78,22 @@ final class BaslikCubugu: NSView {
         buton.isBordered = false
         buton.imageScaling = .scaleProportionallyDown
         buton.toolTip = aciklama
-        buton.contentTintColor = .darkGray
+        buton.contentTintColor = temaSimgeRengi()
         buton.refusesFirstResponder = true  // Odak yazı alanından kaçmasın.
         return buton
     }
 
     func temayiUygula() {
         layer?.backgroundColor = aktifTema.baslikCubugu.cgColor
+        notAdiEtiketi.textColor = temaSimgeRengi()
+        for buton in [kenarPaneliButon, yeniNotButon, geriAlButon, ileriAlButon, arkayaAtButon, kapatButon] {
+            buton.contentTintColor = temaSimgeRengi()
+        }
+        for gorunum in yol.arrangedSubviews {
+            (gorunum as? NSTextField)?.textColor = temaSimgeRengi()
+            (gorunum as? NSButton)?.contentTintColor = temaSimgeRengi()
+        }
+        sabitlemeGorunumunuGuncelle()
     }
 
     override func layout() {
@@ -104,10 +114,14 @@ final class BaslikCubugu: NSView {
             buton.frame = NSRect(x: solX + (boyut + bosluk) * CGFloat(sira), y: y, width: boyut, height: boyut)
         }
 
-        let etiketX = solX + (boyut + bosluk) * 4
-        let etiketGenislik = max(0, sabitleButon.frame.minX - 8 - etiketX)
-        notAdiEtiketi.frame = NSRect(x: etiketX, y: (bounds.height - 16) / 2, width: etiketGenislik, height: 16)
-        yol.frame = NSRect(x: etiketX, y: y, width: etiketGenislik, height: boyut)
+        // Sayfa adı macOS başlığı gibi pencerenin tam ortasında durur: iki yandaki düğmelere
+        // eşit uzak bir alan ayrılır, ad onun ortasına yazılır, sığmazsa kısaltılır. Ad
+        // dışarıdan değiştiği için genişliği metne değil bu simetrik alana bağlıdır.
+        let solSinir = solX + (boyut + bosluk) * 4
+        let yari = max(0, min(bounds.midX - solSinir, sabitleButon.frame.minX - 8 - bounds.midX))
+        notAdiEtiketi.frame = NSRect(x: bounds.midX - yari, y: (bounds.height - 16) / 2, width: yari * 2, height: 16)
+        let yolGenislik = min(yol.fittingSize.width, yari * 2)
+        yol.frame = NSRect(x: bounds.midX - yolGenislik / 2, y: y, width: yolGenislik, height: boyut)
     }
 
     func sayfaYolunuGoster(_ yeni: [URL]) {
@@ -119,14 +133,14 @@ final class BaslikCubugu: NSView {
         for (sira, url) in yeni.enumerated() {
             if sira > 0 {
                 let ayirac = NSTextField(labelWithString: "›")
-                ayirac.textColor = .darkGray
+                ayirac.textColor = temaSimgeRengi()
                 yol.addArrangedSubview(ayirac)
             }
             let dugme = NSButton(title: sayfaAdi(url), target: self, action: #selector(yolaTiklandi(_:)))
             dugme.tag = sira
             dugme.isBordered = false
             dugme.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-            dugme.contentTintColor = .darkGray
+            dugme.contentTintColor = temaSimgeRengi()
             dugme.refusesFirstResponder = true
             dugme.toolTip = sayfaAdi(url)
             dugme.cell?.lineBreakMode = .byTruncatingMiddle
@@ -164,7 +178,7 @@ final class BaslikCubugu: NSView {
     }
 
     private func sabitlemeGorunumunuGuncelle() {
-        sabitleButon.contentTintColor = sabitlemeAcik ? .systemOrange : .darkGray
+        sabitleButon.contentTintColor = sabitlemeAcik ? .systemOrange : temaSimgeRengi()
     }
 
     @objc private func arkayaAtButonaTiklandi() {

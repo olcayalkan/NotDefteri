@@ -2,11 +2,10 @@ import CGtk
 import Foundation
 import NotDefteriCekirdek
 
-/// macOS NotPenceresi+SayfaSecenekleri karşılığı: tam genişlik ve küçük yazı. Üstbilgi değişimi
-/// `ustbilgiyiDegistir` ile yapılır (tek adım); genişliği editör kendi kenar hesabıyla uygular,
-/// küçük yazı ise metin görünümüne eklenen sınıfla ölçeklenir.
+/// macOS NotPenceresi+SayfaSecenekleri karşılığı: küçük yazı ("Tam genişlik" iki platformda da
+/// kaldırıldı). Üstbilgi değişimi `ustbilgiyiDegistir` ile yapılır (tek adım); küçük yazı metin
+/// görünümüne eklenen sınıfla ölçeklenir.
 final class LinuxSayfaSecenekleri {
-    private static let genislikYolu = ["Görünüm", "Tam genişlik"]
     private static let yaziYolu = ["Görünüm", "Küçük yazı"]
     private static let kucukSinif = "nd-kucuk-yazi"
 
@@ -14,7 +13,7 @@ final class LinuxSayfaSecenekleri {
     private weak var editor: LinuxEditor?
     private let stil = gtk_css_provider_new()!
     private let ekran: OpaquePointer
-    private var sonDurum: (etkin: Bool, tam: Bool, kucuk: Bool)?
+    private var sonDurum: (etkin: Bool, kucuk: Bool)?
 
     static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
         let secenekler = LinuxSayfaSecenekleri(pencere: pencere, editor: editor)
@@ -33,8 +32,7 @@ final class LinuxSayfaSecenekleri {
         gtk_css_provider_load_from_data(stil, "textview.nd-metin.\(Self.kucukSinif) { font-size: \(Double(kTabanPunto) * 0.85)px; }", -1)
         gtk_style_context_add_provider_for_display(ekran, nd_style_provider(stil),
                                                    guint(GTK_STYLE_PROVIDER_PRIORITY_APPLICATION))
-        pencere.menuEkle(Self.genislikYolu, kisayol: nil) { [weak self] in self?.degistir(genislik: true) }
-        pencere.menuEkle(Self.yaziYolu, kisayol: nil) { [weak self] in self?.degistir(genislik: false) }
+        pencere.menuEkle(Self.yaziYolu, kisayol: nil) { [weak self] in self?.kucukYaziyiDegistir() }
         editor.durumDegisti.append { [weak self] in self?.durumuYansit() }
         durumuYansit()
     }
@@ -45,11 +43,10 @@ final class LinuxSayfaSecenekleri {
     }
 
     /// Sayfa açık ve düzenlenebilirken geçerlidir (ana sayfada editör gizli: ustbilgiyiDegistir reddeder).
-    private func degistir(genislik: Bool) {
+    private func kucukYaziyiDegistir() {
         guard let editor, editor.editorEtkin else { return }
         var bilgi = editor.sayfaUstbilgisi
-        if genislik { bilgi.genislik = bilgi.genislik == "tam" ? "" : "tam" }
-        else { bilgi.yazi = bilgi.yazi == "kucuk" ? "" : "kucuk" }
+        bilgi.yazi = bilgi.yazi == "kucuk" ? "" : "kucuk"
         editor.ustbilgiyiDegistir(bilgi)
     }
 
@@ -57,10 +54,9 @@ final class LinuxSayfaSecenekleri {
     private func durumuYansit() {
         guard let pencere, let editor else { return }
         let bilgi = editor.sayfaUstbilgisi
-        let durum = (etkin: editor.editorEtkin, tam: bilgi.genislik == "tam", kucuk: bilgi.yazi == "kucuk")
-        guard sonDurum?.etkin != durum.etkin || sonDurum?.tam != durum.tam || sonDurum?.kucuk != durum.kucuk else { return }
+        let durum = (etkin: editor.editorEtkin, kucuk: bilgi.yazi == "kucuk")
+        guard sonDurum?.etkin != durum.etkin || sonDurum?.kucuk != durum.kucuk else { return }
         sonDurum = durum
-        pencere.menuDurumu(Self.genislikYolu, etkin: durum.etkin, isaretli: durum.tam)
         pencere.menuDurumu(Self.yaziYolu, etkin: durum.etkin, isaretli: durum.kucuk)
         if durum.kucuk { gtk_widget_add_css_class(editor.metinGorunumu, Self.kucukSinif) }
         else { gtk_widget_remove_css_class(editor.metinGorunumu, Self.kucukSinif) }
