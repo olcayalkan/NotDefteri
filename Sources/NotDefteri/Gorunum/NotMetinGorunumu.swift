@@ -374,8 +374,6 @@ final class NotMetinGorunumu: NSTextView {
         return true
     }
 
-    /// Kutunun ilk işareti ve son satır sonu seçimden çıkarılır; kalan yazı normal yolla
-    /// silinir. Silinecek yazı kalmadıysa imleç yazının başına konur.
     /// `super.cut` silmeyi `delete(_:)` üzerinden yapar ve oradaki kutu koruması boş kutu bırakır.
     private func seciliAraligiDogrudanSil() {
         let secim = selectedRange()
@@ -402,6 +400,8 @@ final class NotMetinGorunumu: NSTextView {
         return bulundu
     }
 
+    /// Kutunun ilk işareti ve son satır sonu seçimden çıkarılır; kalan yazı normal yolla
+    /// silinir. Silinecek yazı kalmadıysa imleç yazının başına konur.
     private func kutuIcindekiSecimiDaralt(_ secim: NSRange, blok: NSRange, depo: NSTextStorage) -> Bool {
         let bas = max(secim.location, blok.location + blokIsaretiUzunlugu(depo, konum: blok.location))
         var son = NSMaxRange(secim)
