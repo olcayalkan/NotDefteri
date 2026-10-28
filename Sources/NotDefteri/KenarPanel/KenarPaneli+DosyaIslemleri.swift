@@ -149,6 +149,7 @@ extension KenarPaneli {
                 notYenidenAdlandirildi?(acik, yeni)
             }
         }
+        dalTasindi?(eskiKlasor, yeniKlasor, eskiIcerik, yeniIcerik)
         acikKlasorleriTasi(eski: eskiKlasor.path, yeni: yeniKlasor.path)
         dalBaglantilariniGuncelle(eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,
                                  eskiIcerik: eskiIcerik, yeniIcerik: yeniIcerik)

@@ -63,8 +63,11 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     let sayfalarBasligi = SayfalarBasligi()
     /// Çift tıklamanın ad düzenlemesi, üçüncü tıklama gelmeyeceği anlaşılana kadar bekler.
     var bekleyenAdDuzenleme: DispatchWorkItem?
-    /// Üç tıklanan sayfa yalnızca içeriğiyle ayrı pencerede açılır (bkz. `IcerikPenceresi`).
+    /// Üç tıklanan sayfa yalnızca içeriğiyle ayrı pencerede açılır (bkz. `NotPenceresi+IcerikModu`).
     var icerikPenceresindeAcIstendi: ((URL) -> Void)?
+    /// Bir dal taşındı ya da adı değişti: (eski klasör, yeni klasör, eski içerik, yeni içerik).
+    /// Başka pencerelerde açık sayfaların yolu da güncellensin diye bildirilir.
+    var dalTasindi: ((URL, URL, URL?, URL?) -> Void)?
     let kaydirmaGorunumu = NSScrollView()
     let aramaKutusu = NSView()
     let aramaIkonu = NSImageView()

@@ -110,7 +110,7 @@ final class BaslikCubugu: NSView {
         sabitleButon.frame = NSRect(x: x, y: y, width: boyut, height: boyut)
 
         let solX: CGFloat = 10
-        for (sira, buton) in [kenarPaneliButon, yeniNotButon, geriAlButon, ileriAlButon].enumerated() {
+        for (sira, buton) in [kenarPaneliButon, yeniNotButon, geriAlButon, ileriAlButon].filter({ !$0.isHidden }).enumerated() {
             buton.frame = NSRect(x: solX + (boyut + bosluk) * CGFloat(sira), y: y, width: boyut, height: boyut)
         }
 
@@ -122,6 +122,13 @@ final class BaslikCubugu: NSView {
         notAdiEtiketi.frame = NSRect(x: bounds.midX - yari, y: (bounds.height - 16) / 2, width: yari * 2, height: 16)
         let yolGenislik = min(yol.fittingSize.width, yari * 2)
         yol.frame = NSRect(x: bounds.midX - yolGenislik / 2, y: y, width: yolGenislik, height: boyut)
+    }
+
+    /// İçerik penceresinde kenar panel ve yeni sayfa düğmeleri yoktur.
+    func panelDugmeleriniGizle() {
+        kenarPaneliButon.isHidden = true
+        yeniNotButon.isHidden = true
+        needsLayout = true
     }
 
     func sayfaYolunuGoster(_ yeni: [URL]) {

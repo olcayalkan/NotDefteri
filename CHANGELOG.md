@@ -20,7 +20,7 @@ and this project adheres to
 
 - NotDefteri: Uyarı kutusu kod bloğu gibi yazılır: boş satırda Enter kutuda kalır, Ctrl+Enter kutudan çıkar (altında boş satır varsa oraya geçer); ilk satır boşken geri silme kutuyu bozmaz.
 - NotDefteri: macOS arayüzü tanıtımla uyumlu: sayfa bağları 📄 emojisiyle, köşeli parantezsiz mavi ve altı çizili (imleç bağdayken `[[ ]]` görünür), tamamlanan görevde yeşil tik, görseller yuvarlak köşeli gölgeli kart, kenar panelde "Sayfalar" başlığı ve alt sayfalı sayfalarda klasör simgesi.
-- NotDefteri: macOS kenar panelde sayfaya üç tıklama sayfayı yalnızca içeriğiyle ayrı, salt okunur bir pencerede açar; iki tıklama yeniden adlandırır.
+- NotDefteri: macOS kenar panelde sayfaya üç tıklama sayfayı yalnızca içeriğiyle ayrı bir pencerede açar; iki tıklama yeniden adlandırır. Bu pencere ana editörün aynısıdır (yazma, biçim, tablo, görsel, geri al, sayfa seçenekleri, otomatik kayıt). Aynı sayfa iki pencerede açıkken biri kaydedince diğeri diskten yenilenir, kayıtlar birbirini ezmez; ana pencerede taşınan sayfanın yolu izlenir, silinen sayfa yeniden oluşturulmaz.
 - NotDefteri: Uyarı kutusu ve kod bloğu eklenince altına boş bir satır gelir; uyarı renkleri ve çerçevesi koyulaştı.
 - NotDefteri: Numaralı listede numaralar sağa hizalanır; 10 ve üstü numaralar metni kaydırmaz.
 - NotDefteri: "Tam genişlik" sayfa seçeneği kaldırıldı (eski sayfalardaki `genislik: tam` satırı korunur, etkisizdir). "•••" sayfa seçenekleri alanı yalnızca düğme kadar geniş.

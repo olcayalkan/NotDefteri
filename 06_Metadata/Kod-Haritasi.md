@@ -157,13 +157,13 @@ Yalnızca tek dosyada kullanılanlar `private` kaldı.
 - `Cekirdek/ArkaPlanYenileyici.swift`: nesil kontrolüyle arka planda ağaç yenileme.
 - `Cekirdek/KullanimKilavuzu.swift`: ortak kullanım kılavuzu içeriği.
 - `Gorunum/NotMetinGorunumu+Tablolar.swift`: AppKit yerel hücre editörü, gezinme ve belge geri alma yolu.
-- `Pencere/IcerikPenceresi.swift`: kenar panelde üç tıklanan sayfayı yalnızca içeriğiyle, salt okunur açan pencere; öne gelince dosyadan yenilenir, `.notDefteriTemaDegisti` ile temayı izler.
+- `Pencere/NotPenceresi+IcerikModu.swift`: kenar panelde üç tıklanan sayfayı kenar paneli kapalı ayrı bir `NotPenceresi`nde (içerik modu) açar; ana editörün bütün özellikleri vardır. Pencereler arası eşitleme: kaydeden pencere `.notDefteriSayfaKaydedildi` yayar, aynı sayfayı gösteren pencere kaydedilmemiş değişikliği yoksa diskten yenilenir (`diskleEsitle`, odak gelince de çalışır); dal taşınınca içerik pencerelerinin yolu izlenir, silinen sayfa yeniden oluşturulmaz.
 - `Gorunum/NotYerlesimYoneticisi.swift`: tablo zemini ve seçim vurgusunun çerçeve dışına taşmaması (köşe glif mürekkebinden ölçülen kutu).
 - `Pencere/NotPenceresi+Komutlar.swift`: `/tablo` boyut penceresi `tabloBoyutUyarisi()` (ızgara aksesuarı kendi ölçüsüyle), `tabloBoyutu()` sınıra çekme.
 - `Uygulama/Menu.swift`: ana menü ve not/ana sayfa/kenar panel için ortak Görünüm bağlam alt menüsü; temalar ara adım olmadan Görünüm altında.
 - `Sources/NotDefteriLinux/LinuxTablolar.swift`: GTK hücre editörü, konumlandırma ve kayıt/geri alma.
 - `Sources/NotDefteriLinux/LinuxTamEkranKontrolleri.swift`: tam ekran kontrol görünürlüğü.
-- `Tests/NotDefteriMacTests/TanitimUyumuTestleri.swift`, `IcerikPenceresiTestleri.swift`: tanıtımla uyumlu bağ görünümü/işaret gizleme ve "Sayfalar" başlığı; üç tıklama içerik penceresi ve gecikmeli ad düzenleme.
+- `Tests/NotDefteriMacTests/TanitimUyumuTestleri.swift`, `IcerikPenceresiTestleri.swift`: tanıtımla uyumlu bağ görünümü/işaret gizleme ve "Sayfalar" başlığı; üç tıklama içerik penceresi (düzenleme, kayıt, iki pencere eşitlemesi, taşıma/silme) ve gecikmeli ad düzenleme.
 - `Tests/NotDefteriMacTests/IsaretciVeKutuTestleri.swift`: kutuda yazı silmenin kutuyu koruması, yeni kutunun altındaki boş satır, yapılacak kutusu boyutu/satır yüksekliği, numara hizası, sekmeli iç liste.
 - `Tests/NotDefteriMacTests/GorunumBaglamMenusuTestleri.swift`, `TabloDuzenlemeTestleri.swift`, `TabloCizimTestleri.swift`: sağ tık tema, hücre düzenleme, boyut penceresi, vurgunun çerçevede kalması (piksel) ve kenar panel satır genişliği.
 - `Tests/NotDefteriLinuxTests/GrafikTestOrtami.swift`: tüm grafik testleri için tek GTK başlatma ve gerçek ekran denetimi.

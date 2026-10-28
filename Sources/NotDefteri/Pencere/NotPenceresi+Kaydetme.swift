@@ -24,6 +24,11 @@ extension NotPenceresi {
     @discardableResult
     func kaydetURLe(_ url: URL, hazirMetin: String? = nil, panelYenile: Bool = true) -> Bool {
         let metin = hazirMetin ?? sayfaMarkdownunuUret(metinGorunumu.attributedString(), ustbilgi: sayfaUstbilgisi)
+        // İçerik penceresi, başka pencerede silinen/taşınan sayfayı eski yolunda yeniden oluşturmaz.
+        if icerikModu, url == mevcutDosyaURL, !FileManager.default.fileExists(atPath: url.path) {
+            kayitHatasiniBildir(url: url, neden: "Sayfa başka bir pencerede taşındı ya da silindi.")
+            return false
+        }
 
         switch kaydedici.yaz(metin: metin, url: url, mevcutURL: mevcutDosyaURL) {
         case .gerekmedi:
@@ -37,6 +42,8 @@ extension NotPenceresi {
             mevcutDosyaURL = url
             baslikEtiketiniGuncelle()
             kenarPaneli.notIceriginiArkaPlandaGuncelle(url, metin: metin)
+            NotificationCenter.default.post(name: .notDefteriSayfaKaydedildi, object: self,
+                                            userInfo: ["url": url, "metin": metin])
             if panelYenile { kenarPaneli.yenile(secili: url) }
             return true
         }

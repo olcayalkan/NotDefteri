@@ -31,6 +31,10 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // İçerik pencereleri de ana pencere gibi kapanışta son kaydını yapar.
+        for p in NotPenceresi.icerikPencereleri where p.isVisible {
+            guard p.kapanistaGerekirseKaydet() else { return .terminateCancel }
+        }
         guard pencere?.kapanistaGerekirseKaydet() != false else { return .terminateCancel }
         return .terminateNow
     }

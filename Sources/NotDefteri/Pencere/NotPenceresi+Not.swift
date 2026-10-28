@@ -77,6 +77,11 @@ extension NotPenceresi {
     }
 
     func yeniSayfaOlustur(klasor: URL) {
+        if icerikModu, let ana = anaPencere {
+            ana.makeKeyAndOrderFront(nil)
+            ana.yeniSayfaOlustur(klasor: klasor)
+            return
+        }
         guard mevcutNotuKaybolmayacakSekildeKaydet() else { return }
         let url = benzersizSayfaURL(taban: "Yeni Sayfa", klasor: klasor)
         // Sayfa = kendi klasörü + içindeki index.md

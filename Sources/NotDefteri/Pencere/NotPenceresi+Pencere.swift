@@ -26,6 +26,7 @@ extension NotPenceresi {
     // MARK: Kenar paneli göster/gizle
 
     func kenarPaneliniAcKapa() {
+        guard !icerikModu else { return }
         kenarPanelGizli.toggle()
         gAyarlar.set(kenarPanelGizli, forKey: "kenarPanelGizli")
         kenarPaneliYerlesiminiUygula(animasyonlu: true)
@@ -153,6 +154,13 @@ extension NotPenceresi {
         return super.performKeyEquivalent(with: event)
     }
 
+    /// Odak gelince sayfa başka pencerede değişmişse önce diskten yenilenir, sonra yazılır.
+    override func becomeKey() {
+        super.becomeKey()
+        // Silinen sayfada içerik penceresi kapanabilir; odak geçişi bitince yapılır.
+        DispatchQueue.main.async { [weak self] in self?.diskleEsitle() }
+    }
+
     /// Pencere odağı kaybettiğinde bekleyen değişikliği hemen yazar.
     override func resignKey() {
         hizliBulucu.gizle()
@@ -170,6 +178,7 @@ extension NotPenceresi {
         altBilgiZamanlayicisi?.invalidate()
         metinGorunumu.yuzerGorunumleriGizle()
         super.close()
+        Self.icerikPencereleri.removeAll { $0 === self }
     }
 
     override var canBecomeKey: Bool { true }

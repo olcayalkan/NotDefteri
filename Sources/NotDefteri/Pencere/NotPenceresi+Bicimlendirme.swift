@@ -181,10 +181,10 @@ extension NotPenceresi {
         }
         temaGorunumunuUygula()
         temaUygulaTumUI()
-        NotificationCenter.default.post(name: .notDefteriTemaDegisti, object: nil)
+        NotificationCenter.default.post(name: .notDefteriTemaDegisti, object: self)
     }
 
-    private func temaUygulaTumUI() {
+    func temaUygulaTumUI() {
         backgroundColor = aktifTema.arkaplan
         icerikGorunum.layer?.backgroundColor = aktifTema.arkaplan.cgColor
         metinGorunumu.backgroundColor = aktifTema.arkaplan

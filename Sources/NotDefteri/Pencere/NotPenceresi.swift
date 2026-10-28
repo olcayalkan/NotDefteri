@@ -27,7 +27,8 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
 
     var mevcutDosyaURL: URL? {
         didSet {
-            gAyarlar.set(mevcutDosyaURL?.path, forKey: "sonNotYolu")
+            // İçerik penceresindeki sayfa açılışta ana pencerede açılacak not sayılmaz.
+            if !icerikModu { gAyarlar.set(mevcutDosyaURL?.path, forKey: "sonNotYolu") }
             if oldValue != mevcutDosyaURL { sayfaDosyalariniTazele() }
         }
     }
@@ -43,14 +44,21 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
     /// denediği için, hata sürerken her turda uyarı çıkmasın diye tutulur.
     /// Başarılı bir kayıtta sıfırlanır.
     var kayitHatasiBildirildi = false
+    /// Kenar panelde üç tıklanan sayfayı açan ayrı pencere mi? Editörün bütün özellikleri
+    /// aynıdır; yalnızca kenar panel kapalıdır ve panel aç/kapa, yeni sayfa ana pencereye kalır.
+    private(set) var icerikModu = false
 
-    convenience init() {
+    convenience init() { self.init(icerikURL: nil) }
+
+    convenience init(icerikURL: URL?) {
         let boyut = NSRect(x: 0, y: 0, width: 680, height: 520)
         self.init(contentRect: boyut,
                    styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                    backing: .buffered,
                    defer: false)
 
+        icerikModu = icerikURL != nil
+        if icerikModu { kenarPanelGizli = true }
         title = "Not Defteri"
         isReleasedWhenClosed = false
         titlebarAppearsTransparent = true
@@ -78,6 +86,7 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
         baslikCubugu.geriAlTiklandi = { [weak self] in guard let self, self.anaSayfa.isHidden else { return }; self.geriAl() }
         baslikCubugu.ileriAlTiklandi = { [weak self] in guard let self, self.anaSayfa.isHidden else { return }; self.ileriAl() }
         baslikCubugu.sayfaYoluTiklandi = { [weak self] url in self?.notuAc(url) }
+        if icerikModu { baslikCubugu.panelDugmeleriniGizle() }
 
         let kenarPanelBaslangicGenislik: CGFloat = kenarPanelGizli ? 0 : gKenarPanelGenislik
         kenarPaneli.frame = NSRect(x: kenarPanelBaslangicGenislik - gKenarPanelGenislik, y: 0, width: gKenarPanelGenislik, height: boyut.height - kBaslikYuksekligi)
@@ -88,7 +97,11 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
             guard let self else { return }
             // Ana pencerede açıksa son yazılanlar önce diske gider; içerik penceresi dosyadan okur.
             if self.mevcutDosyaURL == url { _ = self.mevcutNotuKaybolmayacakSekildeKaydet() }
-            IcerikPenceresi.ac(url, yanindaki: self)
+            NotPenceresi.icerikPenceresiAc(url, yanindaki: self)
+        }
+        kenarPaneli.dalTasindi = { eskiKlasor, yeniKlasor, eskiIcerik, yeniIcerik in
+            NotPenceresi.icerikPencereleriniTasi(eskiKlasor: eskiKlasor, yeniKlasor: yeniKlasor,
+                                                 eskiIcerik: eskiIcerik, yeniIcerik: yeniIcerik)
         }
         kenarPaneli.notSilindi = { [weak self] url in self?.notSilindiIsleyici(url) }
         kenarPaneli.notYenidenAdlandirildi = { [weak self] eski, yeni in self?.notYenidenAdlandirildiIsleyici(eski: eski, yeni: yeni) }
@@ -207,8 +220,15 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
                                                     name: NSView.frameDidChangeNotification, object: gorunum)
         }
 
+        // Pencereler aynı sayfayı sırayla düzenler: biri kaydedince diğeri diskten yenilenir.
+        NotificationCenter.default.addObserver(self, selector: #selector(baskaPencereKaydetti(_:)),
+                                               name: .notDefteriSayfaKaydedildi, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(baskaPencereTemaSecti(_:)),
+                                               name: .notDefteriTemaDegisti, object: nil)
+
         kenarPaneli.yenile(secili: nil)
-        if gAcilistaAnaSayfa { anaSayfayiGoster() } else { onceki_notu_ac_gerekirse() }
+        if let icerikURL { notuAc(icerikURL) }
+        else if gAcilistaAnaSayfa { anaSayfayiGoster() } else { onceki_notu_ac_gerekirse() }
         sayfaBasliginiGuncelle()
         altBilgiyiGuncelle()
         center()
