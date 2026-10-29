@@ -425,7 +425,7 @@ final class NotMetinGorunumu: NSTextView {
 
     private var resimIzlemeAlani: NSTrackingArea?
     private weak var uzerindekiResimHucresi: ResimEkiHucresi?
-    private var resimTutamacinda = false
+    private var resimTutamaci: ResimTutamaci?
 
     // MARK: Görsel tutamaçları
 
@@ -457,9 +457,9 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func cursorUpdate(with event: NSEvent) {
-        let tutamactaydi = resimTutamacinda
+        let tutamactaydi = resimTutamaci != nil
         resimImleciniGuncelle(noktada: convert(event.locationInWindow, from: nil), olay: event)
-        if !resimTutamacinda && !tutamactaydi {
+        if resimTutamaci == nil && !tutamactaydi {
             super.cursorUpdate(with: event)
         }
     }
@@ -468,7 +468,7 @@ final class NotMetinGorunumu: NSTextView {
         katlamaFaresiniGuncelle(nil)
         kodAraclari.isHidden = true
         resimTutamaclariniGuncelle(nil)
-        resimTutamacinda = false
+        resimTutamaci = nil
         super.mouseExited(with: event)
     }
 
@@ -504,7 +504,7 @@ final class NotMetinGorunumu: NSTextView {
         if katlamaIsaretiniTikla(nokta) { return }
         if yapilacakKutusunuDegistir(noktada: nokta) { return }
         if let resim = resimHucresi(noktada: nokta),
-           resim.hucre.tutamacYonu(noktada: nokta, cerceve: resim.cerceve) != nil,
+           resim.hucre.tutamac(noktada: nokta, cerceve: resim.cerceve) != nil,
            resim.hucre.trackMouse(with: event, in: resim.cerceve, of: self, untilMouseUp: true) {
             // Tutamaç tıklaması NSTextView'ın seçim/sürükleme yoluna girmesin.
             if let pencere = window {
@@ -541,15 +541,11 @@ final class NotMetinGorunumu: NSTextView {
 
     private func resimImleciniGuncelle(noktada nokta: NSPoint, olay: NSEvent) {
         let resim = resimHucresi(noktada: nokta)
-        let tutamacta = resim.map { $0.hucre.tutamacYonu(noktada: nokta, cerceve: $0.cerceve) != nil } ?? false
-        guard tutamacta != resimTutamacinda else { return }
-        resimTutamacinda = tutamacta
-        if tutamacta {
-            // macOS 12'de köşeler için hazır çapraz imleç yok.
-            NSCursor.resizeLeftRight.set()
-        } else {
-            super.cursorUpdate(with: olay)
-        }
+        let tutulan = resim.flatMap { $0.hucre.tutamac(noktada: nokta, cerceve: $0.cerceve) }
+        // İmleç tutamaçtan tutamaca geçerken de (kenardan köşeye) değişir.
+        guard tutulan != resimTutamaci else { return }
+        resimTutamaci = tutulan
+        if let tutulan { tutulan.imlec.set() } else { super.cursorUpdate(with: olay) }
     }
 
     func resimTutamaclariniGuncelle(_ hucre: ResimEkiHucresi?) {
