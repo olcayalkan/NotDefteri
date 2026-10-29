@@ -68,6 +68,7 @@ extension KenarPaneli {
     func kisaYollariYenile() {
         kisaYolGuncellemesiBekliyor = false
         guard !aramaFiltresiEtkin else { return }
+        guard duzenlenenDugum == nil else { duzenlemeBitinceYenile = true; return }
         programatikSecimYapiliyor = true
         defer { programatikSecimYapiliyor = false }
         kisaYollariHazirla()

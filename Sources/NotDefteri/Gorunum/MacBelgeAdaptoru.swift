@@ -475,6 +475,63 @@ final class MacBelgeAdaptoru {
 
     // MARK: Görünüm → anlamsal (dış zengin metin)
 
+    /// Yapıştırılan zengin metnin bir bölümü: tablo dışı metin ya da Markdown'a çevrilmiş tablo.
+    enum DisParca {
+        case metin(NSAttributedString)
+        case tablo(String)
+    }
+
+    /// Web sayfası ya da belgeden gelen tabloları (`NSTextTable`) Markdown tablosuna çevirip
+    /// içeriği bölümlere ayırır. AppKit her hücreyi ayrı paragraf yapar; eskiden yan yana
+    /// duran hücreler notta alt alta satırlara dönüşüyordu. Tabloya çevrilemeyen bölüm metin kalır.
+    static func tablolaraBol(_ zengin: NSAttributedString) -> [DisParca] {
+        let ns = zengin.string as NSString
+        var parcalar: [DisParca] = []
+        var metinBasi = 0
+        var tablo: NSTextTable?
+        var tabloBasi = 0
+        var hucreler: [Int: [Int: String]] = [:]
+
+        func tabloyuKapat(bitis: Int) {
+            defer { tablo = nil; hucreler = [:] }
+            guard tablo != nil else { return }
+            let satirlar = hucreler.keys.sorted().map { sira -> [String] in
+                let satir = hucreler[sira] ?? [:]
+                return (0...(satir.keys.max() ?? 0)).map { satir[$0] ?? "" }
+            }
+            guard let markdown = disTablodanMarkdownUret(satirlar) else { return }
+            if tabloBasi > metinBasi {
+                parcalar.append(.metin(zengin.attributedSubstring(from: NSRange(location: metinBasi, length: tabloBasi - metinBasi))))
+            }
+            parcalar.append(.tablo(markdown))
+            metinBasi = bitis
+        }
+
+        var konum = 0
+        while konum < ns.length {
+            let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+            // İç içe tablolarda dıştaki ızgara korunur; içteki hücrelerin metni dış hücreye katılır.
+            let blok = (zengin.attribute(.paragraphStyle, at: paragraf.location, effectiveRange: nil) as? NSParagraphStyle)?
+                .textBlocks.lazy.compactMap { $0 as? NSTextTableBlock }.first
+            if blok?.table !== tablo { tabloyuKapat(bitis: paragraf.location) }
+            if let blok {
+                if tablo == nil { tablo = blok.table; tabloBasi = paragraf.location }
+                // Hücredeki görsel eki (U+FFFC) Markdown tablosuna taşınamaz.
+                let metin = ns.substring(with: paragraf).replacingOccurrences(of: "\u{FFFC}", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let onceki = hucreler[blok.startingRow]?[blok.startingColumn] ?? ""
+                hucreler[blok.startingRow, default: [:]][blok.startingColumn] =
+                    [onceki, metin].filter { !$0.isEmpty }.joined(separator: " ")
+            }
+            konum = NSMaxRange(paragraf)
+        }
+        tabloyuKapat(bitis: ns.length)
+        if metinBasi < ns.length {
+            parcalar.append(.metin(zengin.attributedSubstring(from: NSRange(location: metinBasi, length: ns.length - metinBasi))))
+        }
+        return parcalar
+    }
+
     /// RTF/RTFD/HTML'den gelen fontu ve ekleri anlamsala indirger.
     /// `kaynakBicimi`: ⇧⌘V — eski yazıcının fonttan okuduğu italik ve bağ da korunur.
     static func disIcerigiAnlamsalaCevir(_ zengin: NSAttributedString, kaynakBicimi: Bool = false) -> NSAttributedString {

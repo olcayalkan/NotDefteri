@@ -134,32 +134,46 @@ extension KenarPaneli {
         }
     }
 
-    /// Çift tıklamak adı satırın üzerinde düzenlemeye açar (Finder gibi). Düzenleme çift
-    /// tıklama süresi dolunca başlar: üçüncü tıklama gelirse sayfa içerik penceresinde açılır.
+    /// Çift tıklamak adı satırın üzerinde hemen düzenlemeye açar (Finder gibi). Üçüncü
+    /// tıklama gelirse düzenleme iptal edilir ve sayfa içerik penceresinde açılır.
+    ///
+    /// Düzenleme eskiden çift tıklama süresi dolana kadar bekliyordu; o arada yazılanlar
+    /// editöre gidiyor, araya giren tıklama düzenlemeyi hiç açmıyordu.
     @objc func cifteTiklandi() {
         let satir = tablo.clickedRow
         guard satir >= 0, let dugum = tablo.item(atRow: satir) as? AgacDugumu else { return }
-        bekleyenAdDuzenleme?.cancel()
-        let duzenleme = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            self.bekleyenAdDuzenleme = nil
-            // İlk tıklama sayfayı açıp kısa yolları yeniden kurmuş olabilir; satır yeniden bulunur.
-            guard let guncel = self.satirBul(dugum) else { return }
-            self.adiYerindeDuzenle(dugum: self.tablo.item(atRow: guncel) as? AgacDugumu ?? dugum, satir: guncel)
-        }
-        bekleyenAdDuzenleme = duzenleme
-        DispatchQueue.main.asyncAfter(deadline: .now() + NSEvent.doubleClickInterval, execute: duzenleme)
+        // İlk tıklama sayfayı açıp kısa yolları yeniden kurmuş olabilir; satır yeniden bulunur.
+        guard let guncel = satirBul(dugum) else { return }
+        adiYerindeDuzenle(dugum: tablo.item(atRow: guncel) as? AgacDugumu ?? dugum, satir: guncel)
     }
 
-    /// Yeni tıklama dizisi bekleyen ad düzenlemesini iptal eder; üçüncü tıklama içerik penceresini açar.
+    /// Ağaca gelen üçüncü tıklama (ad alanının dışında, örn. simgede) içerik penceresini açar.
     func agacTiklandi(_ sayi: Int, satir: Int) -> Bool {
-        if sayi != 2 {
-            bekleyenAdDuzenleme?.cancel()
-            bekleyenAdDuzenleme = nil
-        }
         guard sayi == 3, satir >= 0, let url = (tablo.item(atRow: satir) as? AgacDugumu)?.icerikURL else { return false }
-        icerikPenceresindeAcIstendi?(url)
+        icerikPenceresindeAc(url)
         return true
+    }
+
+    /// Düzenlenen adın alanına gelen üçüncü tıklama alanın içinde kalırdı (satırı seçerdi);
+    /// burada yakalanır. `true`: olay tüketildi.
+    func adAlanindaUcuncuTiklama(_ olay: NSEvent) -> Bool {
+        guard olay.clickCount == 3, olay.window === window, let dugum = duzenlenenDugum,
+              let url = dugum.icerikURL else { return false }
+        let nokta = tablo.convert(olay.locationInWindow, from: nil)
+        let satir = tablo.row(at: nokta)
+        guard tablo.bounds.contains(nokta), satir >= 0,
+              (tablo.item(atRow: satir) as? AgacDugumu)?.icerikURL == url else { return false }
+        icerikPenceresindeAc(url)
+        return true
+    }
+
+    /// Açık ad düzenlemesinden vazgeçip sayfayı içerik penceresinde açar.
+    private func icerikPenceresindeAc(_ url: URL) {
+        if duzenlenenDugum != nil {
+            adDuzenlemesiIptal = true
+            window?.makeFirstResponder(tablo)
+        }
+        icerikPenceresindeAcIstendi?(url)
     }
 
     /// Düğüm aynı nesne olarak ağaçta değilse aynı sayfanın aynı türdeki (kısa yol/ağaç) satırı.
@@ -198,6 +212,14 @@ extension KenarPaneli {
         alan.textColor = temaSimgeRengi()
         guard let dugum = duzenlenenDugum else { return }
         duzenlenenDugum = nil
+        if duzenlemeBitinceYenile {
+            duzenlemeBitinceYenile = false
+            // Alan düzenleyicisi kapanırken ağaç yeniden kurulmaz; sonraki döngüde.
+            DispatchQueue.main.async { [weak self] in
+                self?.bekleyenGuncellemeleriUygula()
+                self?.kisaYollariPlanla()
+            }
+        }
 
         let yeniAd = alan.stringValue
             .trimmingCharacters(in: .whitespacesAndNewlines)

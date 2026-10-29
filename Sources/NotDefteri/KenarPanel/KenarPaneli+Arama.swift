@@ -164,8 +164,9 @@ extension KenarPaneli {
     private func filtreUygula() {
         aramaZamanlayicisi?.invalidate()
         aramaZamanlayicisi = nil
-        guard gorunumGuncellemeleriEtkin else {
+        guard gorunumGuncellemeleriEtkin, duzenlenenDugum == nil else {
             filtreGuncellemesiBekliyor = true
+            if duzenlenenDugum != nil { duzenlemeBitinceYenile = true }
             return
         }
         filtreGuncellemesiBekliyor = false

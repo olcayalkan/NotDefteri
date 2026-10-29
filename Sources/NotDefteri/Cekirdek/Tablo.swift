@@ -30,6 +30,28 @@ package func tabloMarkdownUret(satir: Int, sutun: Int) -> String? {
     return sonuc
 }
 
+/// Dışarıdan (web, belge) yapıştırılan tablonun hücrelerinden GFM tablosu üretir; ilk satır
+/// başlıktır. Kısa satırlar boş hücreyle tamamlanır, hücre içi satır sonu boşluğa döner,
+/// `|` kaçışlanır. İki sütundan az ya da tek satırlık içerik tablo sayılmaz: `nil`.
+package func disTablodanMarkdownUret(_ satirlar: [[String]]) -> String? {
+    let temiz = satirlar.map { satir in
+        satir.map { hucre in
+            hucre.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }.joined(separator: " ")
+                .replacingOccurrences(of: "|", with: "\\|")
+        }
+    }.filter { satir in satir.contains { !$0.isEmpty } }
+    let sutun = temiz.map(\.count).max() ?? 0
+    guard temiz.count >= kTabloEnAzSatir, sutun >= kTabloEnAzSutun else { return nil }
+    func satirMetni(_ hucreler: [String]) -> String {
+        "| " + (hucreler + Array(repeating: "", count: sutun - hucreler.count)).joined(separator: " | ") + " |\n"
+    }
+    var sonuc = satirMetni(temiz[0])
+    sonuc += satirMetni(Array(repeating: "---", count: sutun))
+    for satir in temiz.dropFirst() { sonuc += satirMetni(satir) }
+    return sonuc
+}
+
 /// Dıştaki `|` isteğe bağlıdır. Kaçışlı boru işareti hücreyi bölmez.
 package func tabloHucreleri(_ satir: String) -> [String]? {
     let temiz = satir.trimmingCharacters(in: .whitespacesAndNewlines)

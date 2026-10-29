@@ -61,8 +61,11 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
 
     let tablo = KenarAgaci()
     let sayfalarBasligi = SayfalarBasligi()
-    /// Çift tıklamanın ad düzenlemesi, üçüncü tıklama gelmeyeceği anlaşılana kadar bekler.
-    var bekleyenAdDuzenleme: DispatchWorkItem?
+    /// Ad düzenlemesi açıkken alana gelen üçüncü tıklamayı yakalar (alan olayı ağaca iletmez).
+    var ucluTiklamaIzleyicisi: Any?
+    /// Ad düzenlenirken gelen ağaç yenilemesi düzenleme bitene kadar bekler; yoksa satır
+    /// yeniden kurulup yazılan ad kayboluyordu.
+    var duzenlemeBitinceYenile = false
     /// Üç tıklanan sayfa yalnızca içeriğiyle ayrı pencerede açılır (bkz. `NotPenceresi+IcerikModu`).
     var icerikPenceresindeAcIstendi: ((URL) -> Void)?
     /// Bir dal taşındı ya da adı değişti: (eski klasör, yeni klasör, eski içerik, yeni içerik).
@@ -159,6 +162,10 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         tablo.target = self
         tablo.doubleAction = #selector(cifteTiklandi)
         tablo.tiklamaGeldi = { [weak self] sayi, satir in self?.agacTiklandi(sayi, satir: satir) ?? false }
+        ucluTiklamaIzleyicisi = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] olay in
+            guard let self, self.adAlanindaUcuncuTiklama(olay) else { return olay }
+            return nil
+        }
         // Sayfaları sürükleyerek başka sayfanın altına taşıma (bkz. KenarPaneli+SurukleBirak).
         tablo.registerForDraggedTypes([kSayfaSurukleTipi])
         tablo.setDraggingSourceOperationMask(.move, forLocal: true)
@@ -290,6 +297,10 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     @objc private func puntoArttirTiklandi() { puntoDegistirIstendi?(1) }
 
     @objc private func anaSayfaTiklandi() { anaSayfaIstendi?() }
+
+    deinit {
+        if let ucluTiklamaIzleyicisi { NSEvent.removeMonitor(ucluTiklamaIzleyicisi) }
+    }
 
     required init?(coder: NSCoder) { fatalError() }
 

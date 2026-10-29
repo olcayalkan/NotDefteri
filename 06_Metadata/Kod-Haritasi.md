@@ -76,7 +76,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|---|
 | `KenarPaneli.swift` | 442 | Sınıf gövdesi, UI kurulumu, boyut değişince yerleşim (ağaç sütunu görünür genişliğe `sizeLastColumnToFit()`, kaydırma çubuğu stili değişince de); kapalı/geçişteki panelde görünüm güncellemelerini erteleme; Ana Sayfa üst satırı ve açık dosyadan ayrı seçim durumu; altta Çöp kutusu düğmesi |
 | `KenarAgaci.swift` | 16 | `NSOutlineView` alt sınıfı: tıklama sayısını panele iletir (üçüncü tıklama içerik penceresi, çift tıklama gecikmeli ad düzenleme) |
-| `KenarPaneli+AgacVeriKaynagi.swift` | 198 | `NSOutlineView` veri kaynağı + delegesi, hücre üretimi ve önbellekten emoji gösterimi |
+| `KenarPaneli+AgacVeriKaynagi.swift` | 198 | `NSOutlineView` veri kaynağı + delegesi, hücre üretimi ve önbellekten emoji gösterimi; çift tıklama adı hemen düzenlemeye açar, ad alanına gelen üçüncü tıklama (`adAlanindaUcuncuTiklama`, yerel olay izleyicisi) içerik penceresini açar; düzenleme sürerken ağaç yenilemesi `duzenlemeBitinceYenile` ile bekler |
 | `KenarPaneli+DosyaIslemleri.swift` | 266 | Sayfa ekleme (gizliyken güncel açık notun klasörüne), yeniden adlandırma, silme, sağ tık menüsü (📌 Sabitle), `acikDaliTasindiOlarakIsle()` |
 | `KenarPaneli+SurukleBirak.swift` | 182 | **Sürükle-bırak** — üstüne bırak: alt sayfa/köke taşıma; araya bırak: sıra değiştirme (`.sira.json`, sabit bölge sınırı) (`kSayfaSurukleTipi`) |
 | `KenarPaneli+Baglantilar.swift` | 27 | Taşınan dal için hedef eşleme; etkilenen dosyaları atomik yazma ve hataları bildirme |
@@ -127,7 +127,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|
 | Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
 | Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
-| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır) |
+| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 5 (web/RTF tablosu Markdown tablosu olur) |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
 | Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 

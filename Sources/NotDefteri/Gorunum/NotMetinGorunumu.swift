@@ -613,9 +613,7 @@ final class NotMetinGorunumu: NSTextView {
         }
         if let zengin = panodanZenginMetin(pboard) {
             // Ekler önce sayfaya yazılır; anlamsal dönüşüm görseli dosya yoluyla taşır.
-            if let icerik = disGorselleriSayfayaAl(zengin) {
-                icerigiEkle(disIcerigiNotBicimineCevir(MacBelgeAdaptoru.disIcerigiAnlamsalaCevir(icerik)))
-            }
+            if let icerik = disGorselleriSayfayaAl(zengin) { icerigiEkle(disZenginIcerigi(icerik)) }
             return true
         }
         if let gorsel = panodanGorsel(pboard) {
@@ -650,6 +648,32 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     // MARK: Dış içerik
+
+    /// Dış zengin içeriği notun biçimine çevirir; içindeki tablolar Markdown tablosu olur.
+    private func disZenginIcerigi(_ icerik: NSAttributedString) -> NSAttributedString {
+        let taban = sayfaTabanKlasoru?() ?? notlarKlasoru()
+        let sonuc = NSMutableAttributedString()
+        // Tablonun önünde ve arkasında boş satır olur: Obsidian bitişik tabloyu göstermez,
+        // tablonun hemen altındaki metin satırı da tabloya satır olarak katılırdı.
+        func bosSatirlaAyir() {
+            guard sonuc.length > 0 else { return }
+            while !sonuc.string.hasSuffix("\n\n") { sonuc.append(NSAttributedString(string: "\n")) }
+        }
+        var oncekiTablo = false
+        for parca in MacBelgeAdaptoru.tablolaraBol(icerik) {
+            switch parca {
+            case .metin(let metin):
+                if oncekiTablo { bosSatirlaAyir() }
+                sonuc.append(disIcerigiNotBicimineCevir(MacBelgeAdaptoru.disIcerigiAnlamsalaCevir(metin)))
+                oncekiTablo = false
+            case .tablo(let markdown):
+                bosSatirlaAyir()
+                sonuc.append(markdowndenAttributedStringUret(markdown, taban: taban))
+                oncekiTablo = true
+            }
+        }
+        return sonuc
+    }
 
     /// Panodaki düz metni Markdown olarak yorumlayıp notun biçimine çevirir.
     private func disPanoIcerigi(_ pano: NSPasteboard) -> NSAttributedString? {

@@ -19,15 +19,71 @@ final class IcerikPenceresiTestleri: XCTestCase {
         XCTAssertEqual(gelen, [1, 2, 3])
     }
 
-    /// Çift tıklamanın ad düzenlemesi bekler; üçüncü ya da yeni tek tıklama onu iptal eder.
-    func testUcuncuVeYeniTiklamaAdDuzenlemesiniIptalEder() {
-        let panel = KenarPaneli(frame: .zero)
-        for (sayi, iptal) in [(1, true), (2, false), (3, true)] {
-            let bekleyen = DispatchWorkItem {}
-            panel.bekleyenAdDuzenleme = bekleyen
-            _ = panel.agacTiklandi(sayi, satir: -1)
-            XCTAssertEqual(bekleyen.isCancelled, iptal, "tıklama \(sayi)")
-        }
+    // MARK: Çift tıklama ad düzenlemesi
+
+    /// Paneli gerçek bir pencerede, geçici kökteki sayfalarla kurar.
+    private func panelKur() throws -> (KenarPaneli, NSWindow, Int) {
+        _ = try sayfaYaz("Birinci", "bir\n")
+        let pencere = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 260, height: 400),
+                               styleMask: [.titled], backing: .buffered, defer: false)
+        pencere.isReleasedWhenClosed = false
+        let panel = KenarPaneli(frame: NSRect(x: 0, y: 0, width: 260, height: 400))
+        pencere.contentView = panel
+        panel.yenile(secili: nil)
+        panel.layoutSubtreeIfNeeded()
+        let satir = try XCTUnwrap((0..<panel.tablo.numberOfRows).first {
+            (panel.tablo.item(atRow: $0) as? AgacDugumu)?.ad == "Birinci"
+        })
+        return (panel, pencere, satir)
+    }
+
+    private func tiklama(_ sayi: Int, satir: Int, panel: KenarPaneli, pencere: NSWindow) throws -> NSEvent {
+        let kare = panel.tablo.rect(ofRow: satir)
+        let nokta = panel.tablo.convert(NSPoint(x: kare.midX, y: kare.midY), to: nil)
+        return try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseDown, location: nokta, modifierFlags: [], timestamp: 0,
+                                                windowNumber: pencere.windowNumber, context: nil, eventNumber: 0,
+                                                clickCount: sayi, pressure: 1))
+    }
+
+    /// Ad düzenlemesi beklemeden açılır (eskiden çift tıklama süresi kadar gecikiyordu).
+    func testCiftTiklamaAdDuzenlemesiniHemenAcar() throws {
+        let (panel, pencere, satir) = try panelKur()
+        defer { pencere.close() }
+        panel.adiYerindeDuzenle(dugum: try XCTUnwrap(panel.tablo.item(atRow: satir) as? AgacDugumu), satir: satir)
+        XCTAssertEqual(panel.duzenlenenDugum?.ad, "Birinci")
+        XCTAssertTrue(pencere.firstResponder is NSTextView, "ad alanı hemen yazılabilir")
+    }
+
+    /// Ad alanına gelen üçüncü tıklama düzenlemeyi iptal edip içerik penceresini açar; ikinci tıklama değil.
+    func testAdAlanindakiUcuncuTiklamaIcerikPenceresiniAcar() throws {
+        let (panel, pencere, satir) = try panelKur()
+        defer { pencere.close() }
+        var acilan: URL?
+        panel.icerikPenceresindeAcIstendi = { acilan = $0 }
+        panel.adiYerindeDuzenle(dugum: try XCTUnwrap(panel.tablo.item(atRow: satir) as? AgacDugumu), satir: satir)
+
+        XCTAssertFalse(panel.adAlanindaUcuncuTiklama(try tiklama(2, satir: satir, panel: panel, pencere: pencere)))
+        XCTAssertNil(acilan)
+        XCTAssertTrue(panel.adAlanindaUcuncuTiklama(try tiklama(3, satir: satir, panel: panel, pencere: pencere)))
+        XCTAssertEqual(acilan?.deletingLastPathComponent().lastPathComponent, "Birinci")
+        XCTAssertNil(panel.duzenlenenDugum, "düzenleme iptal edildi")
+        let hucre = panel.tablo.view(atColumn: 0, row: satir, makeIfNecessary: false) as? NSTableCellView
+        XCTAssertEqual(hucre?.textField?.stringValue, "Birinci", "ad değişmedi")
+    }
+
+    /// Düzenleme sürerken gelen ağaç yenilemesi satırı yeniden kurup yazılan adı silmez.
+    func testDuzenlemeSurerkenAgacYenilenmez() throws {
+        let (panel, pencere, satir) = try panelKur()
+        defer { pencere.close() }
+        panel.adiYerindeDuzenle(dugum: try XCTUnwrap(panel.tablo.item(atRow: satir) as? AgacDugumu), satir: satir)
+        let alan = try XCTUnwrap((panel.tablo.view(atColumn: 0, row: satir, makeIfNecessary: false) as? NSTableCellView)?.textField)
+        alan.currentEditor()?.insertText("Yeni ad")
+
+        panel.kisaYollariYenile()
+        panel.yenile(secili: nil)
+        XCTAssertTrue(panel.duzenlemeBitinceYenile)
+        XCTAssertEqual(alan.currentEditor()?.string, "Yeni ad", "yazılan ad yerinde")
+        XCTAssertNotNil(panel.duzenlenenDugum)
     }
 
     // MARK: İçerik penceresi: ana editörle aynı, düzenlenebilir
