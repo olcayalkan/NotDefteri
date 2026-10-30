@@ -127,7 +127,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|
 | Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
 | Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
-| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 7 (web/RTF tablosu düz Markdown tablosu olur, seçilip silinebilir), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme) |
+| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 8 (web/RTF/sekmeli tablo yerel tabloya yapışır, seçilip silinebilir), `TabloHucreDuzenlemeTestleri` 4 (hücrede yazma, silme, Enter, `/tablo`), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme) |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
 | Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 
@@ -153,7 +153,8 @@ Yalnızca tek dosyada kullanılanlar `private` kaldı.
 
 ## Tema, tablo ve Linux bütünleşmesi
 
-- `Cekirdek/Tablo.swift`, `TabloModeli.swift`: `/tablo` Markdown üretimi, dış tablodan Markdown, hücre ayrıştırma. Tablolar macOS'ta düz Markdown metni olarak görünür ve düzenlenir (kutu görünümü yok); `TabloModeli` yalnızca Linux hücre editöründe kalır.
+- `Cekirdek/Tablo.swift`, `TabloModeli.swift`: `/tablo` Markdown üretimi, dış tablodan Markdown, hücre ayrıştırma. `TabloModeli` yalnızca Linux hücre editöründe kalır.
+- `Cekirdek/TabloHucreleri.swift`: macOS yerel tablosu. `tablolariHucrele` Markdown tablosunu hücre paragraflarına (`kTabloHucresiAnahtari`) böler, `markdownMetniUret` hücreleri yeniden Markdown tablosu yazar; `sekmeliMetniTabloyaCevir` sekmeli yapıştırma. `MacBelgeAdaptoru.tabloBlogu` hücreyi `NSTextTableBlock` ile çizer (blok hücre başına önbellekte: yeni blok her tuşta imleci kaydırırdı).
 - `Cekirdek/ArkaPlanYenileyici.swift`: nesil kontrolüyle arka planda ağaç yenileme.
 - `Cekirdek/KullanimKilavuzu.swift`: ortak kullanım kılavuzu içeriği.
 - `Pencere/NotPenceresi+IcerikModu.swift`: kenar panelde üç tıklanan sayfayı kenar paneli kapalı ayrı bir `NotPenceresi`nde (içerik modu) açar; ana editörün bütün özellikleri vardır. Pencereler arası eşitleme: kaydeden pencere `.notDefteriSayfaKaydedildi` yayar, aynı sayfayı gösteren pencere kaydedilmemiş değişikliği yoksa diskten yenilenir (`diskleEsitle`, odak gelince de çalışır); dal taşınınca içerik pencerelerinin yolu izlenir, silinen sayfa yeniden oluşturulmaz.

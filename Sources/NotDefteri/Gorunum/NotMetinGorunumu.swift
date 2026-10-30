@@ -654,7 +654,7 @@ final class NotMetinGorunumu: NSTextView {
                 oncekiTablo = false
             case .tablo(let markdown):
                 bosSatirlaAyir()
-                // Tablo düz Markdown metni olarak gelir; diğer metin gibi seçilir, silinir, düzenlenir.
+                // Hücreler yerel tabloya çizilir; diğer metin gibi seçilir, silinir, düzenlenir.
                 sonuc.append(belgeAdaptoru.gorunumluBelge(markdowndenAttributedStringUret(markdown, taban: taban)))
                 oncekiTablo = true
             }
@@ -664,7 +664,7 @@ final class NotMetinGorunumu: NSTextView {
 
     /// Panodaki düz metni Markdown olarak yorumlayıp notun biçimine çevirir.
     private func disPanoIcerigi(_ pano: NSPasteboard) -> NSAttributedString? {
-        guard let metin = pano.string(forType: .string), !metin.isEmpty else { return nil }
+        guard let metin = pano.string(forType: .string).map(sekmeliMetniTabloyaCevir), !metin.isEmpty else { return nil }
         let taban = sayfaTabanKlasoru?() ?? notlarKlasoru()
         let icerik = MacBelgeAdaptoru.belgeyiAc(disMetniNotBicimineCevir(metin, taban: taban), taban: taban)
         return icerik.length > 0 ? icerik : nil

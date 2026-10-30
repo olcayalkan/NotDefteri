@@ -131,7 +131,7 @@ final class MacBelgeAdaptoru {
 
     /// Önizleme gibi NSTextStorage delegesi olmayan tüketiciler için yükleme sınırı.
     func gorunumluBelge(_ anlamsal: NSAttributedString) -> NSAttributedString {
-        let belge = NSMutableAttributedString(attributedString: anlamsal)
+        let belge = NSMutableAttributedString(attributedString: tablolariHucrele(anlamsal))
         gorunumuUygula(belge, aralik: NSRange(location: 0, length: belge.length))
         return belge
     }
@@ -145,6 +145,8 @@ final class MacBelgeAdaptoru {
     }
 
     static func belgeyiAc(_ anlamsal: NSAttributedString, taban: URL, olcek: CGFloat = 1) -> NSAttributedString {
+        // Aşağıdaki satır aralıkları anlamsal belgede de kullanılır; tablo önce hücrelenir.
+        let anlamsal = tablolariHucrele(anlamsal)
         let adaptor = MacBelgeAdaptoru()
         adaptor.olcek = olcek
         let belge = NSMutableAttributedString(attributedString: adaptor.gorunumluBelge(anlamsal))
@@ -353,7 +355,45 @@ final class MacBelgeAdaptoru {
                 g[.paragraphStyle] = stil
             }
         }
+        if let hucre = TabloHucresi(oznitelik: o[kTabloHucresiAnahtari]) {
+            let stil = ((g[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+            stil.textBlocks = [Self.tabloBlogu(hucre)]
+            g[.paragraphStyle] = stil
+        }
         return g
+    }
+
+    /// Bir tablonun bütün hücreleri aynı `NSTextTable` nesnesini paylaşmalı; yoksa AppKit
+    /// her hücreyi ayrı tabloya koyar. Tablo pencere genişliğine yayılır, uzun hücre kırılır.
+    private static var tablolar: [String: NSTextTable] = [:]
+    /// Hücre bloğu da hücre başına tektir: `NSTextBlock` kimlikle karşılaştırılır. Her tuşta
+    /// yeni blok üretilseydi `gorunumuUygula` paragraf stilini yeniden yazar, imleç sonraki
+    /// hücreye atlardı. Tema rengi değişince bloklar yeniden kurulur.
+    private static var bloklar: [String: NSTextTableBlock] = [:]
+    private static var blokRengi: NSColor?
+
+    private static func tabloBlogu(_ hucre: TabloHucresi) -> NSTextTableBlock {
+        if blokRengi != kMetinRenk { bloklar = [:]; blokRengi = kMetinRenk }
+        let anahtar = "\(hucre.tablo)|\(hucre.satir)|\(hucre.sutun)"
+        if let blok = bloklar[anahtar] { return blok }
+        let tablo = tablolar[hucre.tablo] ?? {
+            let yeni = NSTextTable()
+            yeni.numberOfColumns = hucre.sutunSayisi
+            yeni.layoutAlgorithm = .automaticLayoutAlgorithm
+            yeni.collapsesBorders = true
+            yeni.hidesEmptyCells = false
+            yeni.setContentWidth(100, type: .percentageValueType)
+            tablolar[hucre.tablo] = yeni
+            return yeni
+        }()
+        let blok = NSTextTableBlock(table: tablo, startingRow: hucre.satir, rowSpan: 1,
+                                    startingColumn: hucre.sutun, columnSpan: 1)
+        blok.setBorderColor(kMetinRenk.withAlphaComponent(0.35))
+        blok.setWidth(1, type: .absoluteValueType, for: .border)
+        blok.setWidth(6, type: .absoluteValueType, for: .padding)
+        if hucre.satir == 0 { blok.backgroundColor = kMetinRenk.withAlphaComponent(0.10) }
+        bloklar[anahtar] = blok
+        return blok
     }
 
     /// Paragraf geometrisi taban punto uzayındadır; görünüm ölçeğinden etkilenmez.

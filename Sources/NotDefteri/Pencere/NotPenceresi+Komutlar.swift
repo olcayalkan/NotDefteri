@@ -115,11 +115,12 @@ extension NotPenceresi {
                   (depo.string as NSString).substring(with: aralik).hasPrefix("/") else { return }
             let taban = self.mevcutDosyaURL.map(sayfaKlasoru) ?? notlarKlasoru()
             let yeni = self.metinGorunumu.belgeAdaptoru.gorunumluBelge(markdowndenAttributedStringUret(markdown, taban: taban))
-            // Tablo düz Markdown olarak eklenir; ilk başlık seçilir ki yazınca adlandırılsın.
-            let ilk = (markdown as NSString).range(of: "Başlık 1")
+            // İlk başlık hücresi seçilir ki yazınca adlandırılsın.
+            let ilk = (yeni.string as NSString).range(of: "Başlık 1")
             self.metinGorunumu.blokDuzenle(aralik, yeni: yeni,
                                            secim: NSRange(location: aralik.location + ilk.location, length: ilk.length),
-                                           yazim: self.metinGorunumu.typingAttributes)
+                                           yazim: yeni.attributes(at: ilk.location, effectiveRange: nil))
+            // Yazım biçimi `/tablo` satırından değil ilk hücreden gelir; yoksa yazılan ad tablodan çıkardı.
             self.puntoGostergesiniGuncelle()
         }
     }

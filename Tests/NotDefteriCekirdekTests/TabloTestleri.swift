@@ -67,4 +67,33 @@ final class TabloTestleri: XCTestCase {
         XCTAssertFalse(belge.string.contains("┌"))
         XCTAssertEqual(markdownMetniUret(belge), kaynak)
     }
+
+    /// macOS editörü tabloyu hücre paragraflarına böler; kayıt aynı Markdown'a döner.
+    func testHucrelenenTabloAynenKaydolur() {
+        let kaynak = "önce\n\n| Ad | Değer |\n| --- | --- |\n| a\\|b | 1 |\n\nsonra\n"
+        let hucreli = tablolariHucrele(markdowndenAttributedStringUret(kaynak))
+        XCTAssertTrue(hucreli.string.contains("a|b\n1\n"), hucreli.string)
+        XCTAssertFalse(hucreli.string.contains("| Ad"))
+        XCTAssertEqual(markdownMetniUret(hucreli), kaynak)
+    }
+
+    /// Kod bloğundaki boru satırları tabloya çevrilmez.
+    func testKodBlogundakiTabloHucrelenmez() {
+        let kaynak = "```\n| a | b |\n| --- | --- |\n| 1 | 2 |\n```\n"
+        let belge = tablolariHucrele(markdowndenAttributedStringUret(kaynak))
+        XCTAssertNil(belge.attribute(kTabloHucresiAnahtari, at: 4, effectiveRange: nil))
+        XCTAssertEqual(markdownMetniUret(belge), kaynak)
+    }
+
+    func testSekmeliMetinTabloyaCevrilir() {
+        XCTAssertEqual(sekmeliMetniTabloyaCevir("a\tb\n1\t2"), "| a | b |\n| --- | --- |\n| 1 | 2 |")
+        XCTAssertEqual(sekmeliMetniTabloyaCevir("tek\tsatır"), "tek\tsatır", "tek satır tablo değildir")
+        XCTAssertEqual(sekmeliMetniTabloyaCevir("düz metin"), "düz metin")
+    }
+
+    /// Metne bitişik eklenen tablo (`/tablo`) kayıtta boş satırla ayrılır.
+    func testTablonunOnuneBosSatirKonur() {
+        let hucreli = tablolariHucrele(markdowndenAttributedStringUret("Notlar\n| a | b |\n| --- | --- |\n| 1 | 2 |\n"))
+        XCTAssertEqual(markdownMetniUret(hucreli), "Notlar\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n")
+    }
 }

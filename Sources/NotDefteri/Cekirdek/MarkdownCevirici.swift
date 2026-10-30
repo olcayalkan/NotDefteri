@@ -624,6 +624,15 @@ package func markdownMetniUret(_ metin: NSAttributedString) -> String {
     var oncekiBlok: MetinBlogu?
     while konum < metin.length {
         var aralik = NSRange()
+        // Hücre paragrafları (macOS yerel tablo) yeniden tek Markdown tablosu olarak yazılır.
+        if let tablo = tabloHucrelerindenMarkdown(metin, konum: konum) {
+            // Obsidian metne bitişik tabloyu tablo saymaz; önüne boş satır konur.
+            if !sonuc.isEmpty, !sonuc.hasSuffix("\n\n") { sonuc += sonuc.hasSuffix("\n") ? "\n" : "\n\n" }
+            sonuc += tablo.markdown
+            oncekiBlok = nil
+            konum = NSMaxRange(tablo.aralik)
+            continue
+        }
         let kodBlogu = metin.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) != nil
         let blok = kodBlogu ? nil : MetinBlogu(oznitelik: metin.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))
         // Bitişik alıntı ve uyarı, okuyucuda tek uyarı kutusuna dönüşmesin.
