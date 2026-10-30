@@ -10,6 +10,19 @@ final class TabloTestleri: XCTestCase {
         XCTAssertEqual(secim.length, 8)
     }
 
+    func testDisTablodanMarkdownUretir() throws {
+        let metin = try XCTUnwrap(disTablodanMarkdownUret([["x", "Cut\ncharacter"], ["a|b"], ["", ""], ["yy", "Copy  "]]))
+        XCTAssertEqual(metin, "| x | Cut character |\n| --- | --- |\n| a\\|b |  |\n| yy | Copy |\n",
+                       "satır sonu boşluk olur, | kaçışlanır, kısa satır tamamlanır, boş satır atlanır")
+        XCTAssertEqual(markdownMetniUret(markdowndenAttributedStringUret(metin)), metin, "tablo olarak açılır ve aynen kaydolur")
+    }
+
+    func testDisTabloTekSatirVeyaTekSutundaUretilmez() {
+        XCTAssertNil(disTablodanMarkdownUret([["a", "b"]]))
+        XCTAssertNil(disTablodanMarkdownUret([["a"], ["b"]]))
+        XCTAssertNil(disTablodanMarkdownUret([]))
+    }
+
     func testGecersizBoyutTabloUretmez() {
         XCTAssertNil(tabloMarkdownUret(satir: 1, sutun: 2))
         XCTAssertNil(tabloMarkdownUret(satir: 2, sutun: 1))

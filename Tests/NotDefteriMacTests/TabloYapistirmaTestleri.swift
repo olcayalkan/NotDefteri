@@ -3,9 +3,8 @@ import AppKit
 @testable import NotDefteriCekirdek
 @testable import NotDefteriMac
 
-/// Web sayfasından kopyalanan tablonun her satırı tek satır olarak yapışır, hücreler sekmeyle
-/// ayrılır (tarayıcının düz metin kopyası gibi). AppKit her hücreyi ayrı paragraf yapıyordu;
-/// notta "x / Cut character / dw …" alt alta satırlara dönüşüyordu. Tablo oluşturulmaz.
+/// Web sayfasından kopyalanan tablo hücreleri yan yana kalır: AppKit her hücreyi ayrı
+/// paragraf yapıyordu, notta "x / Cut character / dw …" alt alta satırlara dönüşüyordu.
 final class TabloYapistirmaTestleri: XCTestCase {
 
     private let pano = NSPasteboard(name: NSPasteboard.Name("notdefteri-tablo-yapistirma-testi"))
@@ -15,9 +14,8 @@ final class TabloYapistirmaTestleri: XCTestCase {
         super.tearDown()
     }
 
-    /// Chrome'un panoya koyduğu biçimde: başlık hücreleri `th`, komutlar `code` içinde.
     private let vimHtml = """
-        <meta charset="utf-8"><table><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody>
+        <meta charset="utf-8"><h3>Vim</h3><table><tbody>
         <tr><td><code>x</code></td><td>Cut character</td></tr>
         <tr><td><code>dw</code></td><td>Cut word</td></tr>
         <tr><td><code>dd</code></td><td>Cut full line</td></tr>
@@ -27,10 +25,6 @@ final class TabloYapistirmaTestleri: XCTestCase {
         </tbody></table>
         """
 
-    /// Başlık hücreleri (`th`) kaynaktaki gibi kalın kalır.
-    private let vimSatirlari = "**Command\tDescription**\nx\tCut character\ndw\tCut word\ndd\tCut full line\n"
-        + "yw\tCopy word\nyy\tCopy full line\np\tPaste\n"
-
     private func zengin(_ html: String) throws -> NSAttributedString {
         try NSAttributedString(data: Data(html.utf8),
                                options: [.documentType: NSAttributedString.DocumentType.html,
@@ -38,7 +32,7 @@ final class TabloYapistirmaTestleri: XCTestCase {
                                documentAttributes: nil)
     }
 
-    /// Editörün gerçek ⌘V yolu: panodaki HTML/RTF okunur, sonuç Markdown olarak kaydedilir.
+    /// Editörün gerçek ⌘V yolu: panodaki HTML okunur, sonuç Markdown olarak kaydedilir.
     private func yapistir(_ html: String, tur: NSPasteboard.PasteboardType = .html) throws -> String {
         pano.clearContents()
         if tur == .rtf {
@@ -52,31 +46,66 @@ final class TabloYapistirmaTestleri: XCTestCase {
         return markdownMetniUret(try XCTUnwrap(gorunum.textStorage))
     }
 
-    func testWebTablosununSatirlariYanYanaKalir() throws {
+    func testWebTablosuYanYanaKalir() throws {
         let sonuc = try yapistir(vimHtml)
-        XCTAssertTrue(sonuc.contains(vimSatirlari), sonuc)
-        XCTAssertFalse(sonuc.contains("|"), "tablo oluşturulmaz")
+        XCTAssertTrue(sonuc.contains("Vim"), sonuc)
+        XCTAssertTrue(sonuc.contains("""
+            | x | Cut character |
+            | --- | --- |
+            | dw | Cut word |
+            """), sonuc)
+        XCTAssertTrue(sonuc.contains("| p | Paste |"), sonuc)
+        XCTAssertFalse(sonuc.contains("x\nCut character"), "hücreler alt alta düşmez")
+    }
+
+    /// Obsidian bitişik tabloyu göstermez; alttaki metin de tabloya satır olarak katılırdı.
+    func testTablonunIkiYanindaBosSatirOlur() throws {
+        let sonuc = try yapistir("<p>önce</p><table><tr><td>A</td><td>B</td></tr><tr><td>1</td><td>2</td></tr></table><p>sonra</p>")
+        XCTAssertTrue(sonuc.contains("önce\n\n| A | B |"), sonuc)
+        XCTAssertTrue(sonuc.contains("| 1 | 2 |\n\nsonra"), sonuc)
     }
 
     /// Safari panoya RTF koyar; tablo bilgisi orada da `NSTextTable` olarak gelir.
-    func testRtfTablosununSatirlariYanYanaKalir() throws {
-        XCTAssertTrue(try yapistir(vimHtml, tur: .rtf).contains("dd\tCut full line\n"))
+    func testRtfTablosuYanYanaKalir() throws {
+        let sonuc = try yapistir(vimHtml, tur: .rtf)
+        XCTAssertTrue(sonuc.contains("| dd | Cut full line |"), sonuc)
     }
 
     func testTablonunOncesiVeSonrasiKorunur() throws {
-        let sonuc = try yapistir("<p>önce</p><table><tr><td>A</td><td>B</td></tr></table><p>sonra</p>")
-        XCTAssertTrue(sonuc.contains("önce\nA\tB\nsonra"), sonuc)
+        let parcalar = MacBelgeAdaptoru.tablolaraBol(try zengin(
+            "<p>önce</p><table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table><p>sonra</p>"))
+        guard parcalar.count == 3,
+              case .metin(let once) = parcalar[0], case .tablo(let tablo) = parcalar[1],
+              case .metin(let sonra) = parcalar[2] else { return XCTFail("\(parcalar)") }
+        XCTAssertEqual(once.string, "önce\n")
+        XCTAssertEqual(tablo, "| A | B |\n| --- | --- |\n| 1 | 2 |\n")
+        XCTAssertEqual(sonra.string, "sonra\n")
     }
 
-    /// Aynı hücredeki iki paragraf hücreyi bölmez, boşlukla birleşir.
-    func testHucreIcindekiParagraflarBirlesir() throws {
-        let birlesik = MacBelgeAdaptoru.tabloSatirlariniBirlestir(
-            try zengin("<table><tr><td><p>bir</p><p>iki</p></td><td>yan</td></tr></table>"))
-        XCTAssertEqual(birlesik.string, "bir iki\tyan\n")
+    /// Başlık hücreleri (`th`) ilk satır olur; hücredeki `|` sütunu bölmez, kayıt yeniden
+    /// açılınca aynı tablo döner.
+    func testBaslikliVeBorulukWebTablosuTabloOlarakKaydolur() throws {
+        let sonuc = try yapistir("""
+            <meta charset="utf-8"><table><thead><tr><th>State</th><th>Meaning</th><th>Implication</th></tr></thead><tbody>
+            <tr><td>open</td><td>Accepts connections</td><td>Service actively running</td></tr>
+            <tr><td>open|filtered</td><td>Open or filtered</td><td>Cannot determine exact state</td></tr>
+            </tbody></table>
+            """)
+        let tablo = """
+            | State | Meaning | Implication |
+            | --- | --- | --- |
+            | open | Accepts connections | Service actively running |
+            | open\\|filtered | Open or filtered | Cannot determine exact state |
+
+            """
+        XCTAssertTrue(sonuc.contains(tablo), sonuc)
+        XCTAssertEqual(markdownMetniUret(markdowndenAttributedStringUret(sonuc)), sonuc, "yeniden açılınca aynen kaydolur")
     }
 
-    func testTablosuzIcerikDegismez() throws {
-        let kaynak = try zengin("<p>bir</p><p>iki</p>")
-        XCTAssertEqual(MacBelgeAdaptoru.tabloSatirlariniBirlestir(kaynak).string, kaynak.string)
+    /// Tek satırlık ya da tek sütunlu "tablo" (düzen için kullanılan) metin olarak kalır.
+    func testTabloSayilmayanIcerikMetinKalir() throws {
+        let parcalar = MacBelgeAdaptoru.tablolaraBol(try zengin("<table><tr><td>yalnız</td><td>satır</td></tr></table>"))
+        XCTAssertEqual(parcalar.count, 1)
+        guard case .metin = parcalar.first else { return XCTFail("\(parcalar)") }
     }
 }
