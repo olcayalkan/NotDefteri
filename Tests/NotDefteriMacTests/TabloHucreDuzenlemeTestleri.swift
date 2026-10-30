@@ -81,4 +81,16 @@ final class TabloHucreDuzenlemeTestleri: XCTestCase {
         yaz("Ad")
         XCTAssertEqual(kaydedilen, "| Ad | Başlık 2 |\n| --- | --- |\n| Hücre | Hücre |\n\n")
     }
+
+    /// Başlık ve gövdenin çift satırları gölgeli, tek satırlar düz.
+    func testCiftSatirlarGolgeli() {
+        func zemin(_ parca: String) -> NSColor? {
+            let konum = (editor.string as NSString).range(of: parca).location
+            let stil = editor.textStorage?.attribute(.paragraphStyle, at: konum, effectiveRange: nil) as? NSParagraphStyle
+            return (stil?.textBlocks.first as? NSTextTableBlock)?.backgroundColor
+        }
+        XCTAssertNotNil(zemin("A"), "başlık")
+        XCTAssertNil(zemin("bir"), "1. gövde satırı düz")
+        XCTAssertNotNil(zemin("uc"), "2. gövde satırı gölgeli")
+    }
 }

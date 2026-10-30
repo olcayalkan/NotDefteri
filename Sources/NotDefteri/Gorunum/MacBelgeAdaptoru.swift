@@ -391,7 +391,9 @@ final class MacBelgeAdaptoru {
         blok.setBorderColor(kMetinRenk.withAlphaComponent(0.35))
         blok.setWidth(1, type: .absoluteValueType, for: .border)
         blok.setWidth(6, type: .absoluteValueType, for: .padding)
+        // Başlık belirgin; gövdede çift satırlar (2., 4., …) hafif gölgeli, satır gözle izlenir.
         if hucre.satir == 0 { blok.backgroundColor = kMetinRenk.withAlphaComponent(0.10) }
+        else if hucre.satir.isMultiple(of: 2) { blok.backgroundColor = kMetinRenk.withAlphaComponent(0.045) }
         bloklar[anahtar] = blok
         return blok
     }
