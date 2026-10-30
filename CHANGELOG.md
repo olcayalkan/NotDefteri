@@ -30,7 +30,7 @@ and this project adheres to
 ### Fixed
 
 - NotDefteri: macOS uyarı kutusu kopyala-yapıştırda bozuluyordu: satır ortasına yapıştırılan kutunun başlığı metne karışıyor, kutunun ortasından alınan satırlar düz alıntıya dönüyor, kutu içine yapıştırınca boş başlıklı hayalet kutu doğuyor, bütün kutuyu kesince boş kutu kalıyordu.
-- NotDefteri: macOS'ta web sayfasından ya da belgeden kopyalanan tablonun hücreleri yan yana yerine alt alta satırlara dönüşüyordu; tablo artık Markdown tablosu olarak yapışır ve kaydolur (önünde ve arkasında boş satırla; hücredeki `|` kaçışlanır).
+- NotDefteri: macOS'ta web sayfasından ya da belgeden kopyalanan tablonun hücreleri yan yana yerine alt alta satırlara dönüşüyordu; tablo artık Markdown tablosu olarak yapışır ve kaydolur (önünde ve arkasında boş satırla; hücredeki `|` kaçışlanır); ekranda `/tablo` gibi kutu çizgili görünür, tabloyla başlayan sayfa çerçeve çizgisiyle adlanmaz.
 - NotDefteri: macOS kenar panelde çift tıklayınca ad düzenlemesi çift tıklama süresi kadar gecikiyordu; o arada yazılanlar editöre gidiyor, araya giren ağaç yenilemesi yazılan adı siliyordu. Düzenleme hemen açılır, ad alanına üçüncü tıklama düzenlemeyi iptal edip içerik penceresini açar.
 - NotDefteri: macOS `/table` penceresinde satır ve sütun alanlarına yazılamaması.
 - NotDefteri: macOS tablo satır zemini ve seçim vurgusunun tablo çerçevesinin dışına taşması.

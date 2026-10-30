@@ -664,7 +664,8 @@ final class NotMetinGorunumu: NSTextView {
                 oncekiTablo = false
             case .tablo(let markdown):
                 bosSatirlaAyir()
-                sonuc.append(markdowndenAttributedStringUret(markdown, taban: taban))
+                // `/tablo` gibi: kutu çizgili görünüm burada kurulur, yoksa ham `| a | b |` görünürdü.
+                sonuc.append(belgeAdaptoru.gorunumluBelge(markdowndenAttributedStringUret(markdown, taban: taban)))
                 oncekiTablo = true
             }
         }

@@ -178,7 +178,14 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
 
 /// Kaydedilmemiş yeni bir notun içeriğinden otomatik bir dosya adı üretir (ilk satırdan).
 package func otomatikBaslikUret(icerik: String) -> String {
-    let ilkSatir = icerik.split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init) ?? ""
+    // Tabloyla başlayan sayfanın adı `┌───┬───` çerçevesi olmasın: kutu çizgileri atılır,
+    // ad ilk dolu satırdan (tablonun başlık satırı) gelir.
+    let ilkSatir = icerik.split(separator: "\n", omittingEmptySubsequences: true).lazy
+        .map { satir in
+            String(satir.unicodeScalars.map { (0x2500...0x257F).contains($0.value) ? " " : Character($0) })
+                .split(separator: " ", omittingEmptySubsequences: true).joined(separator: " ")
+        }
+        .first { !$0.isEmpty } ?? ""
     var baslik = guvenliDosyaAdi(isaretlemeleriTemizle(ilkSatir)
         .trimmingCharacters(in: .whitespacesAndNewlines)
         .replacingOccurrences(of: "\0", with: "-"), varsayilan: "")

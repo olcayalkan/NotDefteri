@@ -168,6 +168,8 @@ final class CeviriciTestleri: XCTestCase {
         XCTAssertEqual(otomatikBaslikUret(icerik: "Alışveriş\nsüt"), "Alışveriş")
         XCTAssertEqual(otomatikBaslikUret(icerik: "# Başlıklı\nmetin"), "Başlıklı")
         XCTAssertEqual(otomatikBaslikUret(icerik: "**kalın**"), "kalın")
+        XCTAssertEqual(otomatikBaslikUret(icerik: "┌──────┬─────┐\n│ State │ Meaning │\n├──────┼─────┤\n"),
+                       "State Meaning", "tabloyla başlayan sayfa çerçeve çizgisiyle adlanmaz")
     }
 
     func testOtomatikAdSayacliEsiYenidenAdlandirmaz() {
