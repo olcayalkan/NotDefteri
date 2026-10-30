@@ -75,7 +75,7 @@ Satır başında aşağıdaki yazımları kullanabilirsiniz:
 
 ### Tablolar
 
-`/tablo` yazıp `Enter`a basın. Açılan pencerede başlık satırı dahil satır sayısını ve sütun sayısını girin; uygulama düzenlenebilir bir tablo ekler. Hücre içindeki yazıyı doğrudan değiştirin. Tablolar Markdown olarak saklandığından başka Markdown uygulamalarında da açılır.
+`/tablo` yazıp `Enter`a basın. Açılan pencerede başlık satırı dahil satır sayısını ve sütun sayısını girin; uygulama düz bir Markdown tablosu ekler (`| Başlık 1 | Başlık 2 |`). Tabloyu diğer yazılar gibi seçip silebilir, kopyalayıp yapıştırabilir ve düzenleyebilirsiniz; hücreler `|` ile ayrılır. Tablolar Markdown olarak saklandığından başka Markdown uygulamalarında da açılır.
 
 Başlıklar sağdaki **İçindekiler** panelinde görünür. Bir başlığa tıklayarak ilgili bölüme gidebilirsiniz. macOS'ta `⌥⌘[` / `⌥⌘]`, Linux'ta `Ctrl+Alt+[` / `Ctrl+Alt+]` ile bulunduğunuz bölümü katlayıp açabilirsiniz.
 

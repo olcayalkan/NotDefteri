@@ -115,7 +115,8 @@ extension NotPenceresi {
                   (depo.string as NSString).substring(with: aralik).hasPrefix("/") else { return }
             let taban = self.mevcutDosyaURL.map(sayfaKlasoru) ?? notlarKlasoru()
             let yeni = self.metinGorunumu.belgeAdaptoru.gorunumluBelge(markdowndenAttributedStringUret(markdown, taban: taban))
-            let ilk = tabloIlkHucreAraligi(sutun: sutunSayisi)
+            // Tablo düz Markdown olarak eklenir; ilk başlık seçilir ki yazınca adlandırılsın.
+            let ilk = (markdown as NSString).range(of: "Başlık 1")
             self.metinGorunumu.blokDuzenle(aralik, yeni: yeni,
                                            secim: NSRange(location: aralik.location + ilk.location, length: ilk.length),
                                            yazim: self.metinGorunumu.typingAttributes)

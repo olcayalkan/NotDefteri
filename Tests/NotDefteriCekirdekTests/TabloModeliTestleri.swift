@@ -20,11 +20,7 @@ final class TabloModeliTestleri: XCTestCase {
         let tekrar = try XCTUnwrap(TabloModeli(markdown: model.markdown()))
         XCTAssertEqual(tekrar.hucre(satir: 1, sutun: 0), metin)
         XCTAssertEqual(tekrar.hucre(satir: 0, sutun: 0), "")
-        let belge = markdowndenAttributedStringUret(model.markdown())
-        let saklanan = try XCTUnwrap(TabloModeli(oznitelik: belge.attribute(kTabloModeliAnahtari, at: 0, effectiveRange: nil)))
-        XCTAssertEqual(belge.string, saklanan.gorsel().metin)
-        XCTAssertEqual(belge.string, tekrar.gorsel().metin)
-        XCTAssertEqual(markdownMetniUret(belge), model.markdown())
+        XCTAssertEqual(markdownMetniUret(markdowndenAttributedStringUret(model.markdown())), model.markdown())
     }
 
     func testYazarkenHucreKenarBosluklariKaynakPaddinginiBuyutmez() throws {
@@ -47,9 +43,7 @@ final class TabloModeliTestleri: XCTestCase {
         let kaynak = "A | B\\|\n--- | ---\nC | D\\|\n"
         let model = try XCTUnwrap(TabloModeli(markdown: kaynak))
         XCTAssertEqual(model.hucre(satir: 1, sutun: 1), "D|")
-        let belge = markdowndenAttributedStringUret(kaynak)
-        XCTAssertNotNil(belge.attribute(kTabloModeliAnahtari, at: 0, effectiveRange: nil))
-        XCTAssertEqual(markdownMetniUret(belge), kaynak)
+        XCTAssertEqual(markdownMetniUret(markdowndenAttributedStringUret(kaynak)), kaynak)
     }
 
     func testHucreAraligiUnicodeDikeyCizgiyiBolmez() throws {
@@ -63,11 +57,9 @@ final class TabloModeliTestleri: XCTestCase {
 
     func testGovdedekiSadeceCizgilerTabloVerisiOlarakKalir() throws {
         let kaynak = "| Durum | Değer |\n| --- | --- |\n| --- | --- |\n| tamam | evet |\n"
-        let belge = markdowndenAttributedStringUret(kaynak)
-
-        let model = try XCTUnwrap(TabloModeli(oznitelik: belge.attribute(kTabloModeliAnahtari, at: 0, effectiveRange: nil)))
+        let model = try XCTUnwrap(TabloModeli(markdown: kaynak))
         XCTAssertEqual(model.hucre(satir: 1, sutun: 0), "---")
         XCTAssertEqual(model.hucre(satir: 2, sutun: 1), "evet")
-        XCTAssertEqual(markdownMetniUret(belge), kaynak)
+        XCTAssertEqual(markdownMetniUret(markdowndenAttributedStringUret(kaynak)), kaynak)
     }
 }

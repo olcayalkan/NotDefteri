@@ -43,28 +43,26 @@ final class TabloYapistirmaTestleri: XCTestCase {
         }
         let gorunum = NotMetinGorunumu()
         XCTAssertTrue(gorunum.readSelection(from: pano, type: tur))
-        let depo = try XCTUnwrap(gorunum.textStorage)
-        ekran = depo.string
-        let kose = (depo.string as NSString).range(of: "┌")
-        ekranKoseStili = kose.location == NSNotFound ? nil
-            : depo.attribute(.paragraphStyle, at: kose.location, effectiveRange: nil) as? NSParagraphStyle
-        return markdownMetniUret(depo)
+        sonGorunum = gorunum
+        return markdownMetniUret(try XCTUnwrap(gorunum.textStorage))
     }
 
-    /// Son yapıştırmadan sonra editörde görünen metin.
-    private var ekran = ""
-    /// Tablonun ilk köşesindeki paragraf stili; kutu görünümü kurulmadıysa satır kırılır.
-    private var ekranKoseStili: NSParagraphStyle?
+    /// Son yapıştırmanın yapıldığı editör.
+    private var sonGorunum: NotMetinGorunumu?
 
-    /// Kayıt Markdown tablosu olsa da ekranda ham `| a | b |` değil, `/tablo` gibi kutu görünür.
-    func testYapistirilanTabloEkrandaKutuOlarakGorunur() throws {
+    /// Tablo kutuya çevrilmez: ekranda düz `| a | b |` metni görünür, seçilip silinebilir.
+    func testYapistirilanTabloDuzMetinOlarakSilinebilir() throws {
         _ = try yapistir(vimHtml)
-        XCTAssertTrue(ekran.contains("┌"), ekran)
-        XCTAssertTrue(ekran.contains("│ dw "), ekran)
-        XCTAssertFalse(ekran.contains("| dw |"), ekran)
-        let stil = try XCTUnwrap(ekranKoseStili, "tablo görünümü kurulmadı")
-        XCTAssertEqual(stil.firstLineHeadIndent, 14, "tablo girintisi")
-        XCTAssertNotEqual(stil.lineBreakMode, .byWordWrapping, "kutu satırları pencereyle kırılmaz")
+        let gorunum = try XCTUnwrap(sonGorunum)
+        XCTAssertTrue(gorunum.string.contains("| dw | Cut word |"), gorunum.string)
+        XCTAssertFalse(gorunum.string.contains("┌"), gorunum.string)
+        let satir = (gorunum.string as NSString).range(of: "| dw | Cut word |\n")
+        gorunum.setSelectedRange(satir)
+        gorunum.deleteBackward(nil)
+        XCTAssertFalse(gorunum.string.contains("dw"), "seçilen tablo satırı silinmedi")
+        gorunum.selectAll(nil)
+        gorunum.deleteBackward(nil)
+        XCTAssertEqual(gorunum.string, "", "yapıştırılan içeriğin tamamı silinmedi")
     }
 
     func testWebTablosuYanYanaKalir() throws {

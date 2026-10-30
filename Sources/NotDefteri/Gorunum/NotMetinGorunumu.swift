@@ -38,7 +38,7 @@ final class NotMetinGorunumu: NSTextView {
     var hamYapistirmaModu = false
     var blokDuzenleniyor = false
     var sayfaYukleniyor = false {
-        didSet { if sayfaYukleniyor { tabloYoneticisi.kapat(kaydet: false); kodDurumunuSifirla(); bekleyenBagBoyamasi = nil } }
+        didSet { if sayfaYukleniyor { kodDurumunuSifirla(); bekleyenBagBoyamasi = nil } }
     }
     var baglarGuncelleniyor = false
     let sayfaBulucusu = HizliBulucu()
@@ -68,7 +68,6 @@ final class NotMetinGorunumu: NSTextView {
     let kodAraclari = KodBloguAraclari()
     let katlama = KatlamaDurumu()
     let belgeAdaptoru = MacBelgeAdaptoru()
-    lazy var tabloYoneticisi = MacTabloYoneticisi(gorunum: self)
     /// İmlecin içinde/yanında durduğu sayfa bağı; yalnızca onun "[[ ]]" işaretleri görünür.
     var etkinSayfaBagi: NSRange?
 
@@ -221,7 +220,6 @@ final class NotMetinGorunumu: NSTextView {
 
     override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
         bagSonrasiImlec = nil
-        guard tabloYoneticisi.degisikligeIzinVer(affectedCharRange, metin: replacementString) else { return false }
         let izin = super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
         kullaniciYazimi = izin && !blokDuzenleniyor && undoManager?.isUndoing != true && undoManager?.isRedoing != true
         if izin { blokCerceveleriniKirlet(affectedCharRange) }
@@ -241,7 +239,6 @@ final class NotMetinGorunumu: NSTextView {
             setSelectedRange(NSRange(location: imlec, length: 0))
         }
         super.didChangeText()
-        tabloYoneticisi.yenile()
         blokCerceveleriniKirlet(selectedRange())
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -257,7 +254,6 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
-        tabloYoneticisi.kapat(kaydet: false)
         yuzerGorunumleriGizle()
         super.viewWillMove(toWindow: newWindow)
     }
@@ -487,11 +483,6 @@ final class NotMetinGorunumu: NSTextView {
         }
     }
 
-    override func layout() {
-        super.layout()
-        tabloYoneticisi.konumlandir()
-    }
-
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
         uyariKutulariniCiz(rect)
@@ -500,7 +491,6 @@ final class NotMetinGorunumu: NSTextView {
 
     override func mouseDown(with event: NSEvent) {
         let nokta = convert(event.locationInWindow, from: nil)
-        if tabloYoneticisi.hucreyiAc(konum: characterIndexForInsertion(at: nokta)) { return }
         if katlamaIsaretiniTikla(nokta) { return }
         if yapilacakKutusunuDegistir(noktada: nokta) { return }
         if let resim = resimHucresi(noktada: nokta),
@@ -664,7 +654,7 @@ final class NotMetinGorunumu: NSTextView {
                 oncekiTablo = false
             case .tablo(let markdown):
                 bosSatirlaAyir()
-                // `/tablo` gibi: kutu çizgili görünüm burada kurulur, yoksa ham `| a | b |` görünürdü.
+                // Tablo düz Markdown metni olarak gelir; diğer metin gibi seçilir, silinir, düzenlenir.
                 sonuc.append(belgeAdaptoru.gorunumluBelge(markdowndenAttributedStringUret(markdown, taban: taban)))
                 oncekiTablo = true
             }

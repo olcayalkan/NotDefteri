@@ -64,7 +64,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `SecimCubugu.swift` | 34 | Seçim üzerinde altı biçim düğmesi; pencerenin biçim komutlarını çağırır |
 | `Tema.swift` | 111 | `Tema`, `temaListesi` (Sepya varsayılan; zeminler main renklerinin `kTemaZeminParlakligi` katı, kağıt başlık/panel `cerceve()` ile ek koyu), `aktifTema`, renk türetme, açık temada `kAcikTemaSimgeRengi`; `bagRengi()`/`bagOznitelikleri()` bağ görünümü, `tamamlananGorevRengi()` |
 | `NotMetinGorunumu+KodYazimi.swift` | 78 | Kod bloğunda eşli karakter yazımı/silmesi ve anahtar kelime + Tab kalıbı; `koddakiDil()` |
-| `NotYerlesimYoneticisi.swift` | 225 | Editörün `NSLayoutManager`'ı: tablo satır zeminlerini çerçeve çizgilerinin içine çizer, seçim/zemin dikdörtgenlerini tablo kutusuna kırpar; yapılacak kutularını (`yapilacakKutusu()`) çizer, işaret karakteri görünmezdir; okunur sayfa bağının 📄 emojisini çizer |
+| `NotYerlesimYoneticisi.swift` | 89 | Editörün `NSLayoutManager`'ı: yapılacak kutularını (`yapilacakKutusu()`) çizer, işaret karakteri görünmezdir; okunur sayfa bağının 📄 emojisini çizer |
 | `NotSatirGorunumu.swift` | 59 | Kenar panel satır vurgusu + sürükle-bırak hedefi vurgusu |
 | `KenarPaneliSurukleTutamaci.swift` | 38 | Panel genişliği tutamacı |
 | `IcindekilerPaneli.swift` | 469 | **Sağ kenar içindekiler** — başlıklardan üretilir, hover'da açılır (odak kaybında ve ekran görüntüsü kaplamasında kapanmaz, `kapanmali()`), tıklayınca kaydırır; kaydırılan bölümün başlığı etkin ve ortada; altında bağlantı veren sayfalar |
@@ -127,7 +127,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|
 | Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
 | Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
-| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 7 (web/RTF tablosu Markdown tablosu olur, ekranda kutu görünür), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme) |
+| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 7 (web/RTF tablosu düz Markdown tablosu olur, seçilip silinebilir), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme) |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
 | Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 
@@ -153,18 +153,16 @@ Yalnızca tek dosyada kullanılanlar `private` kaldı.
 
 ## Tema, tablo ve Linux bütünleşmesi
 
-- `Cekirdek/Tablo.swift`, `TabloModeli.swift`: tablo üretimi, hücre kaynak yazılışı ve Markdown/görsel aralık eşlemesi.
+- `Cekirdek/Tablo.swift`, `TabloModeli.swift`: `/tablo` Markdown üretimi, dış tablodan Markdown, hücre ayrıştırma. Tablolar macOS'ta düz Markdown metni olarak görünür ve düzenlenir (kutu görünümü yok); `TabloModeli` yalnızca Linux hücre editöründe kalır.
 - `Cekirdek/ArkaPlanYenileyici.swift`: nesil kontrolüyle arka planda ağaç yenileme.
 - `Cekirdek/KullanimKilavuzu.swift`: ortak kullanım kılavuzu içeriği.
-- `Gorunum/NotMetinGorunumu+Tablolar.swift`: AppKit yerel hücre editörü, gezinme ve belge geri alma yolu.
 - `Pencere/NotPenceresi+IcerikModu.swift`: kenar panelde üç tıklanan sayfayı kenar paneli kapalı ayrı bir `NotPenceresi`nde (içerik modu) açar; ana editörün bütün özellikleri vardır. Pencereler arası eşitleme: kaydeden pencere `.notDefteriSayfaKaydedildi` yayar, aynı sayfayı gösteren pencere kaydedilmemiş değişikliği yoksa diskten yenilenir (`diskleEsitle`, odak gelince de çalışır); dal taşınınca içerik pencerelerinin yolu izlenir, silinen sayfa yeniden oluşturulmaz.
-- `Gorunum/NotYerlesimYoneticisi.swift`: tablo zemini ve seçim vurgusunun çerçeve dışına taşmaması (köşe glif mürekkebinden ölçülen kutu).
 - `Pencere/NotPenceresi+Komutlar.swift`: `/tablo` boyut penceresi `tabloBoyutUyarisi()` (ızgara aksesuarı kendi ölçüsüyle), `tabloBoyutu()` sınıra çekme.
 - `Uygulama/Menu.swift`: ana menü ve not/ana sayfa/kenar panel için ortak Görünüm bağlam alt menüsü; temalar ara adım olmadan Görünüm altında.
 - `Sources/NotDefteriLinux/LinuxTablolar.swift`: GTK hücre editörü, konumlandırma ve kayıt/geri alma.
 - `Sources/NotDefteriLinux/LinuxTamEkranKontrolleri.swift`: tam ekran kontrol görünürlüğü.
 - `Tests/NotDefteriMacTests/TanitimUyumuTestleri.swift`, `IcerikPenceresiTestleri.swift`: tanıtımla uyumlu bağ görünümü/işaret gizleme ve "Sayfalar" başlığı; üç tıklama içerik penceresi (düzenleme, kayıt, iki pencere eşitlemesi, taşıma/silme) ve gecikmeli ad düzenleme.
 - `Tests/NotDefteriMacTests/IsaretciVeKutuTestleri.swift`: kutuda yazı silmenin kutuyu koruması, yeni kutunun altındaki boş satır, yapılacak kutusu boyutu/satır yüksekliği, numara hizası, sekmeli iç liste.
-- `Tests/NotDefteriMacTests/GorunumBaglamMenusuTestleri.swift`, `TabloDuzenlemeTestleri.swift`, `TabloCizimTestleri.swift`: sağ tık tema, hücre düzenleme, boyut penceresi, vurgunun çerçevede kalması (piksel) ve kenar panel satır genişliği.
+- `Tests/NotDefteriMacTests/GorunumBaglamMenusuTestleri.swift`, `TabloCizimTestleri.swift`: sağ tık tema, boyut penceresi ve kenar panel satır genişliği.
 - `Tests/NotDefteriLinuxTests/GrafikTestOrtami.swift`: tüm grafik testleri için tek GTK başlatma ve gerçek ekran denetimi.
 - `Tests/NotDefteriCekirdekTests/Tablo*`, `KodBloguEnterTestleri`, `TemaAyarlariTestleri`: tablo kaynağı, açık kod çıkışı ve tema ayarı geçişi.

@@ -29,15 +29,13 @@ final class TabloTestleri: XCTestCase {
         XCTAssertNil(tabloMarkdownUret(satir: 31, sutun: 2))
     }
 
-    func testMarkdownTablosuGorunumOzniteligiAlirVeAynenKaydolur() throws {
+    /// Tablo kutuya çevrilmez: düz Markdown metni olarak açılır ve aynen kaydolur.
+    func testMarkdownTablosuDuzMetinKalirVeAynenKaydolur() throws {
         let metin = "| Ad | Değer |\n| :--- | ---: |\n| Bir | 1 |\n"
         let belge = markdowndenAttributedStringUret(metin)
-        let ns = belge.string as NSString
-        XCTAssertTrue(belge.string.hasPrefix("┌"))
-        let baslik = ns.range(of: "Ad")
-        XCTAssertNotEqual(baslik.location, NSNotFound)
-        XCTAssertEqual(belge.attribute(kTabloSatiriAnahtari, at: baslik.location, effectiveRange: nil) as? String, "baslik")
-        XCTAssertNotNil(belge.attribute(kTabloGorselAnahtari, at: 0, effectiveRange: nil))
+        XCTAssertEqual(belge.string, metin)
+        XCTAssertNil(belge.attribute(kTabloSatiriAnahtari, at: 0, effectiveRange: nil))
+        XCTAssertNil(belge.attribute(kTabloGorselAnahtari, at: 0, effectiveRange: nil))
         XCTAssertEqual(markdownMetniUret(belge), metin)
     }
 
@@ -46,7 +44,7 @@ final class TabloTestleri: XCTestCase {
         XCTAssertNil(belge.attribute(kTabloSatiriAnahtari, at: 0, effectiveRange: nil))
     }
 
-    func testKutuluTablodaHucreDuzenleninceMarkdownaGeriDoner() {
+    func testDuzTablodaHucreDuzenlenir() {
         let belge = NSMutableAttributedString(attributedString: markdowndenAttributedStringUret(
             "| Ad | Değer |\n| --- | --- |\n| Bir | 1 |\n"))
         let ad = (belge.string as NSString).range(of: "Ad")
@@ -62,18 +60,11 @@ final class TabloTestleri: XCTestCase {
         XCTAssertNil(tabloGorselindenMarkdownUret(gorsel))
     }
 
-    func testTabloHamMarkdowniKorurVeCizgilerHizalidir() {
+    func testTabloHamMarkdowniKorur() {
         let kod = "\u{0060}#\u{0060}"
         let kaynak = "| \(kod) | **Kalın** |\n| --- | --- |\n| kod ışı | Türkçe ş |\n"
         let belge = markdowndenAttributedStringUret(kaynak)
-        XCTAssertTrue(belge.string.contains(kod))
-        XCTAssertTrue(belge.string.contains("**Kalın**"))
+        XCTAssertFalse(belge.string.contains("┌"))
         XCTAssertEqual(markdownMetniUret(belge), kaynak)
-        let satirlar = belge.string.split(separator: "\n", omittingEmptySubsequences: true)
-        let icerikSatirlari = satirlar.filter { $0.first == "│" }
-        func ayiracKonumlari(_ satir: Substring) -> [Int] {
-            satir.enumerated().compactMap { $0.element == "│" ? $0.offset : nil }
-        }
-        XCTAssertEqual(ayiracKonumlari(icerikSatirlari[0]), ayiracKonumlari(icerikSatirlari[1]))
     }
 }

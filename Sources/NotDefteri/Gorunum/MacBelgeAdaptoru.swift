@@ -60,7 +60,6 @@ final class MacBelgeAdaptoru {
          .verticalGlyphForm, .textEffect, .superscript]
     private static var solukRenk: NSColor { kMetinRenk.withAlphaComponent(0.45) }
     private static var kodArkaplani: NSColor { kMetinRenk.withAlphaComponent(0.08) }
-    private static var tabloCerceveRengi: NSColor { kMetinRenk.withAlphaComponent(0.62) }
     private static let vurguArkaplani = NSColor.systemYellow.withAlphaComponent(0.3)
     private static var fontlar: [String: NSFont] = [:]
 
@@ -78,7 +77,6 @@ final class MacBelgeAdaptoru {
         let boyut = punto(o) * olcek
         let kalin = kalinMi(o)
         if o[kSatirIciKodAnahtari] as? Bool != true, o[kKodBloguAnahtari] == nil,
-           o[kTabloSatiriAnahtari] == nil,
            let kaynak = o[kMacKaynakGorunumu] as? [NSAttributedString.Key: Any], let font = kaynak[.font] as? NSFont {
             let yonetici = NSFontManager.shared
             var yeni = yonetici.convert(font, toSize: boyut)
@@ -89,8 +87,7 @@ final class MacBelgeAdaptoru {
         return Self.fontUret(boyut: boyut,
                              kalin: kalin,
                              italik: o[kItalikAnahtari] as? Bool == true,
-                             mono: o[kSatirIciKodAnahtari] as? Bool == true || o[kKodBloguAnahtari] != nil ||
-                                o[kTabloSatiriAnahtari] != nil)
+                             mono: o[kSatirIciKodAnahtari] as? Bool == true || o[kKodBloguAnahtari] != nil)
     }
 
     func kalinMi(_ o: [NSAttributedString.Key: Any]) -> Bool {
@@ -339,18 +336,11 @@ final class MacBelgeAdaptoru {
             g[.backgroundColor] = Self.vurguArkaplani
         } else if o[kSatirIciKodAnahtari] as? Bool == true {
             g[.backgroundColor] = Self.kodArkaplani
-        } else if o[kTabloSatiriAnahtari] as? String == TabloSatiriTuru.cerceve.rawValue {
-            // Satır zeminleri öznitelik değil: `NotYerlesimYoneticisi` çerçevenin içine çizer.
-            g[.foregroundColor] = Self.tabloCerceveRengi
         }
         if let bag = o[kBaglantiAnahtari] { g[.link] = bag }
         // Kodun görsel girintisi yalnızca Mac stilidir; gövdeye ve kayda sekme eklenmez.
         let geometri: [String: Any]? = o[kKodBloguAnahtari] != nil
             ? ["ilkSatirGirintisi": 24.0, "govdeGirintisi": 24.0, "sekmeAraligi": 24.0]
-            : o[kTabloSatiriAnahtari] != nil
-                ? ["ilkSatirGirintisi": 14.0, "govdeGirintisi": 14.0, "sekmeAraligi": 14.0,
-                   "paragrafBoslugu": 0.0, "satirAraligi": 0.0, "satirYuksekligiCarpani": 1.0,
-                   "satirSonuKirma": true]
             : o[kParagrafGeometrisiAnahtari] as? [String: Any]
         if let stil = paragrafStili(geometri) {
             if blok?.tur == .yapilacak, let metinFontu = font(o) as NSFont? {
