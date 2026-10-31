@@ -759,9 +759,36 @@ final class NotMetinGorunumu: NSTextView {
         let aralik = selectedRange()
         guard aralik.length > 0, NSMaxRange(aralik) <= metinDeposu.length else { return nil }
         let parca = NSMutableAttributedString(attributedString: metinDeposu.attributedSubstring(from: aralik))
-        uyariDevaminiBasaCevir(parca)
+        if parca.string.contains(where: \.isNewline) {
+            uyariDevaminiBasaCevir(parca)
+        } else {
+            satirIcineIndir(parca)
+        }
         let markdown = markdownMetniUret(parca)
         return markdown.isEmpty ? nil : markdown
+    }
+
+    /// Tek satırdan alınan parça bloğunu taşımaz: kutudan, koddan ya da başlıktan seçilen bir
+    /// kelime yapıştırıldığı satırı bölüp yeni blok açıyordu. Kod parçası satır içi kod olur;
+    /// düz metne dönerse içindeki `**` gibi işaretler yapıştırılınca biçime çevrilirdi.
+    private func satirIcineIndir(_ parca: NSMutableAttributedString) {
+        let tum = NSRange(location: 0, length: parca.length)
+        var isaretler: [NSRange] = []
+        parca.enumerateAttribute(kBlokIsaretiAnahtari, in: tum, options: []) { deger, aralik, _ in
+            if deger != nil { isaretler.append(aralik) }
+        }
+        var kodlar: [NSRange] = []
+        parca.enumerateAttribute(kKodBloguAnahtari, in: tum, options: []) { deger, aralik, _ in
+            if deger != nil { kodlar.append(aralik) }
+        }
+        for aralik in kodlar { parca.addAttribute(kSatirIciKodAnahtari, value: true, range: aralik) }
+        for anahtar in [kMetinBloguAnahtari, kUyariKutusuAnahtari, kBlokKimligiAnahtari, kParagrafGeometrisiAnahtari,
+                        kKodBloguAnahtari, kKodBloguDiliAnahtari, kMarkdownKaynakAnahtari, kBosKodSatiriAnahtari,
+                        kBaslikSeviyesiAnahtari, kTabloHucresiAnahtari, kTabloSatiriAnahtari, kTabloGorselAnahtari,
+                        kTabloModeliAnahtari, .paragraphStyle] {
+            parca.removeAttribute(anahtar, range: tum)
+        }
+        for aralik in isaretler.reversed() { parca.deleteCharacters(in: aralik) }
     }
 
     private func panoyaYaz(_ markdown: String?) {
@@ -809,6 +836,14 @@ final class NotMetinGorunumu: NSTextView {
             // Blok işaretiyle başlayan içerik (kod, uyarı, liste, alıntı) satır ortasına yapışırsa
             // işareti metne karışır ve blok bozulur; yeni satırdan başlamalı.
             if icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil,
+               aralik.location > 0, ns.character(at: aralik.location - 1) != 10,
+               aralik.length == 0, aralik.location < ns.length, ns.character(at: aralik.location) == 10,
+               icerik.string.hasSuffix("\n"),
+               icerik.attribute(kKodBloguAnahtari, at: icerik.length - 1, effectiveRange: nil) != nil {
+                // Kodun son satır sonu kapanış çitini taşır, silinemez; satır sonundaki imlecin
+                // ardındaki satır sonuyla çakışıp altta boş satır bırakmasın diye alt satıra girer.
+                aralik.location += 1
+            } else if icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil,
                aralik.location > 0, ns.character(at: aralik.location - 1) != 10 {
                 icerik.insert(NSAttributedString(string: "\n"), at: 0)
                 // Satır sonuna yapıştırılan tam satırların kapanış satır sonu, imleçten sonraki

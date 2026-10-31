@@ -29,6 +29,8 @@ and this project adheres to
 
 ### Fixed
 
+- NotDefteri: macOS kod bloğu, uyarı kutusu, alıntı, madde, başlık ve tablo hücresinden tek satır içinde kopyalanan parça yapıştırıldığı satırı bölüp yeni blok açmaz; satır içi yapışır (koddan alınan parça satır içi kod olur, satır içi biçimler korunur). Birden çok satırlık seçim bloğunu taşımaya devam eder. Satır sonuna yapıştırılan kod bloğunun altında boş satır kalmaz.
+
 - NotDefteri: macOS kutu çizgili tablo kaldırıldı; tablolar yerel `NSTextTable` ızgarası olarak görünür. Kutu tablosunda seçilen ya da yapıştırılan içerik silinemiyor, hücre dışında düzenleme engelleniyordu; artık hücreler diğer metin gibi seçilir, silinir, kopyalanır ve düzenlenir, tablo pencere genişliğine sığar, başlık ve çift satırlar gölgelidir. Web tablosu ve sekmeyle ayrılmış düz metin tablo olarak yapışır. Kayıt Markdown tablosudur.
 - NotDefteri: macOS uyarı kutusu kopyala-yapıştırda bozuluyordu: satır ortasına yapıştırılan kutunun başlığı metne karışıyor, kutunun ortasından alınan satırlar düz alıntıya dönüyor, kutu içine yapıştırınca boş başlıklı hayalet kutu doğuyor, bütün kutuyu kesince boş kutu kalıyordu.
 - NotDefteri: macOS'ta web sayfasından ya da belgeden kopyalanan tablonun hücreleri yan yana yerine alt alta satırlara dönüşüyordu; tablo artık Markdown tablosu olarak yapışır ve kaydolur (önünde ve arkasında boş satırla; hücredeki `|` kaçışlanır).

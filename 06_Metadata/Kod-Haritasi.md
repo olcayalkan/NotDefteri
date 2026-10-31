@@ -59,7 +59,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `HizliBulucu.swift` | 204 | ⌘P ve [[ için ortak AppKit arama/listesi, üst yol ve klavye gezinmesi |
 | `NotMetinGorunumu+UyariKutusu.swift` | 207 | Görünür callout çizimi, yerel sınır düzeltme, renk menüsü ve sistem emoji paleti; kutu ortasından kopyalanan satıra başlık verme (`uyariDevaminiBasaCevir()`) |
 | `KagitKaydirici.swift` | 20 | Oluk çizmeyen kaydırma çubuğu; kağıt zemininde beyaz şerit oluşmasın (sistem 'çubukları göster' ayarı) |
-| `NotMetinGorunumu.swift` | 899 | `NSTextView` alt sınıfı: görsel/pano işlemleri, slash tuşları, yüzen görünümler, bağlantı tıklaması ve satır içi sayfa bulucu |
+| `NotMetinGorunumu.swift` | 945 | `NSTextView` alt sınıfı: görsel/pano işlemleri (tek satırlık kopya `satirIcineIndir()` ile bloğunu bırakır), slash tuşları, yüzen görünümler, bağlantı tıklaması ve satır içi sayfa bulucu |
 | `BlokMenusu.swift` | 253 | Türkçe filtreli blok ve uyarı rengi seçenekleri, klavye gezinmesi ve odağı koruyan çocuk panel |
 | `SecimCubugu.swift` | 34 | Seçim üzerinde altı biçim düğmesi; pencerenin biçim komutlarını çağırır |
 | `Tema.swift` | 111 | `Tema`, `temaListesi` (Sepya varsayılan; zeminler main renklerinin `kTemaZeminParlakligi` katı, kağıt başlık/panel `cerceve()` ile ek koyu), `aktifTema`, renk türetme, açık temada `kAcikTemaSimgeRengi`; `bagRengi()`/`bagOznitelikleri()` bağ görünümü, `tamamlananGorevRengi()` |
@@ -127,7 +127,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|
 | Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
 | Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
-| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 8 (web/RTF/sekmeli tablo yerel tabloya yapışır, seçilip silinebilir), `TabloHucreDuzenlemeTestleri` 5 (hücrede yazma, silme, Enter, `/tablo`, çift satır gölgesi), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme) |
+| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 8 (web/RTF/sekmeli tablo yerel tabloya yapışır, seçilip silinebilir), `TabloHucreDuzenlemeTestleri` 5 (hücrede yazma, silme, Enter, `/tablo`, çift satır gölgesi), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme), `BlokParcasiKopyalamaTestleri` 10 (kod/kutu/alıntı/başlıktan tek satırlık parça satır içi yapışır) |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
 | Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 
