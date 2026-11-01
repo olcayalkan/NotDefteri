@@ -36,6 +36,7 @@ and this project adheres to
 
 ### Fixed
 
+- NotDefteri: macOS'ta kod bloğu ve uyarı kutusunda blok tutamacı (⋮⋮) kutunun içine düşüyordu; artık çerçevenin solunda ve ilk satır hizasında. Sürüklerken taşınan blok mavi çerçeveyle işaretlenir, yarı saydam kopyası fareyle gelir, bırakma yeri iki bloğun görünen kenarlarının ortasında başında halka olan kalın çizgiyle gösterilir (kutu kenarına karışmasın diye zemin renkli haleli).
 - NotDefteri: macOS'ta kutu çevresindeki boşluk komşu satır değişince de hemen güncellenir; düzenlerken görülen boşluk uygulama kapatılıp açılınca değişmez. Bitişik alıntı ile uyarı kutusu arasına kayıtta yazılan boş satır açılışta neredeyse sıfır yükseklikte çizilir (önce tam satır olarak beliriyordu).
 - NotDefteri: macOS kod bloğu, uyarı kutusu, alıntı, madde, başlık ve tablo hücresinden tek satır içinde kopyalanan parça yapıştırıldığı satırı bölüp yeni blok açmaz; satır içi yapışır (koddan alınan parça satır içi kod olur, satır içi biçimler korunur). Birden çok satırlık seçim bloğunu taşımaya devam eder. Satır sonuna yapıştırılan kod bloğunun altında boş satır kalmaz.
 

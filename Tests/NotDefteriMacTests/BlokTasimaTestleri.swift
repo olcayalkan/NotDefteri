@@ -132,6 +132,52 @@ final class BlokTasimaTestleri: XCTestCase {
         XCTAssertFalse(NSLocationInRange(ns.range(of: "b").location, birim))
     }
 
+    private func uygulamaGibi(_ md: String) -> NotMetinGorunumu {
+        let e = editor(md)
+        e.textContainerInset = NSSize(width: kEditorYanPayi, height: kEditorDikeyBoslugu)
+        e.textContainer?.size = NSSize(width: 600 - kEditorYanPayi * 2, height: .greatestFiniteMagnitude)
+        e.layoutManager?.ensureLayout(for: e.textContainer!)
+        return e
+    }
+
+    /// Kod ve uyarı kutusunda tutamaç çerçevenin dışında, solunda ve ilk satır hizasında.
+    func testKutuTutamaciCerceveninSolunda() throws {
+        let e = uygulamaGibi("önce\n```swift\nlet a = 1\nlet b = 2\n```\n> [!💡 mavi] uyarı\n> iki\nsonra\n")
+        for metin in ["let a", "uyarı"] {
+            let birim = e.blokBirimi((e.string as NSString).range(of: metin).location)
+            let cerceve = try XCTUnwrap(e.blokGorselKaresi(birim))
+            let tutamac = try XCTUnwrap(e.blokTutamacKaresi(birim))
+            XCTAssertLessThanOrEqual(tutamac.maxX, cerceve.minX, metin)
+            XCTAssertGreaterThanOrEqual(tutamac.minY, cerceve.minY - 1, metin)
+            XCTAssertLessThan(tutamac.midY, cerceve.minY + 30, "\(metin): ilk satır hizasında")
+        }
+    }
+
+    /// Bırakma çizgisi iki kutunun arasında durur, çerçevenin içine düşmez.
+    func testBirakmaCizgisiKutularinArasinda() throws {
+        let e = uygulamaGibi("a\n```\nk\n```\n> [!💡 mavi] u\nb\n")
+        let ns = e.string as NSString
+        let kod = e.blokBirimi(ns.range(of: "k").location)
+        let kutu = e.blokBirimi(ns.range(of: "u").location)
+        let kodKare = try XCTUnwrap(e.blokGorselKaresi(kod)), kutuKare = try XCTUnwrap(e.blokGorselKaresi(kutu))
+        let sinir = try XCTUnwrap(e.blokSiniri(noktada: NSPoint(x: kodKare.midX, y: kodKare.maxY - 2), tasinan: e.blokBirimi(0)))
+        XCTAssertEqual(sinir.konum, NSMaxRange(kod))
+        XCTAssertGreaterThanOrEqual(sinir.y, kodKare.maxY)
+        XCTAssertLessThanOrEqual(sinir.y, kutuKare.minY)
+        XCTAssertNil(e.blokSiniri(noktada: NSPoint(x: 50, y: 2), tasinan: e.blokBirimi(0)), "kendi yeri hedef değil")
+    }
+
+    func testSuruklemeGorselleriEklenipKaldirilir() {
+        let e = uygulamaGibi("bir\niki\n")
+        let once = e.subviews.count
+        let gorseller = BlokSuruklemeGorselleri(editor: e, birim: e.blokBirimi(0), tutulan: NSPoint(x: 50, y: 10))
+        XCTAssertEqual(e.subviews.count, once + 3)
+        XCTAssertNotNil(e.subviews.compactMap { $0 as? NSImageView }.first?.image, "yarı saydam kopya")
+        gorseller.cizgiyiGoster(NSRect(x: 0, y: 20, width: 100, height: 8))
+        gorseller.kaldir()
+        XCTAssertEqual(e.subviews.count, once)
+    }
+
     func testTutamacFareUzerindeGorunur() throws {
         let e = editor("bir\niki\n")
         e.textContainerInset = NSSize(width: kEditorYanPayi, height: kEditorDikeyBoslugu)
