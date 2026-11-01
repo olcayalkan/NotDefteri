@@ -253,7 +253,7 @@ final class MacBelgeAdaptoru {
             if let kenar = Self.kutuKenari(depo, o, alt) {
                 let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
                 if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, kKutuDisBoslugu) }
-                if kenar.alt { stil.paragraphSpacing = max(stil.paragraphSpacing, kKutuDisBoslugu) }
+                if kenar.alt { stil.paragraphSpacing = max(stil.paragraphSpacing, kKutuAltBoslugu) }
                 istenen[.paragraphStyle] = stil
             }
             var ekle: [NSAttributedString.Key: Any] = [:]

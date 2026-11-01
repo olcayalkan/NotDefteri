@@ -32,6 +32,10 @@ package let kKutuIcBoslugu: CGFloat = 8
 /// satır kalır. Yalnızca görünümdür; Markdown'a satır yazılmaz.
 package let kKutuDisBoslugu: CGFloat = (kTabanPunto * 0.6).rounded() + kKutuIcBoslugu
 
+/// macOS'ta kutunun altındaki boşluk; üsttekinin yarısı kadar dış boşluk bırakır. Kutudan
+/// sonraki yazı kutudan kopuk duruyordu. Çerçeve yazıya değmesin diye iç boşluktan küçük olamaz.
+package let kKutuAltBoslugu: CGFloat = kKutuIcBoslugu + 4
+
 /// Uyarı kutusu renkleri (0–1 RGB). Doygun sistem renkleri yerine kağıtta göz yormayan
 /// koyu tonlar; koyulaşan tema zemininde açık tonlar seçilmiyordu.
 package let kUyariRenkleri: [String: (r: Double, g: Double, b: Double)] = [

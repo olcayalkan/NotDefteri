@@ -10,6 +10,7 @@ and this project adheres to
 
 ### Added
 
+- NotDefteri: macOS'ta `/red` kırmızı, `/info` yeşil uyarı kutusu açar (`/uyari` gibi boşlukla hemen uygulanır).
 - NotDefteri: macOS not, ana sayfa ve kenar panel sağ tık menülerinde Görünüm altında doğrudan tema seçimi.
 - NotDefteri: `/table` ve `/tablo` ile tablo ekleme, kaynak Markdown yazılışını koruyan hücre düzenleme.
 - NotDefteri: Terminal teması, kayıtlı tema seçimi için tek seferlik geçiş ve macOS/Linux tema yenilemesi.
@@ -18,6 +19,7 @@ and this project adheres to
 
 ### Changed
 
+- NotDefteri: macOS kod bloğu ve uyarı kutusunun altındaki boşluk yarıya indi; sonraki yazı kutuya daha yakın.
 - NotDefteri: macOS görseller dört kenarından ve dört köşesinden boyutlandırılır: sol/sağ kenar yalnızca eni, üst/alt kenar yalnızca boyu uzatır; köşeler oranı koruyarak bütün görseli büyütür. Kenar boyunca her yer tutulabilir, imleç tutulan yöne göre değişir.
 - NotDefteri: Uyarı kutusu kod bloğu gibi yazılır: boş satırda Enter kutuda kalır, Ctrl+Enter kutudan çıkar (altında boş satır varsa oraya geçer); ilk satır boşken geri silme kutuyu bozmaz.
 - NotDefteri: macOS arayüzü tanıtımla uyumlu: sayfa bağları 📄 emojisiyle, köşeli parantezsiz mavi ve altı çizili (imleç bağdayken `[[ ]]` görünür), tamamlanan görevde yeşil tik, görseller yuvarlak köşeli gölgeli kart, kenar panelde "Sayfalar" başlığı ve alt sayfalı sayfalarda klasör simgesi.
