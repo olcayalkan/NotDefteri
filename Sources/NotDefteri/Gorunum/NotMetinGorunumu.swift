@@ -48,6 +48,7 @@ final class NotMetinGorunumu: NSTextView {
     var bagTamamlamaAraligi: NSRange?
     var kapatilanBagKonumu: Int?
     let blokMenusu = BlokMenusu()
+    let blokTutamaci = BlokTutamaci()
     let secimCubugu = SecimCubugu()
     var slashAraligi: NSRange?
     var kapatilanSlashKonumu: Int?
@@ -147,6 +148,8 @@ final class NotMetinGorunumu: NSTextView {
         kodRenklendirmeyiPlanla()
         addSubview(kodAraclari)
         kodAraclari.isHidden = true
+        addSubview(blokTutamaci)
+        blokTutamaci.isHidden = true
         kodAraclari.kopyala = { [weak self] in self?.kodBlogunuKopyala() }
     }
 
@@ -159,8 +162,10 @@ final class NotMetinGorunumu: NSTextView {
         if isEditable, !hasMarkedText(), [36, 76].contains(event.keyCode),
            event.modifierFlags.intersection([.command, .control, .option, .shift]) == .control,
            kutuAltindakiBosSatiraGec() || bloktaYeniSatir(koddanCik: true) { return }
+        if blokTasimaKisayolunuUygula(event) { return }
         if window?.firstResponder === self, katlamaKisayolunuUygula(event) { return }
         secimCubugu.gizle()
+        blokTutamaci.isHidden = true
         if sayfaBulucusu.gorunur, !hasMarkedText(), event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty {
             switch event.keyCode {
             case 126: sayfaBulucusu.gezin(-1); return
@@ -454,6 +459,7 @@ final class NotMetinGorunumu: NSTextView {
         kodAraclariniGuncelle(noktada: nokta)
         resimTutamaclariniGuncelle(resimHucresiniBul(noktada: nokta)?.hucre)
         resimImleciniGuncelle(noktada: nokta, olay: event)
+        blokTutamaciniGuncelle(noktada: nokta)
     }
 
     override func cursorUpdate(with event: NSEvent) {
@@ -467,6 +473,7 @@ final class NotMetinGorunumu: NSTextView {
     override func mouseExited(with event: NSEvent) {
         katlamaFaresiniGuncelle(nil)
         kodAraclari.isHidden = true
+        blokTutamaci.isHidden = true
         resimTutamaclariniGuncelle(nil)
         resimTutamaci = nil
         super.mouseExited(with: event)

@@ -151,7 +151,7 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
         metinGorunumu.textColor = kMetinRenk
         metinGorunumu.backgroundColor = aktifTema.arkaplan
         metinGorunumu.insertionPointColor = kMetinRenk
-        metinGorunumu.textContainerInset = NSSize(width: 14, height: 12)
+        metinGorunumu.textContainerInset = NSSize(width: 14, height: kEditorDikeyBoslugu)
         metinGorunumu.isEditable = true
         metinGorunumu.isVerticallyResizable = true
         metinGorunumu.isHorizontallyResizable = false

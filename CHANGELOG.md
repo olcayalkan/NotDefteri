@@ -10,6 +10,7 @@ and this project adheres to
 
 ### Added
 
+- NotDefteri: macOS'ta Notion gibi blok taşıma. Her paragraf bir blok; kod bloğu, uyarı kutusu ve tablo bölünmez, liste maddesi alt maddeleriyle gider. ⌘⇧↑/↓ imlecin ya da seçimin bloklarını bir blok yukarı/aşağı taşır; fare paragrafın üstündeyken solda çıkan ⋮⋮ tutamacı sürüklenerek blok istenen yere bırakılır (tıklamak bloğu seçer). Taşıma tek adımda geri alınır, numaralı liste yeniden numaralanır.
 - NotDefteri: macOS'ta ortalama kutu, liste ve alıntı satırlarında da çalışır (`> [!💡 mavi] <center>…</center>`); kod bloğu bütün olarak ortalanır ve açılış çitine `{center}` yazılır (dil etiketi bozulmaz). Seçili metne sağ tıklayınca simgeli "Ortala" ve "Sola yasla" çıkar; kutuda sağ tık seçimi korur.
 - NotDefteri: macOS'ta ⌘O (Biçim > Ortala) seçili satırları Word'deki gibi ortalar, tekrar basınca sola döndürür. Satır `<center>…</center>` olarak kaydolur (Obsidian ve GitHub da ortalar), HTML dışa aktarımda da ortalıdır. Kod, kutu, liste ve tablo satırları ortalanmaz.
 - NotDefteri: macOS'ta `/red` kırmızı, `/info` yeşil uyarı kutusu açar (`/uyari` gibi boşlukla hemen uygulanır).
@@ -21,6 +22,7 @@ and this project adheres to
 
 ### Changed
 
+- NotDefteri: macOS editöründe yazıya daha çok yer: en geniş satır 760'tan 960 pt'ye çıktı, yan pay 48'den 40 pt'ye, metnin üst/alt iç boşluğu 12'den 4 pt'ye, üstteki sayfa seçenekleri alanı 36'dan 28 pt'ye, alt bilgi şeridi 26'dan 22 pt'ye indi (`kEnGenisMetin`, `kEditorYanPayi`, `kEditorDikeyBoslugu`, `kAltBilgiYuksekligi`).
 - NotDefteri: macOS'ta renkli kutu ve kod bloğunun altındaki boşluk 2 pt'ye indi; üstünde boş satır ya da başka kutu varsa ek üst boşluk yok, iki kutu arasındaki tek boş satır 6 pt yüksekliğinde.
 - NotDefteri: macOS kod bloğu ve uyarı kutusunun altındaki boşluk yarıya indi; sonraki yazı kutuya daha yakın.
 - NotDefteri: macOS görseller dört kenarından ve dört köşesinden boyutlandırılır: sol/sağ kenar yalnızca eni, üst/alt kenar yalnızca boyu uzatır; köşeler oranı koruyarak bütün görseli büyütür. Kenar boyunca her yer tutulabilir, imleç tutulan yöne göre değişir.
