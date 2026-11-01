@@ -602,12 +602,33 @@ private func kanonikMarkdownUret(_ metin: NSAttributedString) -> String {
             var konum = 0
             while konum < ns.length {
                 let satir = ns.lineRange(for: NSRange(location: konum, length: 0))
-                sonuc += satirMarkdownunuUret(parca.attributedSubstring(from: satir))
+                let satirParcasi = parca.attributedSubstring(from: satir)
+                let yazi = satirMarkdownunuUret(satirParcasi)
+                let ortali = satirParcasi.length > 0 &&
+                    satirParcasi.attribute(kOrtaliAnahtari, at: 0, effectiveRange: nil) as? Bool == true
+                sonuc += ortali ? ortaliSatiriSar(yazi) : yazi
                 konum = NSMaxRange(satir)
             }
         }
     }
     return sonuc
+}
+
+/// Ortalı satır Obsidian ve GitHub'ın da ortaladığı `<center>` ile sarılır; boş satır sarılmaz.
+private func ortaliSatiriSar(_ yazi: String) -> String {
+    let son = yazi.hasSuffix("\r\n") ? "\r\n" : yazi.hasSuffix("\n") ? "\n" : yazi.hasSuffix("\r") ? "\r" : ""
+    let govde = String(yazi.dropLast(son.count))
+    return govde.isEmpty ? yazi : "<center>\(govde)</center>\(son)"
+}
+
+/// `<center>…</center>` satırının içi ve satır sonu; içi ayrıca Markdown olarak çözülür.
+private func ortaliSatirIcerigi(_ yazi: String) -> String? {
+    let govde = yazi.trimmingCharacters(in: .newlines)
+    guard govde.hasPrefix("<center>"), govde.hasSuffix("</center>"),
+          govde.count > "<center></center>".count else { return nil }
+    let ic = govde.dropFirst("<center>".count).dropLast("</center>".count)
+    guard !ic.contains("</center>") else { return nil }
+    return String(ic) + yazi.dropFirst(govde.count)
 }
 
 package func sayfaMarkdownunuUret(_ metin: NSAttributedString, ustbilgi: SayfaUstbilgisi) -> String {
@@ -700,6 +721,10 @@ package func markdowndenAttributedStringUret(_ metin: String, taban: URL = notla
                 bosSatir[kBosKodSatiriAnahtari] = true
                 parca.append(NSAttributedString(string: "\n", attributes: bosSatir))
             }
+        } else if let ic = ortaliSatirIcerigi(yazi) {
+            parca = NSMutableAttributedString(attributedString: satiriAttributedStringeCevir(ic, taban: taban))
+            ciplakBaglariIsaretle(parca, aralik: NSRange(location: 0, length: parca.length))
+            parca.addAttribute(kOrtaliAnahtari, value: true, range: NSRange(location: 0, length: parca.length))
         } else {
             parca = NSMutableAttributedString(attributedString: satiriAttributedStringeCevir(yazi, taban: taban, devamBlogu: uyari))
             ciplakBaglariIsaretle(parca, aralik: NSRange(location: 0, length: parca.length))

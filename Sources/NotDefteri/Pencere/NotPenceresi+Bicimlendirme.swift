@@ -49,6 +49,44 @@ extension NotPenceresi {
         metinGorunumu.secimCubugunuGuncelle()
     }
 
+    /// ⌘O: Word'deki gibi seçili satırları ortalar; hepsi ortalıysa sola döndürür.
+    /// Kod, kutu, liste ve tablo satırları atlanır: `<center>` onların Markdown yapısını bozardı.
+    @objc func ortalaKomutu(_ sender: Any?) {
+        guard let depo = metinGorunumu.textStorage else { return }
+        let ns = depo.string as NSString
+        let secim = metinGorunumu.selectedRange()
+        let kapsam = ns.paragraphRange(for: secim)
+        func uygunMu(_ konum: Int) -> Bool {
+            [kKodBloguAnahtari, kMetinBloguAnahtari, kTabloHucresiAnahtari].allSatisfy {
+                depo.attribute($0, at: konum, effectiveRange: nil) == nil
+            }
+        }
+        var paragraflar: [NSRange] = []
+        var konum = kapsam.location
+        while konum < NSMaxRange(kapsam) {
+            let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+            if uygunMu(paragraf.location) { paragraflar.append(paragraf) }
+            konum = NSMaxRange(paragraf)
+        }
+        var yazim = metinGorunumu.typingAttributes
+        // Belge sonundaki boş satırda paragraf yoktur; yalnızca yazılacak metin ortalanır.
+        guard !paragraflar.isEmpty else {
+            guard kapsam.length == 0, yazim[kKodBloguAnahtari] == nil, yazim[kMetinBloguAnahtari] == nil else { NSSound.beep(); return }
+            yazim[kOrtaliAnahtari] = yazim[kOrtaliAnahtari] as? Bool == true ? nil : true
+            metinGorunumu.typingAttributes = metinGorunumu.belgeAdaptoru.gorunumlu(yazim)
+            return
+        }
+        let ac = !paragraflar.allSatisfy { depo.attribute(kOrtaliAnahtari, at: $0.location, effectiveRange: nil) as? Bool == true }
+        let yeni = NSMutableAttributedString(attributedString: depo.attributedSubstring(from: kapsam))
+        for paragraf in paragraflar {
+            let yerel = NSRange(location: paragraf.location - kapsam.location, length: paragraf.length)
+            if ac { yeni.addAttribute(kOrtaliAnahtari, value: true, range: yerel) }
+            else { yeni.removeAttribute(kOrtaliAnahtari, range: yerel) }
+        }
+        yazim[kOrtaliAnahtari] = ac ? true : nil
+        metinGorunumu.blokDuzenle(kapsam, yeni: yeni, secim: secim, yazim: metinGorunumu.belgeAdaptoru.gorunumlu(yazim))
+    }
+
     @objc func baglantiKomutu(_ sender: Any?) {
         metinGorunumu.blokYaziminiGuncelle()
         let secim = metinGorunumu.selectedRange()

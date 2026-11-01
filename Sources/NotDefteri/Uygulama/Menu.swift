@@ -77,7 +77,8 @@ func anaMenuyuOlustur(delege: UygulamaDelegesi) -> NSMenu {
         ("Üstü Çizili", #selector(NotPenceresi.ustuCiziliKomutu(_:)), "x", [.command, .shift]),
         ("Satır İçi Kod", #selector(NotPenceresi.satirIciKodKomutu(_:)), "e", .command),
         ("Vurgu", #selector(NotPenceresi.vurguKomutu(_:)), "h", [.command, .option]),
-        ("Bağlantı", #selector(NotPenceresi.baglantiKomutu(_:)), "k", .command)]
+        ("Bağlantı", #selector(NotPenceresi.baglantiKomutu(_:)), "k", .command),
+        ("Ortala", #selector(NotPenceresi.ortalaKomutu(_:)), "o", .command)]
     for (ad, komut, tus, bayraklar) in satirIciKomutlar {
         let oge = NSMenuItem(title: ad, action: komut, keyEquivalent: tus)
         oge.keyEquivalentModifierMask = bayraklar

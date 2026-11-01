@@ -360,6 +360,11 @@ final class MacBelgeAdaptoru {
             stil.textBlocks = [Self.tabloBlogu(hucre)]
             g[.paragraphStyle] = stil
         }
+        if o[kOrtaliAnahtari] as? Bool == true {
+            let stil = ((g[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+            stil.alignment = .center
+            g[.paragraphStyle] = stil
+        }
         return g
     }
 

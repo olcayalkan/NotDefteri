@@ -13,6 +13,7 @@ package let kBaglantiAnahtari = NSAttributedString.Key("baglantiURL") // URL
 package let kSayfaBagiAnahtari = NSAttributedString.Key("sayfaBagi") // String: [[hedef]] içindeki hedef
 package let kCiplakBagAnahtari = NSAttributedString.Key("ciplakBag") // Bool
 package let kPuntoOlcegiAnahtari = NSAttributedString.Key("puntoOlcegi") // Double: kayıt puntosu / kTabanPunto
+package let kOrtaliAnahtari = NSAttributedString.Key("ortali") // Bool: paragraf ortalı; <center>…</center> satırı
 
 // [String: Any]: yol (String, özgün göreli yol), dosyaURL (URL, çözülmüş kaynak),
 // genislik/yukseklik (Double, 1...10000; ikisi de yoksa doğal boyut adaptörde çözülür).

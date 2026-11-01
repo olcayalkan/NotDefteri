@@ -10,6 +10,7 @@ and this project adheres to
 
 ### Added
 
+- NotDefteri: macOS'ta ⌘O (Biçim > Ortala) seçili satırları Word'deki gibi ortalar, tekrar basınca sola döndürür. Satır `<center>…</center>` olarak kaydolur (Obsidian ve GitHub da ortalar), HTML dışa aktarımda da ortalıdır. Kod, kutu, liste ve tablo satırları ortalanmaz.
 - NotDefteri: macOS'ta `/red` kırmızı, `/info` yeşil uyarı kutusu açar (`/uyari` gibi boşlukla hemen uygulanır).
 - NotDefteri: macOS not, ana sayfa ve kenar panel sağ tık menülerinde Görünüm altında doğrudan tema seçimi.
 - NotDefteri: `/table` ve `/tablo` ile tablo ekleme, kaynak Markdown yazılışını koruyan hücre düzenleme.

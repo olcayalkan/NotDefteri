@@ -69,6 +69,7 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
         if let hata { throw hata }
         let uyariKimligi = MetinBlogu(oznitelik: o[kMetinBloguAnahtari]).flatMap { $0.tur == .uyari ? $0.uyariKimligi : nil }
         if acikUyari != nil, uyariKimligi != acikUyari { govde += "</div>"; acikUyari = nil }
+        let hiza = o[kOrtaliAnahtari] as? Bool == true ? " style=\"text-align:center\"" : ""
         if acikUyari != nil { govde += icerik }
         else if o[kKodBloguAnahtari] != nil { govde += "<pre><code>\(icerik)</code></pre>" }
         else if let blok = MetinBlogu(oznitelik: o[kMetinBloguAnahtari]) {
@@ -87,8 +88,8 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
             }
         } else if let seviye = o[kBaslikSeviyesiAnahtari] as? Int {
             let h = min(6, max(1, seviye))
-            govde += "<h\(h)>\(icerik)</h\(h)>"
-        } else { govde += "<p>\(icerik.isEmpty ? "<br>" : icerik)</p>" }
+            govde += "<h\(h)\(hiza)>\(icerik)</h\(h)>"
+        } else { govde += "<p\(hiza)>\(icerik.isEmpty ? "<br>" : icerik)</p>" }
         konum = NSMaxRange(aralik)
     }
     if acikUyari != nil { govde += "</div>" }

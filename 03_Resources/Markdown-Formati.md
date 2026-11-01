@@ -29,6 +29,7 @@ Kaynak: `Sources/NotDefteri/Cekirdek/MarkdownCevirici.swift` ve `Sources/NotDeft
 | Kod bloğu | Üçlü backtick; açılışta isteğe bağlı dil etiketi (ör. `go`) | ✅ standart |
 | Görsel | `![](Görseller/Ad.png){320x240}` | ⚠️ `{ExY}` ekranda metin olarak kalır |
 | Punto | `<punto=16>metin</punto>` | ❌ ham etiket görünür |
+| Ortalı satır (⌘O) | `<center>metin</center>` — bütün satır; içi Markdown olarak çözülür | ⚠️ ortalanır ama içteki `**` vb. HTML bloğunda biçimlenmez |
 
 Blok girintisi seviye başına iki boşluktur. Açılışta `* ` madde işareti ve
 mevcut numara/önek yazılışı da korunur; yapısal düzenleme kanonik öneki üretir.

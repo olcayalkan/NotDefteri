@@ -784,7 +784,7 @@ final class NotMetinGorunumu: NSTextView {
         for aralik in kodlar { parca.addAttribute(kSatirIciKodAnahtari, value: true, range: aralik) }
         for anahtar in [kMetinBloguAnahtari, kUyariKutusuAnahtari, kBlokKimligiAnahtari, kParagrafGeometrisiAnahtari,
                         kKodBloguAnahtari, kKodBloguDiliAnahtari, kMarkdownKaynakAnahtari, kBosKodSatiriAnahtari,
-                        kBaslikSeviyesiAnahtari, kTabloHucresiAnahtari, kTabloSatiriAnahtari, kTabloGorselAnahtari,
+                        kBaslikSeviyesiAnahtari, kOrtaliAnahtari, kTabloHucresiAnahtari, kTabloSatiriAnahtari, kTabloGorselAnahtari,
                         kTabloModeliAnahtari, .paragraphStyle] {
             parca.removeAttribute(anahtar, range: tum)
         }
