@@ -50,40 +50,68 @@ extension NotPenceresi {
     }
 
     /// ⌘O: Word'deki gibi seçili satırları ortalar; hepsi ortalıysa sola döndürür.
-    /// Kod, kutu, liste ve tablo satırları atlanır: `<center>` onların Markdown yapısını bozardı.
-    @objc func ortalaKomutu(_ sender: Any?) {
+    @objc func ortalaKomutu(_ sender: Any?) { hizala(ortali: nil) }
+    /// Sağ tık menüsü: aç/kapa değil, istenen hizayı uygular.
+    @objc func ortaliYapKomutu(_ sender: Any?) { hizala(ortali: true) }
+    @objc func solaYaslaKomutu(_ sender: Any?) { hizala(ortali: false) }
+
+    /// `ortali` nil ise aç/kapa. Kutu, liste, alıntı ve düz satırlar satır satır hizalanır.
+    /// Kod satırına `<center>` yazılamaz (kodun parçası olurdu); kod bloğu bütün olarak açılış
+    /// çitindeki `{center}` ile hizalanır. Tablo hücreleri atlanır.
+    func hizala(ortali istenen: Bool?) {
         guard let depo = metinGorunumu.textStorage else { return }
         let ns = depo.string as NSString
+        let tumu = NSRange(location: 0, length: depo.length)
         let secim = metinGorunumu.selectedRange()
-        let kapsam = ns.paragraphRange(for: secim)
-        func uygunMu(_ konum: Int) -> Bool {
-            [kKodBloguAnahtari, kMetinBloguAnahtari, kTabloHucresiAnahtari].allSatisfy {
-                depo.attribute($0, at: konum, effectiveRange: nil) == nil
-            }
-        }
-        var paragraflar: [NSRange] = []
+        var kapsam = ns.paragraphRange(for: secim)
+        var satirlar: [NSRange] = []
+        var kodlar: [NSRange] = []
         var konum = kapsam.location
         while konum < NSMaxRange(kapsam) {
             let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
-            if uygunMu(paragraf.location) { paragraflar.append(paragraf) }
+            var kod = NSRange()
+            if depo.attribute(kKodBloguAnahtari, at: paragraf.location, longestEffectiveRange: &kod, in: tumu) != nil {
+                if kodlar.last != kod { kodlar.append(kod) }
+            } else if depo.attribute(kTabloHucresiAnahtari, at: paragraf.location, effectiveRange: nil) == nil {
+                satirlar.append(paragraf)
+            }
             konum = NSMaxRange(paragraf)
         }
+        for kod in kodlar { kapsam = NSUnionRange(kapsam, kod) }
         var yazim = metinGorunumu.typingAttributes
-        // Belge sonundaki boş satırda paragraf yoktur; yalnızca yazılacak metin ortalanır.
-        guard !paragraflar.isEmpty else {
-            guard kapsam.length == 0, yazim[kKodBloguAnahtari] == nil, yazim[kMetinBloguAnahtari] == nil else { NSSound.beep(); return }
-            yazim[kOrtaliAnahtari] = yazim[kOrtaliAnahtari] as? Bool == true ? nil : true
+        // Belge sonundaki boş satırda paragraf yoktur; yalnızca yazılacak metin hizalanır.
+        guard !satirlar.isEmpty || !kodlar.isEmpty else {
+            guard kapsam.length == 0, yazim[kKodBloguAnahtari] == nil, yazim[kTabloHucresiAnahtari] == nil else { NSSound.beep(); return }
+            yazim[kOrtaliAnahtari] = (istenen ?? (yazim[kOrtaliAnahtari] as? Bool != true)) ? true : nil
             metinGorunumu.typingAttributes = metinGorunumu.belgeAdaptoru.gorunumlu(yazim)
             return
         }
-        let ac = !paragraflar.allSatisfy { depo.attribute(kOrtaliAnahtari, at: $0.location, effectiveRange: nil) as? Bool == true }
+        func ortaliMi(_ konum: Int) -> Bool {
+            if let sinirlar = depo.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String] {
+                return kodBloguOrtaliMi(sinirlar)
+            }
+            return depo.attribute(kOrtaliAnahtari, at: konum, effectiveRange: nil) as? Bool == true
+        }
+        let ac = istenen ?? !(satirlar + kodlar).allSatisfy { ortaliMi($0.location) }
         let yeni = NSMutableAttributedString(attributedString: depo.attributedSubstring(from: kapsam))
-        for paragraf in paragraflar {
-            let yerel = NSRange(location: paragraf.location - kapsam.location, length: paragraf.length)
+        for satir in satirlar {
+            let yerel = NSRange(location: satir.location - kapsam.location, length: satir.length)
             if ac { yeni.addAttribute(kOrtaliAnahtari, value: true, range: yerel) }
             else { yeni.removeAttribute(kOrtaliAnahtari, range: yerel) }
         }
-        yazim[kOrtaliAnahtari] = ac ? true : nil
+        var kimlikler: Set<String> = []
+        for kod in kodlar {
+            let yerel = NSRange(location: kod.location - kapsam.location, length: kod.length)
+            guard let sinirlar = yeni.attribute(kKodBloguAnahtari, at: yerel.location, effectiveRange: nil) as? [String: String] else { continue }
+            yeni.addAttribute(kKodBloguAnahtari, value: kodBloguOrtalanmis(sinirlar, ortali: ac), range: yerel)
+            kimlikler.insert(sinirlar["kimlik"] ?? "")
+        }
+        // Yazım özniteliği eski sınırları taşırsa yeni yazılan karakter kodu ikiye bölerdi.
+        if let sinirlar = yazim[kKodBloguAnahtari] as? [String: String] {
+            if kimlikler.contains(sinirlar["kimlik"] ?? "") { yazim[kKodBloguAnahtari] = kodBloguOrtalanmis(sinirlar, ortali: ac) }
+        } else if yazim[kTabloHucresiAnahtari] == nil {
+            yazim[kOrtaliAnahtari] = ac ? true : nil
+        }
         metinGorunumu.blokDuzenle(kapsam, yeni: yeni, secim: secim, yazim: metinGorunumu.belgeAdaptoru.gorunumlu(yazim))
     }
 

@@ -10,6 +10,7 @@ and this project adheres to
 
 ### Added
 
+- NotDefteri: macOS'ta ortalama kutu, liste ve alıntı satırlarında da çalışır (`> [!💡 mavi] <center>…</center>`); kod bloğu bütün olarak ortalanır ve açılış çitine `{center}` yazılır (dil etiketi bozulmaz). Seçili metne sağ tıklayınca simgeli "Ortala" ve "Sola yasla" çıkar; kutuda sağ tık seçimi korur.
 - NotDefteri: macOS'ta ⌘O (Biçim > Ortala) seçili satırları Word'deki gibi ortalar, tekrar basınca sola döndürür. Satır `<center>…</center>` olarak kaydolur (Obsidian ve GitHub da ortalar), HTML dışa aktarımda da ortalıdır. Kod, kutu, liste ve tablo satırları ortalanmaz.
 - NotDefteri: macOS'ta `/red` kırmızı, `/info` yeşil uyarı kutusu açar (`/uyari` gibi boşlukla hemen uygulanır).
 - NotDefteri: macOS not, ana sayfa ve kenar panel sağ tık menülerinde Görünüm altında doğrudan tema seçimi.
@@ -20,6 +21,7 @@ and this project adheres to
 
 ### Changed
 
+- NotDefteri: macOS'ta renkli kutu ve kod bloğunun altındaki boşluk 2 pt'ye indi; üstünde boş satır ya da başka kutu varsa ek üst boşluk yok, iki kutu arasındaki tek boş satır 6 pt yüksekliğinde.
 - NotDefteri: macOS kod bloğu ve uyarı kutusunun altındaki boşluk yarıya indi; sonraki yazı kutuya daha yakın.
 - NotDefteri: macOS görseller dört kenarından ve dört köşesinden boyutlandırılır: sol/sağ kenar yalnızca eni, üst/alt kenar yalnızca boyu uzatır; köşeler oranı koruyarak bütün görseli büyütür. Kenar boyunca her yer tutulabilir, imleç tutulan yöne göre değişir.
 - NotDefteri: Uyarı kutusu kod bloğu gibi yazılır: boş satırda Enter kutuda kalır, Ctrl+Enter kutudan çıkar (altında boş satır varsa oraya geçer); ilk satır boşken geri silme kutuyu bozmaz.
@@ -32,6 +34,7 @@ and this project adheres to
 
 ### Fixed
 
+- NotDefteri: macOS'ta kutu çevresindeki boşluk komşu satır değişince de hemen güncellenir; düzenlerken görülen boşluk uygulama kapatılıp açılınca değişmez. Bitişik alıntı ile uyarı kutusu arasına kayıtta yazılan boş satır açılışta neredeyse sıfır yükseklikte çizilir (önce tam satır olarak beliriyordu).
 - NotDefteri: macOS kod bloğu, uyarı kutusu, alıntı, madde, başlık ve tablo hücresinden tek satır içinde kopyalanan parça yapıştırıldığı satırı bölüp yeni blok açmaz; satır içi yapışır (koddan alınan parça satır içi kod olur, satır içi biçimler korunur). Birden çok satırlık seçim bloğunu taşımaya devam eder. Satır sonuna yapıştırılan kod bloğunun altında boş satır kalmaz.
 
 - NotDefteri: macOS kutu çizgili tablo kaldırıldı; tablolar yerel `NSTextTable` ızgarası olarak görünür. Kutu tablosunda seçilen ya da yapıştırılan içerik silinemiyor, hücre dışında düzenleme engelleniyordu; artık hücreler diğer metin gibi seçilir, silinir, kopyalanır ve düzenlenir, tablo pencere genişliğine sığar, başlık ve çift satırlar gölgelidir. Web tablosu ve sekmeyle ayrılmış düz metin tablo olarak yapışır. Kayıt Markdown tablosudur.

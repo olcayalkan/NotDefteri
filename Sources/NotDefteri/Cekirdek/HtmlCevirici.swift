@@ -71,7 +71,9 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
         if acikUyari != nil, uyariKimligi != acikUyari { govde += "</div>"; acikUyari = nil }
         let hiza = o[kOrtaliAnahtari] as? Bool == true ? " style=\"text-align:center\"" : ""
         if acikUyari != nil { govde += icerik }
-        else if o[kKodBloguAnahtari] != nil { govde += "<pre><code>\(icerik)</code></pre>" }
+        else if let sinirlar = o[kKodBloguAnahtari] as? [String: String] {
+            govde += "<pre\(kodBloguOrtaliMi(sinirlar) ? " style=\"text-align:center\"" : "")><code>\(icerik)</code></pre>"
+        }
         else if let blok = MetinBlogu(oznitelik: o[kMetinBloguAnahtari]) {
             let girinti = "style=\"margin-left:\(blok.seviye * 24)px\""
             switch blok.tur {

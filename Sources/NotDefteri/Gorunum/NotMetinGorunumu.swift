@@ -41,6 +41,9 @@ final class NotMetinGorunumu: NSTextView {
         didSet { if sayfaYukleniyor { kodDurumunuSifirla(); bekleyenBagBoyamasi = nil } }
     }
     var baglarGuncelleniyor = false
+    /// Düzenleme sırasında yazılmayan kutu/komşu boşlukları; `didChangeText` uygular.
+    var bekleyenCevreAraligi: NSRange?
+    var cevreGorunumuUygulaniyor = false
     let sayfaBulucusu = HizliBulucu()
     var bagTamamlamaAraligi: NSRange?
     var kapatilanBagKonumu: Int?
@@ -227,6 +230,7 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     override func didChangeText() {
+        cevreGorunumunuUygula()
         blokMenusu.gizle()
         secimCubugu.gizle()
         yazimOlceginiGuncelle()
@@ -518,15 +522,63 @@ final class NotMetinGorunumu: NSTextView {
         secimCubugunuGuncelle()
     }
 
+    /// Kutuların tamamı ve komşu satırlar düzenleme bittikten sonra, ayrı ve yalnızca öznitelik
+    /// değiştiren bir düzenlemeyle güncellenir; imleç yerinde kalır.
+    func cevreGorunumunuUygula() {
+        guard let aralik = bekleyenCevreAraligi, let depo = textStorage, !sayfaYukleniyor else { bekleyenCevreAraligi = nil; return }
+        bekleyenCevreAraligi = nil
+        let sinirli = NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length))
+        guard depo.length > 0 else { return }
+        cevreGorunumuUygulaniyor = true
+        defer { cevreGorunumuUygulaniyor = false }
+        let secim = selectedRanges
+        depo.beginEditing()
+        belgeAdaptoru.gorunumuUygula(depo, aralik: sinirli.length > 0 ? sinirli : depo.mutableString.paragraphRange(for: NSRange(location: min(sinirli.location, depo.length - 1), length: 0)))
+        depo.endEditing()
+        if selectedRanges != secim { selectedRanges = secim }
+    }
+
     override func menu(for event: NSEvent) -> NSMenu? {
         let nokta = convert(event.locationInWindow, from: nil)
         let konum = characterIndexForInsertion(at: nokta)
+        let menu: NSMenu
         if let depo = textStorage, konum < depo.length,
            MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur == .uyari {
-            setSelectedRange(NSRange(location: konum, length: 0))
-            return gorunumBaglamMenusunuEkle(uyariRenkMenusu(), hedef: window as? NotPenceresi)
+            // Seçimin içine sağ tıklanırsa seçim korunur; hizalama seçili satırlara uygulanır.
+            if !(selectedRange().length > 0 && NSLocationInRange(konum, selectedRange())) {
+                setSelectedRange(NSRange(location: konum, length: 0))
+            }
+            menu = uyariRenkMenusu()
+        } else {
+            menu = super.menu(for: event) ?? NSMenu()
         }
-        return gorunumBaglamMenusunuEkle(super.menu(for: event) ?? NSMenu(), hedef: window as? NotPenceresi)
+        hizalamaOgeleriniEkle(menu)
+        return gorunumBaglamMenusunuEkle(menu, hedef: window as? NotPenceresi)
+    }
+
+    /// Menünün başına simgeli "Ortala" ve "Sola yasla"; seçimin hizası işaretli.
+    private func hizalamaOgeleriniEkle(_ menu: NSMenu) {
+        guard let pencere = window as? NotPenceresi, let depo = textStorage else { return }
+        var ortali = typingAttributes[kOrtaliAnahtari] as? Bool == true
+        if depo.length > 0 {
+            let konum = min(selectedRange().location, depo.length - 1)
+            if let sinirlar = depo.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String] {
+                ortali = kodBloguOrtaliMi(sinirlar)
+            } else if selectedRange().location < depo.length {
+                ortali = depo.attribute(kOrtaliAnahtari, at: konum, effectiveRange: nil) as? Bool == true
+            }
+        }
+        let ogeler: [(String, String, Selector, Bool)] = [
+            ("Ortala", "text.aligncenter", #selector(NotPenceresi.ortaliYapKomutu(_:)), ortali),
+            ("Sola yasla", "text.alignleft", #selector(NotPenceresi.solaYaslaKomutu(_:)), !ortali)]
+        for (sira, (ad, simge, komut, secili)) in ogeler.enumerated() {
+            let oge = NSMenuItem(title: ad, action: komut, keyEquivalent: "")
+            oge.image = NSImage(systemSymbolName: simge, accessibilityDescription: ad)
+            oge.target = pencere
+            oge.state = secili ? .on : .off
+            menu.insertItem(oge, at: sira)
+        }
+        menu.insertItem(.separator(), at: ogeler.count)
     }
 
     private func resimImleciniGuncelle(noktada nokta: NSPoint, olay: NSEvent) {

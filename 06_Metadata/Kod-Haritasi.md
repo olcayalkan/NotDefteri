@@ -91,7 +91,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | `NotPenceresi.swift` | 223 | Sınıf gövdesi, `init`, sayfa üstbilgisi, bul çubuğu, alt bilgi ve görünüm bağlantıları, kenar panel, pencere boyutu izleyicisi |
 | `NotPenceresi+Kaydetme.swift` | 184 | `kaydetURLe()`, `otomatikKaydet()` üstbilgiyi korur; timer yönetimi, isim sorma |
 | `NotPenceresi+Pencere.swift` | 177 | Notlar arası gezinme; panel/editör için ortak yerleşim, 0,2 sn geçiş ve nesil kontrolü; `performKeyEquivalent`, kapatma |
-| `NotPenceresi+Bicimlendirme.swift` | 242 | Kalın/italik/çizili/kod/vurgu/bağlantı, ⌘O `ortalaKomutu()` (`kOrtaliAnahtari`), punto, tema, seçim çubuğu; kaydırmada etkin içindekiler başlığı |
+| `NotPenceresi+Bicimlendirme.swift` | 242 | Kalın/italik/çizili/kod/vurgu/bağlantı, ⌘O `ortalaKomutu()`, sağ tık `ortaliYapKomutu()`/`solaYaslaKomutu()` → `hizala(ortali:)` (`kOrtaliAnahtari`, kod bloğunda `{center}`), punto, tema, seçim çubuğu; kaydırmada etkin içindekiler başlığı |
 | `NotPenceresi+Baglantilar.swift` | 80 | Bulucuyu açma, olmayan hedefi oluşturma onayı, önbellekten geri bağlantı debounce ve açık editörü güncelleme |
 | `NotPenceresi+AnaSayfa.swift` | 199 | Kayıtla Ana Sayfa geçişi; kaynak konumundan editöre gitme; atomik yapılacak tamamlama, günlük ve şablondan oluşturma |
 | `NotPenceresi+Not.swift` | 238 | `notuAc()`, `yeniSayfaOlustur()`; üstbilgiyi gövdeden ayırma, sayfa seçenekleri undo ve sayfa yolu |
@@ -116,7 +116,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | Alan | Dosyalar |
 |---|---|
 | Ortak temel | `GeciciKokTestCase` — her test geçici kökte, `NOTDEFTERI_KOK` oraya ayarlı; gerçek notlara dokunmaz |
-| Markdown | `CeviriciTestleri` 24, `OrtaliSatirTestleri` 4, `MetinBloguTestleri` 14, `YapiEnterTestleri` 10, `KodVurgulayiciTestleri` 11, `SablonTestleri` 6 |
+| Markdown | `CeviriciTestleri` 24, `OrtaliSatirTestleri` 7, `MetinBloguTestleri` 14, `YapiEnterTestleri` 10, `KodVurgulayiciTestleri` 11, `SablonTestleri` 6 |
 | Sayfa ağacı ve dosya sistemi | `SayfaAgaciTestleri` 24, `CopKutusuTestleri` 14, `SayfaSirasiTestleri` 13, `DosyaSistemiTestleri` 12, `DosyaAdiTestleri` 11, `SayfaDosyalariTestleri` 10 |
 | Bağlantı, arama, Ana Sayfa | `SayfaBaglantilariTestleri` 17, `AnaSayfaVerisiTestleri` 11, `FavorilerTestleri` 10, `OnbellekTestleri` 6 |
 | Kayıt, geçmiş, dışa aktarım | `KaydediciTestleri` 13, `HtmlCeviriciTestleri` 12, `SayfaGecmisiTestleri` 10, `MarkdownDisaAktarTestleri` 7, `PerformansTestleri` 4 |
@@ -127,7 +127,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|
 | Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
 | Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
-| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 8 (web/RTF/sekmeli tablo yerel tabloya yapışır, seçilip silinebilir), `TabloHucreDuzenlemeTestleri` 5 (hücrede yazma, silme, Enter, `/tablo`, çift satır gölgesi), `BicimKisayoluTestleri` 6 (`/red`, `/info`, ⌘O ortala), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme), `BlokParcasiKopyalamaTestleri` 10 (kod/kutu/alıntı/başlıktan tek satırlık parça satır içi yapışır) |
+| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 8 (web/RTF/sekmeli tablo yerel tabloya yapışır, seçilip silinebilir), `TabloHucreDuzenlemeTestleri` 5 (hücrede yazma, silme, Enter, `/tablo`, çift satır gölgesi), `BicimKisayoluTestleri` 8 (`/red`, `/info`, ⌘O ortala, kutu/liste/kod ortalama, sağ tık), `KutuBoslukTestleri` 6 (kutu çevresi boşluğu, açınca aynı görünüm), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme), `BlokParcasiKopyalamaTestleri` 10 (kod/kutu/alıntı/başlıktan tek satırlık parça satır içi yapışır) |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
 | Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 

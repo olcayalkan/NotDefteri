@@ -34,6 +34,38 @@ final class OrtaliSatirTestleri: XCTestCase {
         }
     }
 
+    /// Kutu, alıntı ve listede `<center>` blok önekinden sonra gelir; blok yapısı korunur.
+    func testBlokSatirlarindaOrtaliGidisDonusu() {
+        let metin = "> [!💡 mavi] <center>baş</center>\n> <center>devam</center>\n> düz\n\n- <center>madde</center>\n> <center>alıntı</center>\n"
+        let attr = markdowndenAttributedStringUret(metin)
+        XCTAssertEqual(markdownMetniUret(attr), metin)
+        for parca in ["baş", "devam", "madde", "alıntı"] { XCTAssertTrue(ortaliMi(attr, parca), parca) }
+        XCTAssertFalse(ortaliMi(attr, "düz"))
+        let devam = (attr.string as NSString).range(of: "devam").location
+        XCTAssertEqual(MetinBlogu(oznitelik: attr.attribute(kMetinBloguAnahtari, at: devam, effectiveRange: nil))?.tur, .uyari,
+                       "ortalı devam satırı kutuda kalır")
+    }
+
+    func testBlokSatiriOrtaliYazilir() {
+        let attr = NSMutableAttributedString(attributedString: markdowndenAttributedStringUret("> [!💡 mavi] bir\n> iki\n"))
+        let iki = (attr.string as NSString).paragraphRange(for: NSRange(location: (attr.string as NSString).range(of: "iki").location, length: 0))
+        attr.addAttribute(kOrtaliAnahtari, value: true, range: iki)
+        XCTAssertEqual(markdownMetniUret(attr), "> [!💡 mavi] bir\n> <center>iki</center>\n")
+    }
+
+    /// Kod bloğu bütün olarak açılış çitindeki {center} ile ortalanır; dil etiketi bozulmaz.
+    func testKodBloguOrtalamasi() {
+        let sinirlar = kodBloguSinirlari(acilis: "```swift\n", kapanis: "```\n")
+        let ortali = kodBloguOrtalanmis(sinirlar, ortali: true)
+        XCTAssertEqual(ortali["acilis"], "```swift {center}\n")
+        XCTAssertTrue(kodBloguOrtaliMi(ortali))
+        XCTAssertEqual(kodBloguDilEtiketi(ortali), "swift")
+        XCTAssertEqual(kodBloguOrtalanmis(ortali, ortali: false)["acilis"], "```swift\n")
+        XCTAssertEqual(kodBloguDilEtiketi(kodBloguOrtalanmis(kodBloguSinirlari(acilis: "```\n", kapanis: "```\n"), ortali: true)), "")
+        let metin = "```swift {center}\nlet a = 1\n```\n"
+        XCTAssertEqual(markdownMetniUret(markdowndenAttributedStringUret(metin)), metin)
+    }
+
     func testHtmlDisaAktarimdaOrtali() throws {
         let html = try htmlUret(markdown: "<center>orta</center>\n", baslik: "t",
                                 taban: URL(fileURLWithPath: NSTemporaryDirectory()))

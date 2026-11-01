@@ -239,21 +239,43 @@ final class MacBelgeAdaptoru {
     }
 
     /// Depodaki aralığın görünümünü anlamsala eşitler; yalnızca farklı olan öznitelik yazılır.
-    func gorunumuUygula(_ depo: NSMutableAttributedString, aralik: NSRange) {
+    /// `cevresiyle` false: düzenleme sürerken (willProcessEditing) yalnızca verilen aralık yazılır ve
+    /// komşuya bağlı boşluklar olduğu gibi kalır. O sırada aralık dışına ya da değişen boşluğa yazmak
+    /// düzenlenen aralığı genişletip imleci kaydırıyordu; çevre, düzenleme bitince ayrıca uygulanır.
+    func gorunumuUygula(_ depo: NSMutableAttributedString, aralik: NSRange, cevresiyle: Bool = true) {
         var aralik = NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length))
         guard !uygulaniyor, aralik.length > 0 else { return }
         uygulaniyor = true
         defer { uygulaniyor = false }
-        // Kutu kenarındaki boşluk ilk/son paragrafa bağlıdır; kutu büyüyüp küçülünce eski kenar
-        // paragrafında boşluk kalmasın diye düzenlenen aralık kutunun tamamına genişler.
-        aralik = Self.kutularaGenislet(depo, aralik)
+        // Kutu kenarındaki boşluk ilk/son paragrafa ve kutunun komşu satırına bağlıdır. Kutu
+        // büyüyüp küçülünce ya da komşusu değişince eski boşluk kalmasın (yeniden açınca değişirdi)
+        // diye aralık komşu paragraflara, kutuların tamamına ve onların komşularına genişler.
+        if cevresiyle {
+            aralik = Self.komsularaGenislet(depo, Self.kutularaGenislet(depo, Self.komsularaGenislet(depo, aralik)))
+        }
         var islemler: [(NSRange, [NSAttributedString.Key: Any], [NSAttributedString.Key])] = []
         func isle(_ o: [NSAttributedString.Key: Any], _ alt: NSRange) {
             var istenen = gorunum(o)
             if let kenar = Self.kutuKenari(depo, o, alt) {
                 let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
-                if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, kKutuDisBoslugu) }
+                // Üstte boş satır ya da başka kutu varsa ayrımı o verir; boşluk ikiye katlanmasın.
+                let ust = Self.oncekiSatirBosVeyaKutu(depo, alt.location) ? kKutuAltBoslugu : kKutuDisBoslugu
+                if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, ust) }
                 if kenar.alt { stil.paragraphSpacing = max(stil.paragraphSpacing, kKutuAltBoslugu) }
+                istenen[.paragraphStyle] = stil
+            } else if let yukseklik = Self.ayracSatiri(depo, alt.location) ? kAyracSatiriYuksekligi
+                        : Self.kutularArasiBosSatir(depo, alt.location) ? kKutularArasiBosSatirYuksekligi : nil {
+                let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
+                stil.minimumLineHeight = yukseklik
+                stil.maximumLineHeight = yukseklik
+                istenen[.paragraphStyle] = stil
+            }
+            if !cevresiyle, let eski = o[.paragraphStyle] as? NSParagraphStyle {
+                let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
+                stil.paragraphSpacingBefore = eski.paragraphSpacingBefore
+                stil.paragraphSpacing = eski.paragraphSpacing
+                stil.minimumLineHeight = eski.minimumLineHeight
+                stil.maximumLineHeight = eski.maximumLineHeight
                 istenen[.paragraphStyle] = stil
             }
             var ekle: [NSAttributedString.Key: Any] = [:]
@@ -302,6 +324,61 @@ final class MacBelgeAdaptoru {
             }
         }
         return sonuc
+    }
+
+    private static func komsularaGenislet(_ depo: NSAttributedString, _ aralik: NSRange) -> NSRange {
+        let ns = depo.string as NSString
+        var sonuc = aralik
+        if aralik.location > 0 { sonuc = NSUnionRange(sonuc, ns.paragraphRange(for: NSRange(location: aralik.location - 1, length: 0))) }
+        if NSMaxRange(aralik) < ns.length { sonuc = NSUnionRange(sonuc, ns.paragraphRange(for: NSRange(location: NSMaxRange(aralik), length: 0))) }
+        return sonuc
+    }
+
+    private static func kutudaMi(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+        konum >= 0 && konum < depo.length && kutuAnahtarlari.contains { depo.attribute($0, at: konum, effectiveRange: nil) != nil }
+    }
+
+    private static func bosSatirMi(_ ns: NSString, _ paragraf: NSRange) -> Bool {
+        ns.substring(with: paragraf).trimmingCharacters(in: .newlines).isEmpty
+    }
+
+    private static func oncekiSatirBosVeyaKutu(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+        let ns = depo.string as NSString
+        let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+        guard paragraf.location > 0 else { return false }
+        var onceki = ns.paragraphRange(for: NSRange(location: paragraf.location - 1, length: 0))
+        // Ayraç satırı görünmez; kutu bitişik yazılmış gibi ondan önceki satıra bakılır.
+        if ayracSatiri(depo, onceki.location), onceki.location > 0 {
+            onceki = ns.paragraphRange(for: NSRange(location: onceki.location - 1, length: 0))
+            return kutudaMi(depo, onceki.location)
+        }
+        return bosSatirMi(ns, onceki) || kutudaMi(depo, onceki.location)
+    }
+
+    private static func blokTuru(_ depo: NSAttributedString, _ konum: Int) -> MetinBlogu.Tur? {
+        guard konum >= 0, konum < depo.length else { return nil }
+        return MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur
+    }
+
+    /// Bitişik alıntı ve uyarıyı Obsidian tek kutu okumasın diye kayıt araya boş satır yazar
+    /// (`markdownMetniUret`). Düzenlerken o satır yoktu, açınca tam satır olarak beliriyordu;
+    /// her iki durumda da aynı görünsün diye bu tek boş satır neredeyse sıfır yükseklikte çizilir.
+    private static func ayracSatiri(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+        let ns = depo.string as NSString
+        let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+        guard paragraf.location > 0, NSMaxRange(paragraf) < ns.length, ns.substring(with: paragraf).hasSuffix("\n"),
+              bosSatirMi(ns, paragraf) else { return false }
+        let once = blokTuru(depo, paragraf.location - 1), sonra = blokTuru(depo, NSMaxRange(paragraf))
+        return (once == .alinti && sonra == .uyari) || (once == .uyari && sonra == .alinti)
+    }
+
+    /// İki kutu arasındaki tek boş satır; kutular arası boşluk bir satır yüksekliğine çıkmasın.
+    private static func kutularArasiBosSatir(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+        let ns = depo.string as NSString
+        let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+        guard paragraf.location > 0, NSMaxRange(paragraf) < ns.length, ns.substring(with: paragraf).hasSuffix("\n"),
+              bosSatirMi(ns, paragraf) else { return false }
+        return kutudaMi(depo, paragraf.location - 1) && kutudaMi(depo, NSMaxRange(paragraf))
     }
 
     /// Parça kutunun ilk paragrafındaysa üst, son paragrafındaysa alt kenardadır.
@@ -360,7 +437,7 @@ final class MacBelgeAdaptoru {
             stil.textBlocks = [Self.tabloBlogu(hucre)]
             g[.paragraphStyle] = stil
         }
-        if o[kOrtaliAnahtari] as? Bool == true {
+        if o[kOrtaliAnahtari] as? Bool == true || (o[kKodBloguAnahtari] as? [String: String]).map(kodBloguOrtaliMi) == true {
             let stil = ((g[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
             stil.alignment = .center
             g[.paragraphStyle] = stil

@@ -32,9 +32,18 @@ package let kKutuIcBoslugu: CGFloat = 8
 /// satır kalır. Yalnızca görünümdür; Markdown'a satır yazılmaz.
 package let kKutuDisBoslugu: CGFloat = (kTabanPunto * 0.6).rounded() + kKutuIcBoslugu
 
-/// macOS'ta kutunun altındaki boşluk; üsttekinin yarısı kadar dış boşluk bırakır. Kutudan
-/// sonraki yazı kutudan kopuk duruyordu. Çerçeve yazıya değmesin diye iç boşluktan küçük olamaz.
-package let kKutuAltBoslugu: CGFloat = kKutuIcBoslugu + 4
+/// macOS'ta kutunun altındaki boşluk (üstte boş satır ya da kutu varsa üstteki de). Çerçevenin
+/// dışında 2 pt kalır; kutudan sonraki yazı ve alttaki kutu kopuk duruyordu. Çerçeve yazıya
+/// değmesin diye iç boşluktan küçük olamaz.
+package let kKutuAltBoslugu: CGFloat = kKutuIcBoslugu + 2
+
+/// macOS'ta iki kutu arasındaki tek boş satırın yüksekliği. Satır kalır (tıklanıp yazılabilir,
+/// kayıtta boş satır), yalnızca kutular arası boşluğu tam satır kadar açmaz.
+package let kKutularArasiBosSatirYuksekligi: CGFloat = 6
+
+/// macOS'ta bitişik alıntı ile uyarı kutusu arasına kayıtta yazılan boş satırın yüksekliği;
+/// düzenlerken bitişik görünen ikili, yeniden açılınca da bitişik görünür.
+package let kAyracSatiriYuksekligi: CGFloat = 1
 
 /// Uyarı kutusu renkleri (0–1 RGB). Doygun sistem renkleri yerine kağıtta göz yormayan
 /// koyu tonlar; koyulaşan tema zemininde açık tonlar seçilmiyordu.
