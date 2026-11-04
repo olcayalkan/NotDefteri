@@ -21,9 +21,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # CodeQL analyzes Swift only on macOS runners, so it covers the code that builds on
-  # macOS: the core, AppKit and executable targets and their tests. The GTK target
-  # (Sources/NotDefteriLinux) only builds on Linux and cannot be scanned by CodeQL.
+  # CodeQL analyzes Swift only on macOS runners. swift-macos covers the core, AppKit and
+  # executable targets and their tests; swift-gtk builds the GTK target and its tests on
+  # macOS with Homebrew GTK 4 (NOTDEFTERI_GTK=1 in Package.swift) so they are scanned too.
   scan:
     name: CodeQL · ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
@@ -41,6 +41,15 @@ jobs:
             lang: swift
             runner: macos-15
             build: manual
+            command: swift build --build-tests
+          - name: swift-gtk
+            category: /language:swift-gtk
+            lang: swift
+            runner: macos-15
+            build: manual
+            gtk: true
+            # Compile only: the GTK modules are not linked or run on macOS.
+            command: swift build --target NotDefteriLinux && swift build --target NotDefteriLinuxTests
           - name: actions      # Workflow files; no build needed.
             category: /language:actions
             lang: actions
@@ -50,6 +59,10 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v7
 
+      - name: Install GTK 4 (Homebrew)
+        if: matrix.gtk
+        run: brew install gtk4 pkg-config
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
@@ -57,9 +70,11 @@ jobs:
           build-mode: ${{ matrix.build }}
           queries: security-and-quality
 
-      - name: Build app and tests
+      - name: Build
         if: matrix.build == 'manual'
-        run: swift build --build-tests
+        env:
+          NOTDEFTERI_GTK: ${{ matrix.gtk && '1' || '' }}
+        run: ${{ matrix.command }}
 
       - name: Analyze
         uses: github/codeql-action/analyze@v4

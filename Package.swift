@@ -18,12 +18,25 @@ targets += [
 ]
 #endif
 
+// GTK hedefleri Linux'ta derlenir. NOTDEFTERI_GTK=1 ile macOS'ta da (Homebrew gtk4) derlenir:
+// CodeQL Swift'i yalnızca macOS'ta çözümlediği için GTK kodu bu yolla taranır.
+#if os(Linux)
+let gtkHedefleri = true
+#else
+let gtkHedefleri = Context.environment["NOTDEFTERI_GTK"] == "1"
+#endif
+
+if gtkHedefleri {
+    targets += [
+        .systemLibrary(name: "CGtk", pkgConfig: "gtk4", providers: [.apt(["libgtk-4-dev"]), .brew(["gtk4"])]),
+        .target(name: "NotDefteriLinux", dependencies: ["NotDefteriCekirdek", "CGtk"]),
+        .testTarget(name: "NotDefteriLinuxTests", dependencies: ["NotDefteriLinux", "CGtk"],
+                    path: "Tests/NotDefteriLinuxTests")
+    ]
+}
+
 #if os(Linux)
 targets += [
-    .systemLibrary(name: "CGtk", pkgConfig: "gtk4", providers: [.apt(["libgtk-4-dev"])]),
-    .target(name: "NotDefteriLinux", dependencies: ["NotDefteriCekirdek", "CGtk"]),
-    .testTarget(name: "NotDefteriLinuxTests", dependencies: ["NotDefteriLinux", "CGtk"],
-                path: "Tests/NotDefteriLinuxTests"),
     .executableTarget(name: "NotDefteri", dependencies: ["NotDefteriLinux"],
                       path: "Sources/Calistirici")
 ]
