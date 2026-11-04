@@ -97,9 +97,8 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         layer?.backgroundColor = aktifTema.kenarPanel.cgColor
 
         anaSayfaButonu.isBordered = false
-        anaSayfaButonu.alignment = .left
-        anaSayfaButonu.attributedTitle = NSAttributedString(string: "🏠 Ana Sayfa", attributes: [
-            .font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: kMetinRenk])
+        anaSayfaButonu.alignment = .center
+        anaSayfaButonu.attributedTitle = anaSayfaBasligi()
         anaSayfaButonu.target = self
         anaSayfaButonu.action = #selector(anaSayfaTiklandi)
         anaSayfaButonu.toolTip = "Ana Sayfa (⌘⇧H)"
@@ -304,13 +303,20 @@ final class KenarPaneli: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
 
     required init?(coder: NSCoder) { fatalError() }
 
+    /// Panelin ortasında duran "Ana Sayfa" başlığı.
+    private func anaSayfaBasligi() -> NSAttributedString {
+        let paragraf = NSMutableParagraphStyle()
+        paragraf.alignment = .center
+        return NSAttributedString(string: "🏠 Ana Sayfa", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: kMetinRenk, .paragraphStyle: paragraf])
+    }
+
     func temayiUygula() {
         layer?.backgroundColor = aktifTema.kenarPanel.cgColor
         aramaKutusu.layer?.backgroundColor = aramaKutuRengi().cgColor
         baslikCubugu.layer?.backgroundColor = aramaKutuRengi().cgColor
         puntoCubugu.layer?.backgroundColor = aramaKutuRengi().cgColor
-        anaSayfaButonu.attributedTitle = NSAttributedString(string: "🏠 Ana Sayfa", attributes: [
-            .font: NSFont.systemFont(ofSize: 13, weight: .semibold), .foregroundColor: kMetinRenk])
+        anaSayfaButonu.attributedTitle = anaSayfaBasligi()
         copButonu.contentTintColor = kMetinRenk
         aramaIkonu.image = renklendirilmisSembol("magnifyingglass", renk: kMetinRenk.withAlphaComponent(0.65), boyut: 12)
         aramaTemizleButonu.image = renklendirilmisSembol("xmark.circle.fill", renk: kMetinRenk.withAlphaComponent(0.55), boyut: 13)

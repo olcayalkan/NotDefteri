@@ -17,10 +17,9 @@ final class LinuxAnaSayfa {
     private var gorunuyor = false
     private var cizimPlanli = false
     private var basaDonulsun = false
-    private var kaydirmaKorunsun = false
-    /// Editörün diskte olduğuna inandığı açık sayfa metni (macOS `kaydedici.sonYazilanIcerik`).
-    /// EKSİK KANCA: LinuxEditor bunu açmıyor; açılış ve kayıt kancalarından izlenir.
-    private var sonYazilan: (url: URL, metin: String)?
+    /// Canlı saat etiketi; her çizimde yenisi kurulur, görünürken saniyede bir güncellenir.
+    private var saatEtiketi: Parca?
+    private var saatIptal: ZamanlayiciIptal?
 
     static func kur(pencere: LinuxPencere, editor: LinuxEditor, panel: LinuxKenarPaneli) {
         let anaSayfa = LinuxAnaSayfa(pencere: pencere, editor: editor, panel: panel)
@@ -46,6 +45,7 @@ final class LinuxAnaSayfa {
         gtk_css_provider_load_from_data(stil, """
         .notdefteri .nd-ana-sayfa { color: @nd-metin; }
         .notdefteri .nd-ana-sayfa label.nd-ana-selam { font-size: 30px; font-weight: 700; color: @nd-metin; }
+        .notdefteri .nd-ana-sayfa label.nd-ana-saat { font-size: 40px; font-weight: 300; font-feature-settings: "tnum"; color: alpha(@nd-metin, 0.85); }
         .notdefteri .nd-ana-sayfa label.nd-ana-bolum { font-size: 16px; font-weight: 700; color: @nd-metin; }
         .notdefteri .nd-ana-sayfa label.nd-ana-soluk { color: alpha(@nd-metin, 0.76); }
         .notdefteri .nd-ana-sayfa label.nd-ana-kart-baslik { font-weight: 600; color: @nd-metin; }
@@ -75,9 +75,6 @@ final class LinuxAnaSayfa {
 
     private func kancalariBagla(_ editor: LinuxEditor, _ panel: LinuxKenarPaneli) {
         editor.durumDegisti.append { [weak self] in self?.gorunurlukDegisti() }
-        // Açılan belgenin kendisi kullanılır; diski yeniden okumak okuma ile açılış arasında yarışır.
-        editor.notAcildi.append { [weak self] url, metin in self?.sonYazilan = metin.map { (url, $0) } }
-        editor.kayitSonrasi.append { [weak self] url, metin in self?.sonYazilan = (url, metin) }
         panel.veriDegisti.append { [weak self] in
             if self?.gorunuyor == true { self?.cizimiPlanla() }
         }
@@ -103,17 +100,36 @@ final class LinuxAnaSayfa {
         let gorunur = gtk_widget_get_visible(pencere.anaSayfaYuvasi) != 0
         guard gorunur != gorunuyor else { return }
         gorunuyor = gorunur
-        guard gorunur else { return }
-        let basa = !kaydirmaKorunsun
-        kaydirmaKorunsun = false
+        guard gorunur else {
+            saatIptal?()
+            saatIptal = nil
+            return
+        }
         // Önbellek ve ağaç, dışarıdan değişmiş notları da yakalasın (macOS icerikOnbelleginiIste).
         // Açılışta panel az önce taradıysa (1000 sayfada ~300 ms) tekrarlanmaz.
         Platform.anaIsParcaciginda { [weak self] in
             guard let panel = self?.panel, Date().timeIntervalSince(panel.sonYenileme) > 2 else { return }
             panel.yenile()
         }
-        cizimiPlanla(basaDon: basa)
+        cizimiPlanla(basaDon: true)
+        saatiIlerlet()
     }
+
+    /// Saat yalnızca Ana Sayfa görünürken ilerler.
+    private func saatiIlerlet() {
+        saatIptal?()
+        saatIptal = nil
+        guard gorunuyor else { return }
+        if let saatEtiketi { gtk_label_set_text(nd_label(saatEtiketi), Self.saatBicimi.string(from: Date())) }
+        saatIptal = Platform.zamanlayici(1) { [weak self] in self?.saatiIlerlet() }
+    }
+
+    private static let saatBicimi: DateFormatter = {
+        let bicim = DateFormatter()
+        bicim.locale = Locale(identifier: "tr_TR")
+        bicim.dateFormat = "HH:mm:ss"
+        return bicim
+    }()
 
     private func cizimiPlanla(basaDon: Bool = false) {
         basaDonulsun = basaDonulsun || basaDon
@@ -143,7 +159,6 @@ final class LinuxAnaSayfa {
             urller.filter { onbellek[$0] != nil }.map { ($0, panel.sayfaBaglantilari.sonAcilmaTarihi($0)) }
         }
         kartBolumu(icerik, "Son açılanlar", kartlar(Array(panel.sayfaBaglantilari.sonAcilanlar.prefix(8))))
-        yapilacakBolumu(icerik, bekleyenYapilacaklariBul(onbellek))
         eylemBolumu(icerik)
         gtk_scrolled_window_set_child(OpaquePointer(kaydirma), icerik)
         // Yeni içerik yerleşmeden değer sıkışır; kaydırma konumu bir sonraki döngüde geri verilir.
@@ -175,12 +190,15 @@ final class LinuxAnaSayfa {
     }
 
     private func selamBolumu(_ kutu: Parca) {
-        let saat = Calendar.current.component(.hour, from: Date())
-        ekle(kutu, etiket(saat < 12 ? "Günaydın" : saat < 18 ? "İyi günler" : "İyi akşamlar", sinif: "nd-ana-selam"))
+        let saatDilimi = Calendar.current.component(.hour, from: Date())
+        ekle(kutu, etiket(saatDilimi < 12 ? "Günaydın" : saatDilimi < 18 ? "İyi günler" : "İyi akşamlar", sinif: "nd-ana-selam"))
         let bicim = DateFormatter()
         bicim.locale = Locale(identifier: "tr_TR")
         bicim.dateFormat = "d MMMM yyyy, EEEE"
         ekle(kutu, etiket(bicim.string(from: Date()), sinif: "nd-ana-soluk"))
+        let saat = etiket(Self.saatBicimi.string(from: Date()), sinif: "nd-ana-saat")
+        ekle(kutu, saat)
+        saatEtiketi = saat
     }
 
     private func kartBolumu(_ kutu: Parca, _ ad: String, _ kartlar: [(url: URL, tarih: Date?)]) {
@@ -222,46 +240,6 @@ final class LinuxAnaSayfa {
         }
         gtk_scrolled_window_set_child(OpaquePointer(seritKaydirma), serit)
         ekle(bolum, seritKaydirma)
-    }
-
-    private func yapilacakBolumu(_ kutu: Parca, _ yapilacaklar: [BekleyenYapilacak]) {
-        let bolum = bolumKutusu(kutu, "Bekleyen yapılacaklar")
-        guard !yapilacaklar.isEmpty else {
-            ekle(bolum, etiket("Bekleyen yapılacak yok.", sinif: "nd-ana-soluk"))
-            return
-        }
-        var sonURL: URL?
-        for gorev in yapilacaklar.prefix(20) {
-            if sonURL != gorev.url {
-                let grup = etiket(sayfaAdi(gorev.url), sinif: "nd-ana-kart-baslik")
-                gtk_widget_set_tooltip_text(grup, sayfaBagYolu(gorev.url))
-                ekle(bolum, grup)
-                sonURL = gorev.url
-            }
-            let satir = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6)!
-            let kutucuk = gtk_check_button_new()!
-            gtk_widget_set_tooltip_text(kutucuk, "Yapılacağı tamamla: \(gorev.metin)")
-            GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(kutucuk), "toggled") { [weak self] in
-                self?.ertele { self?.yapilacagiTamamla(gorev) }
-            }
-            let bag = gtk_button_new_with_label(gorev.metin.isEmpty ? "(Boş yapılacak)" : gorev.metin)!
-            gtk_widget_add_css_class(bag, "flat")
-            gtk_widget_set_focus_on_click(bag, 0)
-            gtk_widget_set_hexpand(bag, 1)
-            gtk_widget_set_tooltip_text(bag, gorev.metin)
-            let buton: UnsafeMutablePointer<GtkButton> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(bag))
-            if let yazi = gtk_button_get_child(buton) {
-                gtk_label_set_xalign(nd_label(yazi), 0)
-                gtk_label_set_ellipsize(nd_label(yazi), PANGO_ELLIPSIZE_END)
-            }
-            GtkKoprusu.sinyalBagla(UnsafeMutableRawPointer(bag), "clicked") { [weak self] in
-                self?.ertele { self?.yapilacagaGit(gorev) }
-            }
-            ekle(satir, kutucuk)
-            ekle(satir, bag)
-            ekle(bolum, satir)
-        }
-        if yapilacaklar.count > 20 { ekle(bolum, etiket("+\(yapilacaklar.count - 20) daha", sinif: "nd-ana-soluk")) }
     }
 
     private func eylemBolumu(_ kutu: Parca) {
@@ -322,112 +300,6 @@ final class LinuxAnaSayfa {
     private func hata(_ baslik: String, _ neden: String) {
         guard let ust = pencere?.pencere else { return }
         LinuxDiyalog.bilgi(ust: ust, baslik: baslik, aciklama: neden, hata: true)
-    }
-
-    private func uyarSesi() { gdk_display_beep(ekran) }
-
-    /// Disk yalnızca tıklanan hedef için okunur; eski konumla başka satır işaretlenmez.
-    private func guncelYapilacakMetni(_ gorev: BekleyenYapilacak) -> String? {
-        guard let editor, let panel else { return nil }
-        let acik = editor.acikURL == gorev.url
-        // Başarısız kayıtta editör kendi uyarısını gösterir; eski tampon sonradan ezmesin.
-        if acik, case .hata = editor.simdiKaydetSonucu(bildir: true) { return nil }
-        do {
-            try notlarYolunuDogrula(gorev.url)
-            let metin = try String(contentsOf: gorev.url, encoding: .utf8)
-            let acikMetin = sonYazilan?.url == gorev.url ? sonYazilan?.metin : nil
-            guard yapilacakGecerliMi(gorev, metin: metin, onbellekMetni: panel.icerikOnbellek[gorev.url]?.hamMarkdown,
-                                     acikSayfaMi: acik, acikSayfaMetni: acikMetin) else {
-                panel.notIceriginiGuncelle(gorev.url, metin: metin)
-                if acik, acikMetin != metin { diskindenYenidenYukle(gorev.url) } else { cizimiPlanla() }
-                uyarSesi()
-                return nil
-            }
-            return metin
-        } catch {
-            hata("Yapılacak okunamadı", error.localizedDescription)
-            return nil
-        }
-    }
-
-    /// Açık sayfa dışarıdan değişmişse editör diskten yüklenir; ana sayfa kaydırma konumuyla geri gelir.
-    private func diskindenYenidenYukle(_ url: URL) {
-        editor?.notuAc(url, yenidenYukle: true) { [weak self] _ in
-            self?.kaydirmaKorunsun = true
-            self?.pencere?.icerigiGoster(anaSayfa: true)
-        }
-    }
-
-    /// Kaynak satırındaki konum ile editörün görünen belgesindeki konum farklıdır (başlık, görsel, kod).
-    private func editorKonumu(_ gorev: BekleyenYapilacak, metin: String) -> Int {
-        let govde = sayfaUstbilgisiniAyir(metin).govde as NSString
-        return markdowndenAttributedStringUret(govde.substring(to: gorev.govdeKonumu), taban: sayfaKlasoru(gorev.url)).length
-    }
-
-    private func yapilacagaGit(_ gorev: BekleyenYapilacak) {
-        guard let metin = guncelYapilacakMetni(gorev) else { return }
-        let konum = editorKonumu(gorev, metin: metin)
-        editor?.notuAc(gorev.url) { [weak self] tamam in
-            guard tamam else { return }
-            // Yerleşim bir sonraki döngüde hazır olur; iter o zaman hesaplanır.
-            Platform.anaIsParcaciginda { self?.imleciGoster(gorev.url, konum) }
-        }
-    }
-
-    private func imleciGoster(_ url: URL, _ konum: Int) {
-        guard let editor, editor.acikURL == url, editor.editorEtkin,
-              konum <= editor.belgeyiOku({ $0.length }) else { return }
-        var iter = LinuxMetinDonusumu.iter(editor.tampon, konum)
-        gtk_text_buffer_place_cursor(editor.tampon, &iter)
-        let gorunum: UnsafeMutablePointer<GtkTextView> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(editor.metinGorunumu))
-        gtk_text_view_scroll_to_iter(gorunum, &iter, 0.1, 0, 0, 0)
-        gtk_widget_grab_focus(editor.metinGorunumu)
-    }
-
-    private func yapilacagiTamamla(_ gorev: BekleyenYapilacak) {
-        guard let editor, let panel else { return }
-        guard let metin = guncelYapilacakMetni(gorev) else { cizimiPlanla(); return }
-        let sonuc: (markdown: String, satir: String)
-        do { sonuc = try yapilacagiTamamlayanMetin(gorev, metin: metin) }
-        catch {
-            hata("Yapılacak tamamlanamadı", error.localizedDescription)
-            cizimiPlanla()
-            return
-        }
-        guard editor.acikURL == gorev.url else {
-            do {
-                try notlarYolunuDogrula(gorev.url)
-                try sonuc.markdown.write(to: gorev.url, atomically: true, encoding: .utf8)
-                panel.notIceriginiGuncelle(gorev.url, metin: sonuc.markdown)
-            } catch { hata("Yapılacak kaydedilemedi", error.localizedDescription) }
-            cizimiPlanla()
-            return
-        }
-        // Açık sayfa: tampon ve disk birlikte güncellenir; yalnızca hedef paragraf değişir.
-        // Belge kopyası uygulama anında üretilir; arada bağ yeniden yazımı gibi değişiklikler ezilmez.
-        let konum = editorKonumu(gorev, metin: metin)
-        let taban = sayfaKlasoru(gorev.url)
-        let eskiSatir = markdowndenAttributedStringUret(gorev.satir, taban: taban).string.trimmingCharacters(in: .newlines)
-        var hedefDegisti = false
-        editor.acikBelgeyiGuncelle(gorev.url, uret: { guncel in
-            let belge = NSMutableAttributedString(attributedString: guncel)
-            guard konum < belge.length else { hedefDegisti = true; return nil }
-            let paragraf = belge.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
-            // Konum, tamponun artık başka bir satırına denk gelmiş olabilir; yalnızca hedef satır değiştirilir.
-            let blok = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: paragraf.location, effectiveRange: nil))
-            guard paragraf.location == konum, blok?.tur == .yapilacak, blok?.tamamlandi == false,
-                  belge.mutableString.substring(with: paragraf).trimmingCharacters(in: .newlines) == eskiSatir else {
-                hedefDegisti = true
-                return nil
-            }
-            belge.replaceCharacters(in: paragraf, with: markdowndenAttributedStringUret(sonuc.satir, taban: taban))
-            return belge
-        }) { [weak self] sonuc in
-            // Kayıt hatasını editör kendi uyarısıyla bildirir; yalnızca "sayfa artık açık değil" burada gösterilir.
-            if case .hata(let neden) = sonuc, self?.editor?.acikURL != gorev.url { self?.hata("Yapılacak tamamlanamadı", neden) }
-            if hedefDegisti { self?.uyarSesi() }
-            self?.cizimiPlanla()
-        }
     }
 
     // MARK: Hızlı eylemler

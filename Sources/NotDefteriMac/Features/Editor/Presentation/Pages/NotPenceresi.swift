@@ -198,8 +198,6 @@ final class NotPenceresi: NSWindow, NSTextViewDelegate {
         icerikGorunum.addSubview(icindekiler)
         anaSayfa.isHidden = true
         anaSayfa.sayfaAc = { [weak self] in self?.notuAc($0) }
-        anaSayfa.yapilacagaGit = { [weak self] in self?.yapilacagaGit($0) }
-        anaSayfa.yapilacagiTamamla = { [weak self] in self?.yapilacagiTamamla($0) }
         anaSayfa.yeniSayfa = { [weak self] in self?.yeniNotOlustur() }
         anaSayfa.gunlukNot = { [weak self] in self?.gunlukNotuAc() }
         anaSayfa.sablonSec = { [weak self] in self?.sablondanSayfaOlustur() }
