@@ -71,7 +71,7 @@ package func tablolariHucrele(_ anlamsal: NSAttributedString) -> NSAttributedStr
 private func tabloHucreleriniUret(_ satirlar: [[String]], belgeSonunda: Bool) -> NSAttributedString {
     let kimlik = UUID().uuidString
     let sutunSayisi = satirlar.map(\.count).max() ?? 0
-    let sonuc = NSMutableAttributedString()
+    let sonuc = NSMutableAttributedString(string: "")
     for (satir, hucreler) in satirlar.enumerated() {
         for sutun in 0..<sutunSayisi {
             let metin = (sutun < hucreler.count ? hucreler[sutun] : "").replacingOccurrences(of: "\\|", with: "|")
