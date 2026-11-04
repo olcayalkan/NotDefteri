@@ -484,6 +484,8 @@ final class NotMetinGorunumu: NSTextView {
         resimTutamaclariniGuncelle(resimHucresiniBul(noktada: nokta)?.hucre)
         resimImleciniGuncelle(noktada: nokta, olay: event)
         blokTutamaciniGuncelle(noktada: nokta)
+        // Görselin üstünde yalnızca boyut tutamaçları görünür.
+        if uzerindekiResimHucresi != nil { blokTutamaci.isHidden = true }
     }
 
     override func cursorUpdate(with event: NSEvent) {
@@ -615,10 +617,11 @@ final class NotMetinGorunumu: NSTextView {
     private func resimImleciniGuncelle(noktada nokta: NSPoint, olay: NSEvent) {
         let resim = resimHucresi(noktada: nokta)
         let tutulan = resim.flatMap { $0.hucre.tutamac(noktada: nokta, cerceve: $0.cerceve) }
-        // İmleç tutamaçtan tutamaca geçerken de (kenardan köşeye) değişir.
-        guard tutulan != resimTutamaci else { return }
+        let degisti = tutulan != resimTutamaci
         resimTutamaci = tutulan
-        if let tutulan { tutulan.imlec.set() } else { super.cursorUpdate(with: olay) }
+        // NSTextView her fare hareketinde I-beam'e döner; tutamaç üstündeyken yön imleci her
+        // harekette yeniden kurulur, yoksa ok bir an görünüp kayboluyordu.
+        if let tutulan { tutulan.imlec.set() } else if degisti { super.cursorUpdate(with: olay) }
     }
 
     func resimTutamaclariniGuncelle(_ hucre: ResimEkiHucresi?) {

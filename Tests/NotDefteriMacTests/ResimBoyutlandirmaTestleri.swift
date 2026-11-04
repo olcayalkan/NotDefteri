@@ -28,6 +28,20 @@ final class ResimBoyutlandirmaTestleri: XCTestCase {
         XCTAssertEqual(tut(50, 150), nil, "görselin dışı")
     }
 
+    func testTutamacAlaniGorunenTutamactanGenis() {
+        XCTAssertEqual(tut(110, 150), ResimTutamaci(yatay: -1, dikey: 0), "sol kenara 10 pt")
+        XCTAssertEqual(tut(115, 65), ResimTutamaci(yatay: -1, dikey: -1), "sol üst köşeye 15 pt")
+        XCTAssertNil(tut(113, 150), "kenardan 13 pt içerisi görselin kendisi")
+    }
+
+    func testKoseImleciYonGosterir() {
+        for (yatay, dikey) in [(-1.0, -1.0), (1, -1), (-1, 1), (1, 1)] {
+            XCTAssertNotEqual(ResimTutamaci(yatay: yatay, dikey: dikey).imlec, .crosshair)
+        }
+        XCTAssertEqual(ResimTutamaci(yatay: 1, dikey: 0).imlec, .resizeLeftRight)
+        XCTAssertEqual(ResimTutamaci(yatay: 0, dikey: 1).imlec, .resizeUpDown)
+    }
+
     func testSagKenarYalnizEniUzatir() {
         let yeni = ResimTutamaci(yatay: 1, dikey: 0).yeniBoyut(baslangic: cerceve.size, fark: NSPoint(x: 60, y: 40), enAz: enAz, enFazla: enFazla)
         XCTAssertEqual(yeni, NSSize(width: 360, height: 200))

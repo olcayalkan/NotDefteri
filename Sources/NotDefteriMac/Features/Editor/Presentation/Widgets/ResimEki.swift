@@ -30,7 +30,30 @@ struct ResimTutamaci: Equatable {
                 ? (yatay < 0 ? .topLeft : .topRight) : (yatay < 0 ? .bottomLeft : .bottomRight)
             return .frameResize(position: konum, directions: .all)
         }
-        return .crosshair   // macOS 12-14'te hazır çapraz imleç yok.
+        // macOS 12-14'te hazır çapraz imleç yok; yön oku sembolden çizilir.
+        return yatay == dikey ? Self.solUstSagAlt : Self.sagUstSolAlt
+    }
+
+    private static let solUstSagAlt = caprazImlec("arrow.up.left.and.arrow.down.right")
+    private static let sagUstSolAlt = caprazImlec("arrow.up.right.and.arrow.down.left")
+
+    /// Beyaz kenarlı siyah çapraz ok; her zeminde seçilir, sıcak nokta ortada.
+    private static func caprazImlec(_ sembol: String) -> NSCursor {
+        let boyut = NSSize(width: 24, height: 24)
+        let resim = NSImage(size: boyut, flipped: false) { alan in
+            func simge(_ renk: NSColor) -> NSImage? {
+                NSImage(systemSymbolName: sembol, accessibilityDescription: nil)?
+                    .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 13, weight: .bold)
+                        .applying(NSImage.SymbolConfiguration(paletteColors: [renk])))
+            }
+            guard let beyaz = simge(.white), let siyah = simge(.black) else { return false }
+            let kare = NSRect(x: (alan.width - beyaz.size.width) / 2, y: (alan.height - beyaz.size.height) / 2,
+                              width: beyaz.size.width, height: beyaz.size.height)
+            for (dx, dy) in [(-1.0, 0.0), (1, 0), (0, -1), (0, 1)] { beyaz.draw(in: kare.offsetBy(dx: dx, dy: dy)) }
+            siyah.draw(in: kare)
+            return true
+        }
+        return NSCursor(image: resim, hotSpot: NSPoint(x: boyut.width / 2, y: boyut.height / 2))
     }
 
     /// Başlangıç boyutuna, farenin başlangıçtan kayması (`fark`) uygulanır.
@@ -123,42 +146,53 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
         if tutamaclarGorunur || boyutlandiriliyor { tutamaclariCiz(cellFrame) }
     }
 
+    /// Yalnızca tutamaçlar çizilir: köşelerde daire, kenar ortalarında çubuk. Beyaz dolgu,
+    /// vurgu rengi kenar ve gölge, açık ya da koyu her görselin üstünde seçilir.
     private func tutamaclariCiz(_ cerceve: NSRect) {
-        NSColor.controlAccentColor.withAlphaComponent(0.7).setStroke()
-        let kenar = NSBezierPath(rect: cerceve.insetBy(dx: 0.5, dy: 0.5))
-        kenar.lineWidth = 1
-        kenar.stroke()
-        for alan in tutamaclar(cerceve) {
-            NSColor.white.withAlphaComponent(0.95).setFill()
-            let yol = NSBezierPath(rect: alan)
-            yol.fill()
-            yol.lineWidth = 1
+        NSGraphicsContext.saveGraphicsState()
+        let golge = NSShadow()
+        golge.shadowColor = NSColor.black.withAlphaComponent(0.35)
+        golge.shadowBlurRadius = 2
+        golge.shadowOffset = NSSize(width: 0, height: -1)
+        golge.set()
+        NSColor.white.setFill()
+        let yollar = tutamaclar(cerceve)
+        yollar.forEach { $0.fill() }
+        NSGraphicsContext.restoreGraphicsState()
+        NSColor.controlAccentColor.setStroke()
+        for yol in yollar {
+            yol.lineWidth = 1.5
             yol.stroke()
         }
     }
 
-    /// Görünen tutamaçlar: dört köşe karesi ve dört kenarın ortasında çubuk.
-    private func tutamaclar(_ cerceve: NSRect) -> [NSRect] {
-        let kare = min(8, cerceve.width, cerceve.height)
-        let cubukEni = min(4, cerceve.width, cerceve.height)
-        let dikeyCubuk = min(24, cerceve.height), yatayCubuk = min(24, cerceve.width)
-        return [
-            NSRect(x: cerceve.minX, y: cerceve.minY, width: kare, height: kare),
-            NSRect(x: cerceve.minX, y: cerceve.maxY - kare, width: kare, height: kare),
-            NSRect(x: cerceve.maxX - kare, y: cerceve.minY, width: kare, height: kare),
-            NSRect(x: cerceve.maxX - kare, y: cerceve.maxY - kare, width: kare, height: kare),
-            NSRect(x: cerceve.minX, y: cerceve.midY - dikeyCubuk / 2, width: cubukEni, height: dikeyCubuk),
-            NSRect(x: cerceve.maxX - cubukEni, y: cerceve.midY - dikeyCubuk / 2, width: cubukEni, height: dikeyCubuk),
-            NSRect(x: cerceve.midX - yatayCubuk / 2, y: cerceve.minY, width: yatayCubuk, height: cubukEni),
-            NSRect(x: cerceve.midX - yatayCubuk / 2, y: cerceve.maxY - cubukEni, width: yatayCubuk, height: cubukEni)
-        ]
+    /// Tutamaç şekilleri; gölgeleriyle birlikte hücrenin içinde kalır (dışına taşan çizim
+    /// yalnızca komşu satır yeniden çizilince silinir).
+    private func tutamaclar(_ cerceve: NSRect) -> [NSBezierPath] {
+        let kose = cerceve.insetBy(dx: 9, dy: 9), kart = cerceve.insetBy(dx: 6, dy: 6)
+        let cap = min(12, cerceve.width / 4, cerceve.height / 4)
+        let kalin: CGFloat = 6
+        let dikeyBoy = min(28, kart.height / 3), yatayBoy = min(28, kart.width / 3)
+        let koseler = [NSPoint(x: kose.minX, y: kose.minY), NSPoint(x: kose.maxX, y: kose.minY),
+                       NSPoint(x: kose.minX, y: kose.maxY), NSPoint(x: kose.maxX, y: kose.maxY)]
+        let daireler = koseler.map {
+            NSBezierPath(ovalIn: NSRect(x: $0.x - cap / 2, y: $0.y - cap / 2, width: cap, height: cap))
+        }
+        let cubuklar = [
+            NSRect(x: kart.minX - kalin / 2, y: kart.midY - dikeyBoy / 2, width: kalin, height: dikeyBoy),
+            NSRect(x: kart.maxX - kalin / 2, y: kart.midY - dikeyBoy / 2, width: kalin, height: dikeyBoy),
+            NSRect(x: kart.midX - yatayBoy / 2, y: kart.minY - kalin / 2, width: yatayBoy, height: kalin),
+            NSRect(x: kart.midX - yatayBoy / 2, y: kart.maxY - kalin / 2, width: yatayBoy, height: kalin)
+        ].map { NSBezierPath(roundedRect: $0, xRadius: kalin / 2, yRadius: kalin / 2) }
+        return daireler + cubuklar
     }
 
     /// Kenar boyunca her yer tutulabilir (yalnız ortadaki çubuk değil); köşeler önceliklidir.
+    /// Alanlar görünen tutamaçlardan geniştir: fare tam üstüne gelmeden de yakalar.
     func tutamac(noktada nokta: NSPoint, cerceve: NSRect) -> ResimTutamaci? {
         guard cerceve.contains(nokta) else { return nil }
-        let kenar = min(8, cerceve.width / 3, cerceve.height / 3)
-        let kose = min(14, cerceve.width / 3, cerceve.height / 3)
+        let kenar = min(12, cerceve.width / 3, cerceve.height / 3)
+        let kose = min(18, cerceve.width / 3, cerceve.height / 3)
         func yon(_ deger: CGFloat, _ alt: CGFloat, _ ust: CGFloat, _ pay: CGFloat) -> CGFloat {
             deger < alt + pay ? -1 : (deger >= ust - pay ? 1 : 0)
         }
