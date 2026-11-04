@@ -1,15 +1,15 @@
 name: CI
 run-name: "CI · ${{ github.event.pull_request.title || github.ref_name }}"
 
-# Akış (her platform kendi zincirinde, iki platform paralel):
+# Flow (each platform has its own chain; both platforms run in parallel):
 #
-#   macOS · 1. Derle ─► macOS · 2. Test ─► macOS · 3. Paketle ─┐
-#                                                              ├─► CI sonucu
-#   Linux · 1. Derle ─► Linux · 2. Test ─► Linux · 3. Paketle ─┘
+#   macOS · 1. Build ─► macOS · 2. Test ─► macOS · 3. Package ─┐
+#                                                              ├─► CI result
+#   Linux · 1. Build ─► Linux · 2. Test ─► Linux · 3. Package ─┘
 #
-# Derlenmeyen kod test edilmez, testi geçmeyen kod paketlenmez.
-# Derleyici uyarı/hataları ve kırık testler koşu sayfasında açıklama (annotation)
-# olarak işaretlenir; her biri dosya ve satıra, oradan ilgili aşamaya götürür.
+# Code that does not build is not tested; code that fails tests is not packaged.
+# Compiler warnings/errors and failing tests are marked as annotations on the run
+# page; each one links to its file and line, and from there to its stage.
 
 on:
   push:
@@ -17,16 +17,16 @@ on:
   pull_request:
   workflow_dispatch:
 
-# İş akışı yalnızca kodu okur; yazma yetkisi gerekmiyor.
+# The workflow only reads the code; no write permission is needed.
 permissions:
   contents: read
 
-# Aynı PR'a art arda push gelirse eski koşuyu iptal et; kuyruk boşa dolmasın.
+# Cancel the previous run when a PR gets a new push, so the queue does not fill up.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Linux container'ında varsayılan kabuk sh; pipefail için bash gerekiyor.
+# The default shell in the Linux container is sh; pipefail needs bash.
 defaults:
   run:
     shell: bash
@@ -34,106 +34,106 @@ defaults:
 jobs:
   # ─────────────────────────────── macOS ───────────────────────────────
 
-  macos-derle:
-    name: macOS · 1. Derle
+  macos-build:
+    name: macOS · 1. Build
     runs-on: macos-15
     timeout-minutes: 15
     steps:
-      - name: Kaynak kodu al
+      - name: Check out source
         uses: actions/checkout@v7
 
-      - name: Araç zinciri bilgisi
+      - name: Toolchain info
         run: |
           sw_vers
           xcodebuild -version
           swift --version
 
-      - name: Paket bağımlılıklarını çöz
+      - name: Resolve package dependencies
         run: swift package resolve
 
-      - name: Uygulamayı derle (debug)
+      - name: Build app (debug)
         run: |
           set -o pipefail
-          swift build 2>&1 | tee -a derleme.log
+          swift build 2>&1 | tee -a build.log
 
-      - name: Testleri derle
+      - name: Build tests
         run: |
           set -o pipefail
-          swift build --build-tests 2>&1 | tee -a derleme.log
+          swift build --build-tests 2>&1 | tee -a build.log
 
-      - name: Hata ve uyarıları işaretle
+      - name: Annotate errors and warnings
         if: always()
-        run: .github/scripts/bulgulari-isaretle.sh derleme.log "macOS · Derle"
+        run: .github/scripts/annotate-findings.sh build.log "macOS · Build"
 
-      # Test işi aynı ikilileri kullansın, yeniden derlemesin.
-      # tar: upload-artifact çalıştırma izinlerini ve symlink'leri korumuyor.
-      - name: Derleme çıktısını paketle
-        run: tar -czf derleme.tgz .build
+      # The test job reuses the same binaries instead of rebuilding.
+      # tar: upload-artifact does not keep execute permissions or symlinks.
+      - name: Pack build output
+        run: tar -czf build.tgz .build
 
-      - name: Derleme çıktısını yükle
+      - name: Upload build output
         uses: actions/upload-artifact@v7
         with:
-          name: derleme-macos
-          path: derleme.tgz
+          name: build-macos
+          path: build.tgz
           retention-days: 1
 
   macos-test:
     name: macOS · 2. Test
-    needs: macos-derle
+    needs: macos-build
     runs-on: macos-15
-    # Takılan bir test (ör. modal uyarı) varsayılan 6 saatlik sınırı beklemesin.
+    # A hanging test (e.g. a modal alert) must not wait for the default 6-hour limit.
     timeout-minutes: 15
     steps:
-      - name: Kaynak kodu al
+      - name: Check out source
         uses: actions/checkout@v7
 
-      - name: Derleme çıktısını indir
+      - name: Download build output
         uses: actions/download-artifact@v8
         with:
-          name: derleme-macos
+          name: build-macos
 
-      - name: Derleme çıktısını aç
-        run: tar -xzf derleme.tgz
+      - name: Unpack build output
+        run: tar -xzf build.tgz
 
-      - name: Testleri çalıştır
+      - name: Run tests
         run: |
           set -o pipefail
-          swift test --skip-build 2>&1 | tee test-sonucu.log
+          swift test --skip-build 2>&1 | tee test-results.log
 
-      - name: Test özeti
+      - name: Test summary
         if: always()
-        run: .github/scripts/test-ozeti.sh test-sonucu.log "macOS (AppKit)"
+        run: .github/scripts/test-summary.sh test-results.log "macOS (AppKit)"
 
-      - name: Kırık testleri işaretle
+      - name: Annotate failing tests
         if: always()
-        run: .github/scripts/bulgulari-isaretle.sh test-sonucu.log "macOS · Test"
+        run: .github/scripts/annotate-findings.sh test-results.log "macOS · Test"
 
-      - name: Test günlüğünü yükle
+      - name: Upload test log
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-gunlugu-macos
-          path: test-sonucu.log
+          name: test-log-macos
+          path: test-results.log
           if-no-files-found: ignore
 
-  macos-paketle:
-    name: macOS · 3. Paketle
+  macos-package:
+    name: macOS · 3. Package
     needs: macos-test
     runs-on: macos-15
     timeout-minutes: 15
     steps:
-      - name: Kaynak kodu al
+      - name: Check out source
         uses: actions/checkout@v7
 
-      - name: Uygulamayı derle (release)
+      - name: Build app (release)
         run: swift build -c release
 
-      - name: İkiliyi doğrula
+      - name: Verify binary
         run: |
           file .build/release/NotDefteri
           ls -lh .build/release/NotDefteri
 
-      - name: İkiliyi yükle
+      - name: Upload binary
         uses: actions/upload-artifact@v7
         with:
           name: NotDefteri-macos
@@ -142,147 +142,147 @@ jobs:
 
   # ─────────────────────────────── Linux ───────────────────────────────
 
-  linux-derle:
-    name: Linux · 1. Derle
-    # Sabit sürüm: ubuntu-latest etiketi kendiliğinden yeni sürüme geçiyor.
+  linux-build:
+    name: Linux · 1. Build
+    # Pinned version: the ubuntu-latest label moves to new releases on its own.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container: swift:6.2-jammy
     steps:
-      - name: Kaynak kodu al
+      - name: Check out source
         uses: actions/checkout@v7
 
-      - name: Sistem paketlerini kur (GTK 4)
+      - name: Install system packages (GTK 4)
         run: |
           apt-get update
           apt-get install -y --no-install-recommends libgtk-4-dev pkg-config
 
-      - name: Araç zinciri bilgisi
+      - name: Toolchain info
         run: |
           grep PRETTY_NAME /etc/os-release
           echo "GTK $(pkg-config --modversion gtk4)"
           swift --version
 
-      - name: Paket bağımlılıklarını çöz
+      - name: Resolve package dependencies
         run: swift package resolve
 
-      - name: Uygulamayı derle (debug)
+      - name: Build app (debug)
         run: |
           set -o pipefail
-          swift build 2>&1 | tee -a derleme.log
+          swift build 2>&1 | tee -a build.log
 
-      - name: Testleri derle
+      - name: Build tests
         run: |
           set -o pipefail
-          swift build --build-tests 2>&1 | tee -a derleme.log
+          swift build --build-tests 2>&1 | tee -a build.log
 
-      - name: Hata ve uyarıları işaretle
+      - name: Annotate errors and warnings
         if: always()
-        run: .github/scripts/bulgulari-isaretle.sh derleme.log "Linux · Derle"
+        run: .github/scripts/annotate-findings.sh build.log "Linux · Build"
 
-      - name: Derleme çıktısını paketle
-        run: tar -czf derleme.tgz .build
+      - name: Pack build output
+        run: tar -czf build.tgz .build
 
-      - name: Derleme çıktısını yükle
+      - name: Upload build output
         uses: actions/upload-artifact@v7
         with:
-          name: derleme-linux
-          path: derleme.tgz
+          name: build-linux
+          path: build.tgz
           retention-days: 1
 
   linux-test:
     name: Linux · 2. Test
-    needs: linux-derle
+    needs: linux-build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container: swift:6.2-jammy
     steps:
-      - name: Kaynak kodu al
+      - name: Check out source
         uses: actions/checkout@v7
 
-      # Manifest gtk4'ü pkg-config ile arıyor; test ikilisi de GTK'ya bağlı olabilir.
-      - name: Sistem paketlerini kur (GTK 4)
+      # The manifest looks up gtk4 via pkg-config; the test binary may link GTK too.
+      - name: Install system packages (GTK 4)
         run: |
           apt-get update
           apt-get install -y --no-install-recommends libgtk-4-dev pkg-config
 
-      - name: Derleme çıktısını indir
+      - name: Download build output
         uses: actions/download-artifact@v8
         with:
-          name: derleme-linux
+          name: build-linux
 
-      - name: Derleme çıktısını aç
-        run: tar -xzf derleme.tgz
+      - name: Unpack build output
+        run: tar -xzf build.tgz
 
-      - name: Testleri çalıştır
+      - name: Run tests
         run: |
           set -o pipefail
-          swift test --skip-build 2>&1 | tee test-sonucu.log
+          swift test --skip-build 2>&1 | tee test-results.log
 
-      - name: Test özeti
+      - name: Test summary
         if: always()
-        run: .github/scripts/test-ozeti.sh test-sonucu.log "Linux (GTK 4)"
+        run: .github/scripts/test-summary.sh test-results.log "Linux (GTK 4)"
 
-      - name: Kırık testleri işaretle
+      - name: Annotate failing tests
         if: always()
-        run: .github/scripts/bulgulari-isaretle.sh test-sonucu.log "Linux · Test"
+        run: .github/scripts/annotate-findings.sh test-results.log "Linux · Test"
 
-      - name: Test günlüğünü yükle
+      - name: Upload test log
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-gunlugu-linux
-          path: test-sonucu.log
+          name: test-log-linux
+          path: test-results.log
           if-no-files-found: ignore
 
-  linux-paketle:
-    name: Linux · 3. Paketle
+  linux-package:
+    name: Linux · 3. Package
     needs: linux-test
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container: swift:6.2-jammy
     steps:
-      - name: Kaynak kodu al
+      - name: Check out source
         uses: actions/checkout@v7
 
-      - name: Sistem paketlerini kur (GTK 4)
+      - name: Install system packages (GTK 4)
         run: |
           apt-get update
           apt-get install -y --no-install-recommends libgtk-4-dev pkg-config file
 
-      - name: Uygulamayı derle (release)
+      - name: Build app (release)
         run: swift build -c release
 
-      - name: İkiliyi doğrula
+      - name: Verify binary
         run: |
           file .build/release/NotDefteri
           ls -lh .build/release/NotDefteri
 
-      - name: İkiliyi yükle
+      - name: Upload binary
         uses: actions/upload-artifact@v7
         with:
           name: NotDefteri-linux
           path: .build/release/NotDefteri
           retention-days: 14
 
-  # ─────────────────────────────── Sonuç ───────────────────────────────
+  # ─────────────────────────────── Result ───────────────────────────────
 
-  # Branch protection'da tek kontrol yeterli olsun; aşama eklense de kural değişmez.
-  sonuc:
-    name: CI sonucu
+  # A single check is enough for branch protection; adding stages does not change the rule.
+  result:
+    name: CI result
     if: always()
-    needs: [macos-derle, macos-test, macos-paketle, linux-derle, linux-test, linux-paketle]
+    needs: [macos-build, macos-test, macos-package, linux-build, linux-test, linux-package]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Tüm aşamalar geçti mi?
+      - name: Did all stages pass?
         env:
-          SONUCLAR: ${{ toJSON(needs) }}
+          RESULTS: ${{ toJSON(needs) }}
         run: |
           {
-            echo "### CI sonucu"
-            echo "| Aşama | Sonuç |"
+            echo "### CI result"
+            echo "| Stage | Result |"
             echo "|---|---|"
-            jq -r 'to_entries[] | "| \(.key) | \(.value.result) |"' <<< "$SONUCLAR"
+            jq -r 'to_entries[] | "| \(.key) | \(.value.result) |"' <<< "$RESULTS"
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          jq -e 'all(.[]; .result == "success")' <<< "$SONUCLAR" > /dev/null
+          jq -e 'all(.[]; .result == "success")' <<< "$RESULTS" > /dev/null

@@ -1,5 +1,5 @@
-name: Hata bildirimi
-description: Beklendiği gibi çalışmayan bir şey
+name: Bug report
+description: Something does not work as expected
 labels: [bug]
 body:
   - type: dropdown
@@ -10,33 +10,33 @@ body:
     validations:
       required: true
   - type: input
-    id: surum
+    id: os-version
     attributes:
-      label: İşletim sistemi sürümü
+      label: Operating system version
       placeholder: "macOS 15.3 / Ubuntu 22.04"
   - type: input
     id: commit
     attributes:
-      label: NotDefteri sürümü veya commit
+      label: NotDefteri version or commit
       placeholder: "git rev-parse --short HEAD"
   - type: textarea
-    id: adimlar
+    id: steps
     attributes:
-      label: Yeniden üretme adımları
+      label: Steps to reproduce
       placeholder: |
         1. ...
         2. ...
     validations:
       required: true
   - type: textarea
-    id: beklenen
+    id: expected
     attributes:
-      label: Beklenen ve gerçekleşen davranış
+      label: Expected and actual behavior
     validations:
       required: true
   - type: textarea
-    id: gunluk
+    id: log
     attributes:
-      label: Günlük / ekran görüntüsü
-      description: "Linux'ta ~/.local/state/NotDefteri/ altındaki en yeni .log dosyası"
+      label: Log / screenshot
+      description: "On Linux, the newest .log file under ~/.local/state/NotDefteri/"
       render: text

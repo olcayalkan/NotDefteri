@@ -1,27 +1,27 @@
-name: Özellik isteği
-description: Yeni bir özellik ya da iyileştirme öner
+name: Feature request
+description: Suggest a new feature or an improvement
 labels: [enhancement]
 body:
   - type: textarea
-    id: sorun
+    id: problem
     attributes:
-      label: Hangi sorunu çözüyor?
+      label: What problem does it solve?
     validations:
       required: true
   - type: textarea
-    id: oneri
+    id: proposal
     attributes:
-      label: Önerilen çözüm
+      label: Proposed solution
     validations:
       required: true
   - type: checkboxes
     id: platform
     attributes:
-      label: Hangi platformlar etkilenir?
+      label: Which platforms are affected?
       options:
         - label: macOS
         - label: Linux
   - type: textarea
-    id: alternatif
+    id: alternatives
     attributes:
-      label: Düşünülen alternatifler
+      label: Alternatives considered
