@@ -52,8 +52,8 @@ swift test           # run the tests
 
 1. **Open an issue.** Fill in the bug report or feature request form. Even for small fixes, writing
    down what and why makes the history easier to follow later.
-2. **Create a branch.** Keep the name short and in English: `fix/failing-tests`, `feat/theme-menu`,
-   `docs/readme-banner`.
+2. **Create a branch.** Keep the name short, in English and without the issue number:
+   `fix/failing-tests`, `feat/theme-menu`, `docs/readme-banner`.
 3. **Commit.** Start the message with the type and mention the related issue:
 
    ```text
@@ -69,8 +69,8 @@ swift test           # run the tests
 
 - **Turkish identifiers and comments:** `NotPenceresi`, `agaciYukle()`. Comments explain **why**
   the code does something, not what it does.
-- **The right layer:** platform-independent logic goes in `Sources/NotDefteri/Cekirdek/`, views in
-  `Gorunum/`. When you add a responsibility to a large type, put it in a new `Type+Topic.swift`
+- **The right layer:** platform-independent logic goes in `Sources/NotDefteriCekirdek/` (by feature:
+  `Domain/` and `Data/`), views in each platform's `Features/<Feature>/Presentation/`. When you add a responsibility to a large type, put it in a new `Type+Topic.swift`
   extension file.
 - **No dependencies:** the macOS side is pure AppKit, the Linux side GTK 4. No third-party packages.
 - **Code map:** if you add or remove files, update `06_Metadata/Kod-Haritasi.md`. Reading it and
