@@ -33,7 +33,9 @@ extension NotMetinGorunumu {
 
     func cerceveliBloklariCiz(_ kirliAlan: NSRect, anahtar: NSAttributedString.Key) {
         guard let depo = textStorage, let yerlesim = layoutManager, let kapsayici = textContainer else { return }
-        let kirpma = kirliAlan.intersection(visibleRect)
+        // Görünür alanla kırpılmaz: AppKit kaydırma için görünür alanın üstünü/altını önceden çizer;
+        // orada metin çizilip kutu çizilmeyince kaydırınca kutunun üst/alt parçaları kopuk kalıyordu.
+        let kirpma = kirliAlan
         guard !kirpma.isEmpty else { return }
         let alan = kirpma.insetBy(dx: -7, dy: -(kKutuIcBoslugu + 4)).offsetBy(dx: -textContainerOrigin.x, dy: -textContainerOrigin.y)
         let glifler = yerlesim.glyphRange(forBoundingRect: alan, in: kapsayici)
@@ -52,6 +54,11 @@ extension NotMetinGorunumu {
         NSBezierPath(rect: kirpma).addClip()
         for aralik in cerceveliBlokAraliklari(adaylar, anahtar: anahtar) {
             guard let kare = blokCerceveKaresi(aralik, anahtar: anahtar), kare.intersects(kirpma) else { continue }
+            // AppKit düzenlemede yalnızca değişen satırları kirletir; kutu o satırlardan uzunsa
+            // dışarıda kalan parçası eski pikselleriyle kalıyordu (kutunun yarısı görünmüyordu).
+            // Eksik parça görünür alanla sınırlı olarak bir sonraki çizimde tamamlanır.
+            let eksik = kare.intersection(visibleRect)
+            if !eksik.isEmpty, !kirpma.contains(eksik) { setNeedsDisplay(eksik) }
             guard anahtar != kKodBloguAnahtari else { blokCercevesiniCiz(kare, renk: kMetinRenk, cizgi: 0.7); continue }
             let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
             let r = kUyariRenkleri[blok?.renk ?? ""] ?? kUyariRenkleri["gri"]!
@@ -147,17 +154,44 @@ extension NotMetinGorunumu {
 
     /// Kutunun ortasından başlayan seçim "> metin" olarak çıkıp düz alıntıya dönüşüyordu;
     /// ilk satır kutu başlığı alır, kopya yapıştırılınca kutu olarak kalır.
-    func uyariDevaminiBasaCevir(_ parca: NSMutableAttributedString) {
-        guard parca.length > 0, parca.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil,
-              var blok = MetinBlogu(oznitelik: parca.attribute(kMetinBloguAnahtari, at: 0, effectiveRange: nil)),
+    func uyariDevaminiBasaCevir(_ parca: NSMutableAttributedString, konum: Int = 0) {
+        guard konum < parca.length, parca.attribute(kBlokIsaretiAnahtari, at: konum, effectiveRange: nil) != nil,
+              var blok = MetinBlogu(oznitelik: parca.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil)),
               blok.tur == .uyari, blok.devam else { return }
         blok.devam = false
         blok.kaynakOnEk = nil
-        let uzunluk = blokIsaretiUzunlugu(parca)
-        let paragraf = parca.mutableString.paragraphRange(for: NSRange(location: 0, length: 0))
+        let uzunluk = blokIsaretiUzunlugu(parca, konum: konum)
+        let paragraf = parca.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
         let isaret = blokIsaretiniUret(blok)
-        parca.replaceCharacters(in: NSRange(location: 0, length: uzunluk), with: isaret)
-        blokBiciminiUygula(blok, metne: parca, aralik: NSRange(location: 0, length: paragraf.length - uzunluk + isaret.length))
+        parca.replaceCharacters(in: NSRange(location: konum, length: uzunluk), with: isaret)
+        blokBiciminiUygula(blok, metne: parca, aralik: NSRange(location: konum, length: paragraf.length - uzunluk + isaret.length))
+    }
+
+    /// Kutuya yapıştırılan içerik bu kutunun satırları olur: içinde ikinci kutu, alıntı, liste
+    /// ya da kod doğmaz. Yabancı kimlikli kutu satırları kutuyu bölüyor, aralarda işaretsiz
+    /// (küçük yazılı) boş satırlar kalıyordu. Gelen işaretler atılır; her yeni satır bu
+    /// kutunun devam işaretini alır. Tam satır içerik satır ortasına gelirse yeni satırdan başlar.
+    func kutuyaKat(_ icerik: NSMutableAttributedString, kutu: MetinBlogu, satirBasinda: Bool, ardindanSatirSonu: Bool) {
+        let tamSatir = icerik.length > 0 && icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil
+        var silinecek: [NSRange] = []
+        icerik.enumerateAttributes(in: NSRange(location: 0, length: icerik.length)) { o, alt, _ in
+            if o[kBlokIsaretiAnahtari] as? Bool == true || o[kBosKodSatiriAnahtari] as? Bool == true { silinecek.append(alt) }
+        }
+        for alt in silinecek.reversed() { icerik.deleteCharacters(in: alt) }
+        if tamSatir, !satirBasinda { icerik.insert(NSAttributedString(string: "\n"), at: 0) }
+        if ardindanSatirSonu, icerik.string.hasSuffix("\n") { icerik.deleteCharacters(in: NSRange(location: icerik.length - 1, length: 1)) }
+        let tumu = NSRange(location: 0, length: icerik.length)
+        guard tumu.length > 0 else { return }
+        blokBiciminiKaldir(icerik)
+        for anahtar in [kKodBloguAnahtari, kKodBloguDiliAnahtari] { icerik.removeAttribute(anahtar, range: tumu) }
+        var devam = kutu
+        devam.devam = true
+        devam.kaynakOnEk = nil
+        blokBiciminiUygula(devam, metne: icerik, aralik: tumu)
+        let ns = icerik.mutableString
+        for konum in stride(from: ns.length - 1, through: 0, by: -1) where ns.character(at: konum) == 10 {
+            icerik.insert(blokIsaretiniUret(devam), at: konum + 1)
+        }
     }
 
     func uyariRenkMenusu() -> NSMenu {

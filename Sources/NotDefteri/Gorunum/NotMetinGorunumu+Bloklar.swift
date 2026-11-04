@@ -300,7 +300,8 @@ extension NotMetinGorunumu {
 
     func blokCizgileriniCiz(_ kirliAlan: NSRect) {
         guard let depo = textStorage, let yerlesim = layoutManager, let kapsayici = textContainer else { return }
-        let alan = kirliAlan.intersection(visibleRect).offsetBy(dx: -textContainerOrigin.x, dy: -textContainerOrigin.y)
+        // Görünür alanla kırpılmaz; önceden çizilen bölgede de çizgi olmalı (bkz. cerceveliBloklariCiz).
+        let alan = kirliAlan.offsetBy(dx: -textContainerOrigin.x, dy: -textContainerOrigin.y)
         let glifler = yerlesim.glyphRange(forBoundingRect: alan, in: kapsayici)
         let karakterler = yerlesim.characterRange(forGlyphRange: glifler, actualGlyphRange: nil)
         var sonParagraf = -1

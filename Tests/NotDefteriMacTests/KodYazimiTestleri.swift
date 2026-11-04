@@ -116,4 +116,66 @@ final class KodYazimiTestleri: XCTestCase {
         editor.insertTab(nil)
         XCTAssertEqual(kaydedilen, "```swift\nlet try\t\n```\n")
     }
+
+    // MARK: Uyarı kutusunda kod kuralları
+
+    /// Kutu satırının öneki ("> [!…]") görünümde yoktur; imleç `sonrasi`nın ardına konur.
+    private func acKutu(_ md: String, sonrasi: String) {
+        editor.sayfaYukleniyor = true
+        editor.textStorage?.setAttributedString(MacBelgeAdaptoru.markdownuAc(md, taban: URL(fileURLWithPath: NSTemporaryDirectory())))
+        editor.sayfaYukleniyor = false
+        let r = (editor.string as NSString).range(of: sonrasi, options: .backwards)
+        XCTAssertNotEqual(r.location, NSNotFound)
+        editor.setSelectedRange(NSRange(location: NSMaxRange(r), length: 0))
+    }
+
+    func testUyariKutusundaEsliKarakterlerVeEsSilme() {
+        acKutu("> [!💡 mavi] x = 1\n", sonrasi: "x = ")
+        editor.deleteForward(nil)
+        yaz("f(\"a\")")
+        XCTAssertEqual(kaydedilen, "> [!💡 mavi] x = f(\"a\")\n")
+        yaz("(")
+        editor.deleteBackward(nil)
+        XCTAssertEqual(kaydedilen, "> [!💡 mavi] x = f(\"a\")\n")
+    }
+
+    /// Türkçe kesme işareti kutuda da eşlenmez ("Ankara'da").
+    func testUyariKutusundaKesmeIsaretiEslenmez() {
+        acKutu("> [!💡 mavi] Ankara\n", sonrasi: "Ankara")
+        yaz("'da")
+        XCTAssertEqual(kaydedilen, "> [!💡 mavi] Ankara'da\n")
+    }
+
+    /// Çok satırlı kalıp kutunun satırları olarak açılır; imleç koşulun yerindedir.
+    func testUyariKutusundaTabKalibiKutuSatirlariOlur() {
+        acKutu("> [!🔥 kırmızı] ilk\n> if\n", sonrasi: "if")
+        editor.insertTab(nil)
+        XCTAssertEqual(kaydedilen, "> [!🔥 kırmızı] ilk\n> if () {\n> \t\n> }\n")
+        yaz("x")
+        XCTAssertEqual(kaydedilen, "> [!🔥 kırmızı] ilk\n> if (x) {\n> \t\n> }\n")
+    }
+
+    /// Uyarı kutusundaki if/else, sayı ve string kod gibi renklenir; kesme ve bağlantı boyanmaz.
+    func testUyariKutusuKodGibiRenklenir() {
+        // Renklendirme görünüm pencereye girince başlar.
+        let pencere = NSWindow(contentRect: editor.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        pencere.isReleasedWhenClosed = false
+        pencere.contentView = editor
+        defer { pencere.close() }
+        acKutu("> [!💡 mavi] if x { return 42 } else { s = \"a\" } Ankara'da https://ornek.com/yol\n", sonrasi: "yol")
+        let tamam = expectation(description: "renklendirme")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { tamam.fulfill() }
+        wait(for: [tamam], timeout: 2)
+        let ns = editor.string as NSString
+        func tur(_ metin: String) -> KodTokenTuru? {
+            editor.layoutManager?.temporaryAttribute(NSAttributedString.Key("kodToken"), atCharacterIndex: ns.range(of: metin).location,
+                                                     effectiveRange: nil) as? KodTokenTuru
+        }
+        XCTAssertEqual(tur("if"), .anahtarKelime)
+        XCTAssertEqual(tur("else"), .anahtarKelime)
+        XCTAssertEqual(tur("42"), .sayi)
+        XCTAssertEqual(tur("\"a\""), .metin)
+        XCTAssertNotEqual(tur("'da"), .metin)
+        XCTAssertNotEqual(tur("//ornek"), .yorum)
+    }
 }

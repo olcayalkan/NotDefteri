@@ -58,10 +58,10 @@ final class UyariPanoTestleri: XCTestCase {
                        "> [!💡 mavi] iki\nönce\n\(kutu)sonra\n")
     }
 
-    /// Kutunun içindeki satır sonuna yapıştırma boş (hayalet) başlıklı kutu doğurmaz.
+    /// Kutunun içine yapıştırılan kutu satırı ikinci kutu doğurmaz; aynı kutunun satırı olur.
     func testKutuIcineYapistirmaBosKutuDogurmaz() {
         let sonuc = kopyalaYapistir("önce\n\(kutu)sonra\n", kopya: (2, 2), hedef: 3, satirSonu: true)
-        XCTAssertEqual(sonuc, "önce\n\(kutu)> [!💡 mavi] iki\nsonra\n")
+        XCTAssertEqual(sonuc, "önce\n\(kutu)> iki\nsonra\n")
     }
 
     /// İmleç kutu satırının işaretinden hemen sonraysa satır başındadır; satırın işareti yerinde kalır.
@@ -73,7 +73,7 @@ final class UyariPanoTestleri: XCTestCase {
         let iki = paragraflar(e, 2, 2)
         e.setSelectedRange(NSRange(location: iki.location + 1, length: 0))   // işaretin hemen sonrası
         e.paste(nil)
-        XCTAssertEqual(md(e), "önce\n> [!💡 mavi] bir\n\(kutu)> [!💡 mavi] iki\n> üç\nsonra\n")
+        XCTAssertEqual(md(e), "önce\n> [!💡 mavi] bir\n> bir\n> iki\n> üç\n> iki\n> üç\nsonra\n")
     }
 
     /// Yeni açılmış boş kutuya kutu yapıştırınca boş kutu kalmaz.
@@ -121,5 +121,150 @@ final class UyariPanoTestleri: XCTestCase {
         geri.endUndoGrouping()
         geri.undo()
         XCTAssertEqual(md(e), "önce\n\(kutu)sonra\n")
+    }
+
+    // MARK: Kısmi kopya, kutuya/koda yapıştırma
+
+    /// Metindeki ilk eşleşmeyi seçip kopyalar; hedefteki ilk eşleşmenin önüne (ya da sonuna) yapıştırır.
+    private func parcaKopyala(_ kaynak: String, sec: String, hedef: String, sonuna: Bool = false) -> String {
+        let e = editor(kaynak)
+        let ns = e.string as NSString
+        e.setSelectedRange(ns.range(of: sec))
+        NSPasteboard.general.clearContents()
+        e.copy(nil)
+        let h = ns.range(of: hedef, options: sonuna ? .backwards : [])
+        e.setSelectedRange(NSRange(location: sonuna ? NSMaxRange(h) : h.location, length: 0))
+        e.paste(nil)
+        return md(e)
+    }
+
+    /// Kutunun içinden alınan sözcük düz metindir; yapıştırıldığı yerde alıntı ya da kutu doğurmaz.
+    func testKutudanKismiKopyaBlokTasimaz() {
+        XCTAssertEqual(parcaKopyala("önce\n\(kutu)sonra\n", sec: "ik", hedef: "sonra"),
+                       "önce\n\(kutu)iksonra\n")
+    }
+
+    /// Başka renkteki kutu, kutunun satır ortasına yapıştırılınca hedef kutunun satırları olur.
+    func testKutuIcineKutuYapistirmaTekKutuKalir() {
+        let e = editor("> [!🔥 kırmızı] xy\n")
+        let kaynak = editor(kutu)
+        kaynak.setSelectedRange(NSRange(location: 0, length: (kaynak.string as NSString).length))
+        NSPasteboard.general.clearContents()
+        kaynak.copy(nil)
+        e.setSelectedRange(NSRange(location: (e.string as NSString).range(of: "y").location, length: 0))
+        e.paste(nil)
+        XCTAssertEqual(md(e), "> [!🔥 kırmızı] x\n> bir\n> iki\n> üç\n> y\n")
+    }
+
+    /// Kutuya yapıştırılan kod bloğu kutunun satırı olur; kutunun içinde çit doğmaz.
+    func testKutuIcineKodYapistirmaKutuSatiriOlur() {
+        XCTAssertEqual(parcaKopyala("```\nabc\n```\n\(kutu)", sec: "\u{200B}abc\n", hedef: "üç", sonuna: true),
+                       "```\nabc\n```\n\(kutu.dropLast())\n> abc\n")
+    }
+
+    /// Koda yapıştırılan kutu düz metin olur; görünmez blok işaretleri koda karışmaz.
+    func testKodaKutuYapistirmaGorunmezIsaretBirakmaz() {
+        let sonuc = parcaKopyala("\(kutu)```\nabc\n```\n", sec: "\u{200B}bir\n\u{200B}iki", hedef: "abc", sonuna: true)
+        XCTAssertFalse(sonuc.contains("\u{200B}"), "kayda görünmez işaret sızmamalı")
+        XCTAssertEqual(sonuc, "\(kutu)```\nabcbir\niki\n```\n")
+    }
+
+    // MARK: Kod bloğunda Enter ve dışarıdan yapıştırma
+
+    /// Kodun son satırında iki Enter koddan çıkar; yazılan metin kutunun altına düşer.
+    func testKoddaIkiEnterKutudanCikar() {
+        let e = editor("```\nabc\n```\n")
+        e.setSelectedRange(NSRange(location: NSMaxRange((e.string as NSString).range(of: "abc")), length: 0))
+        e.insertNewline(nil)
+        e.insertNewline(nil)
+        e.insertText("x", replacementRange: e.selectedRange())
+        XCTAssertEqual(md(e), "```\nabc\n```\nx\n")
+    }
+
+    /// Enter'dan sonra koda yapıştırılan, kodun dışındaki satırlar: liste işareti ("•\t") koda
+    /// sızmaz, tam satırın satır sonu kodda boş satır bırakmaz.
+    func testKodaDisaridanSatirYapistirmaKoduBozmaz() {
+        for (sec, beklenen) in [("madde", "madde"), ("Başlık", "Başlık"), ("kutu1", "kutu1\nkutu2")] {
+            let e = editor("# Başlık\n- madde\n\(kutu.replacingOccurrences(of: "bir", with: "kutu1").replacingOccurrences(of: "iki", with: "kutu2"))```\nabc\n```\n")
+            let ns = e.string as NSString
+            var aralik = ns.paragraphRange(for: ns.range(of: sec))
+            if sec == "kutu1" { aralik = NSUnionRange(aralik, ns.paragraphRange(for: ns.range(of: "kutu2"))) }
+            e.setSelectedRange(aralik)
+            NSPasteboard.general.clearContents()
+            e.copy(nil)
+            e.setSelectedRange(NSRange(location: NSMaxRange(ns.range(of: "abc")), length: 0))
+            e.insertNewline(nil)
+            e.paste(nil)
+            XCTAssertTrue(md(e).hasSuffix("```\nabc\n\(beklenen)\n```\n"), md(e))
+        }
+    }
+
+    /// Başka uygulamadan gelen çok satırlı metin de kodda boş satır bırakmaz.
+    func testKodaDisUygulamadanTamSatirYapistirma() {
+        let e = editor("```\nabc\n```\n")
+        e.setSelectedRange(NSRange(location: NSMaxRange((e.string as NSString).range(of: "abc")), length: 0))
+        e.insertNewline(nil)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("dış1\ndış2\n", forType: .string)
+        e.paste(nil)
+        XCTAssertEqual(md(e), "```\nabc\ndış1\ndış2\n```\n")
+    }
+
+    /// Dışarıdan başlayıp kodun ortasında biten seçim silinince, üzerine yazılınca ya da
+    /// yapıştırılınca kalan kod kendi satırında kod olarak kalır; kayıtta çoğalmaz.
+    func testKodaUzananSecimKoduBozmaz() {
+        for islem in ["sil", "yaz", "yapistir"] {
+            let e = editor("önce\n```\nabc\ndef\n```\nsonra\n")
+            let ns = e.string as NSString
+            e.setSelectedRange(NSRange(location: 2, length: ns.range(of: "bc").location - 2))
+            switch islem {
+            case "sil": e.deleteBackward(nil)
+            case "yaz": e.insertText("X", replacementRange: e.selectedRange())
+            default:
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString("X", forType: .string)
+                e.paste(nil)
+            }
+            XCTAssertEqual(md(e), "ön\(islem == "sil" ? "" : "X")\n```\nbc\ndef\n```\nsonra\n", islem)
+            let kod = (e.string as NSString).range(of: "bc").location - 1
+            XCTAssertNotNil(e.textStorage?.attribute(kBlokIsaretiAnahtari, at: kod, effectiveRange: nil), islem)
+        }
+    }
+
+    /// Aynı kural uyarı kutusunda: dışarıdan kutunun ortasına uzanan seçim silinince kutu kalır.
+    func testKutuyaUzananSecimSilinceKutuKalir() {
+        let e = editor("önce\n\(kutu)sonra\n")
+        let ns = e.string as NSString
+        e.setSelectedRange(NSRange(location: 2, length: ns.range(of: "ki").location - 2))
+        e.deleteBackward(nil)
+        XCTAssertEqual(md(e), "ön\n> [!💡 mavi] ki\n> üç\nsonra\n")
+    }
+
+    /// Satır başından kodun içine uzanan seçime yazılan metin kendi satırında kalır, koda karışmaz.
+    func testSatirBasindanKodaUzananSecimeYazmaKodaKarismaz() {
+        for yapistir in [false, true] {
+            let e = editor("önce\n```\nabc\n```\n")
+            e.setSelectedRange(NSRange(location: 0, length: (e.string as NSString).range(of: "bc").location))
+            if yapistir {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString("X", forType: .string)
+                e.paste(nil)
+            } else {
+                e.insertText("X", replacementRange: e.selectedRange())
+            }
+            XCTAssertEqual(md(e), "X\n```\nbc\n```\n")
+        }
+    }
+
+    /// Kodun tüm gövdesi seçiliyken yapıştırma görünmez blok işaretini silmez.
+    func testKodGovdesiSeciliykenYapistirmaIsaretiKorur() {
+        let e = editor("```\nabc\n```\n")
+        e.setSelectedRange(NSRange(location: 0, length: (e.string as NSString).length))
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("X\n", forType: .string)
+        e.setSelectedRange(NSRange(location: 1, length: 3))
+        e.paste(nil)
+        XCTAssertEqual(md(e), "```\nX\n```\n")
+        XCTAssertNotNil(e.textStorage?.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil))
     }
 }
