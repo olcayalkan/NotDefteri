@@ -53,5 +53,8 @@
     "prettier-plugin-sort-json": "^4.2.0",
     "typescript-eslint": "^8.53.0"
   },
+  "overrides": {
+    "minimatch": "^11.0.1"
+  },
   "packageManager": "pnpm@9.15.4"
 }
