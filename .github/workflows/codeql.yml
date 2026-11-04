@@ -1,0 +1,59 @@
+name: CodeQL
+run-name: "CodeQL · ${{ github.ref_name }}"
+
+# Kod taraması: Swift kaynağı ve iş akışları güvenlik açığına karşı taranır.
+# Sonuçlar Security → Code scanning sekmesine düşer.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"   # Her pazartesi; yeni kurallar eski kodda da çalışsın.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tara:
+    name: CodeQL · ${{ matrix.dil }}
+    runs-on: ${{ matrix.makine }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      security-events: write   # Yalnızca sonuç yüklemek için.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dil: swift      # Swift çözümlemesi macOS'ta derlenerek yapılır.
+            makine: macos-15
+            derleme: manual
+          - dil: actions    # İş akışı dosyaları; derleme gerekmez.
+            makine: ubuntu-24.04
+            derleme: none
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v7
+
+      - name: CodeQL'i başlat
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.dil }}
+          build-mode: ${{ matrix.derleme }}
+          queries: security-and-quality
+
+      - name: Derle
+        if: matrix.derleme == 'manual'
+        run: swift build
+
+      - name: Çözümle
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.dil }}"
