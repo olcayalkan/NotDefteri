@@ -180,7 +180,7 @@ final class AnaSayfa: NSScrollView {
             let kartlar = sonlar.map { veri in
                 sayfaKarti(veri, renk: renk, zemin: zemin)
             }
-            satirlar.append(.izgara(kartlar, enAzKart: 200, yukseklik: 112, ustBosluk: 12))
+            satirlar.append(.izgara(kartlar, enAzKart: 150, yukseklik: 92, ustBosluk: 12))
         }
         satirlar.append(.tek(bolumBasligi("Hızlı eylemler", renk: renk), yukseklik: 24, ustBosluk: 28))
         let eylemler: [(String, String, NSColor, () -> Void)] = [
@@ -401,7 +401,7 @@ private final class KartIcerigi: NSView {
             .withSymbolConfiguration(.init(pointSize: 14, weight: .semibold))
         simge.contentTintColor = vurgu
         baslik.stringValue = metin
-        baslik.font = .systemFont(ofSize: buyuk ? 14 : 13, weight: .semibold)
+        baslik.font = .systemFont(ofSize: 13, weight: .semibold)
         baslik.textColor = renk.withAlphaComponent(0.92)
         for (alan, deger) in [(ust, ustMetin), (alt, altMetin)] {
             alan.stringValue = deger ?? ""
@@ -417,13 +417,13 @@ private final class KartIcerigi: NSView {
 
     override func layout() {
         super.layout()
-        let pay: CGFloat = 14
+        let pay: CGFloat = 12
         let w = max(0, bounds.width - pay * 2)
         if buyuk {
-            simgeZemini.frame = NSRect(x: pay, y: 14, width: 30, height: 30)
-            ust.frame = NSRect(x: pay + 40, y: 21, width: max(0, w - 40), height: 16)
-            baslik.frame = NSRect(x: pay, y: 56, width: w, height: 20)
-            alt.frame = NSRect(x: pay, y: 80, width: w, height: 16)
+            simgeZemini.frame = NSRect(x: pay, y: 12, width: 26, height: 26)
+            ust.frame = NSRect(x: pay + 34, y: 17, width: max(0, w - 34), height: 16)
+            baslik.frame = NSRect(x: pay, y: 46, width: w, height: 20)
+            alt.frame = NSRect(x: pay, y: 68, width: w, height: 16)
         } else {
             simgeZemini.frame = NSRect(x: 12, y: (bounds.height - 30) / 2, width: 30, height: 30)
             baslik.frame = NSRect(x: 52, y: (bounds.height - 18) / 2, width: max(0, bounds.width - 64), height: 18)

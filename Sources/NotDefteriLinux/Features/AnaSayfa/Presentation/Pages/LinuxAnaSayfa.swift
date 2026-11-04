@@ -53,7 +53,7 @@ final class LinuxAnaSayfa {
         .notdefteri .nd-ana-sayfa button { color: @nd-metin; }
         .notdefteri button.nd-ana-kart { background-image: none; background-color: @nd-panel; border: 1px solid alpha(@nd-metin, 0.16); box-shadow: none; border-radius: 10px; padding: 0; }
         .notdefteri button.nd-ana-kart:hover { background-color: @nd-grup; }
-        .notdefteri .nd-ana-kart-serit { background-color: @nd-baslik; min-height: 38px; }
+        .notdefteri .nd-ana-kart-serit { background-color: @nd-baslik; min-height: 28px; }
         .notdefteri .nd-ana-kart label.nd-ana-soluk { font-size: 12px; }
         .notdefteri button.nd-ana-eylem { background-image: none; background-color: @nd-panel; color: @nd-metin; border: 1px solid alpha(@nd-metin, 0.18); border-radius: 10px; box-shadow: none; padding: 12px 14px; }
         .notdefteri button.nd-ana-eylem:hover { background-color: @nd-grup; border-color: alpha(@nd-metin, 0.35); }
@@ -158,7 +158,7 @@ final class LinuxAnaSayfa {
         func kartlar(_ urller: [URL]) -> [(url: URL, tarih: Date?)] {
             urller.filter { onbellek[$0] != nil }.map { ($0, panel.sayfaBaglantilari.sonAcilmaTarihi($0)) }
         }
-        kartBolumu(icerik, "Son açılanlar", kartlar(Array(panel.sayfaBaglantilari.sonAcilanlar.prefix(8))))
+        kartBolumu(icerik, "Son açılanlar", Array(kartlar(panel.sayfaBaglantilari.sonAcilanlar).prefix(SayfaBaglantilari.anaSayfaKartSayisi)))
         eylemBolumu(icerik)
         gtk_scrolled_window_set_child(OpaquePointer(kaydirma), icerik)
         // Yeni içerik yerleşmeden değer sıkışır; kaydırma konumu bir sonraki döngüde geri verilir.
@@ -213,7 +213,7 @@ final class LinuxAnaSayfa {
         for kart in kartlar {
             let dugme = gtk_button_new()!
             gtk_widget_add_css_class(dugme, "nd-ana-kart")
-            gtk_widget_set_size_request(dugme, 176, 114)
+            gtk_widget_set_size_request(dugme, 150, 92)
             gtk_widget_set_overflow(dugme, GTK_OVERFLOW_HIDDEN)
             gtk_widget_set_focus_on_click(dugme, 0)
             gtk_widget_set_tooltip_text(dugme, sayfaBagYolu(kart.url))
@@ -227,8 +227,8 @@ final class LinuxAnaSayfa {
                 gtk_widget_set_margin_start(alan, 12)
                 gtk_widget_set_margin_end(alan, 12)
             }
-            gtk_widget_set_margin_top(baslik, 13)
-            gtk_widget_set_margin_top(zaman, 11)
+            gtk_widget_set_margin_top(baslik, 10)
+            gtk_widget_set_margin_top(zaman, 6)
             ekle(ic, baslik)
             ekle(ic, zaman)
             let buton: UnsafeMutablePointer<GtkButton> = GtkKoprusu.gtkIsaretci(UnsafeMutableRawPointer(dugme))

@@ -71,7 +71,7 @@ extension NotPenceresi {
             guard onbellek[url] != nil else { return nil }
             return AnaSayfaKarti(url: url, tarih: baglar.sonAcilmaTarihi(url))
         }
-        anaSayfa.guncelle(sonlar: baglar.sonAcilanlar.prefix(8).compactMap(kart))
+        anaSayfa.guncelle(sonlar: Array(baglar.sonAcilanlar.lazy.compactMap(kart).prefix(SayfaBaglantilari.anaSayfaKartSayisi)))
     }
 
     func gunlukNotuAc() {

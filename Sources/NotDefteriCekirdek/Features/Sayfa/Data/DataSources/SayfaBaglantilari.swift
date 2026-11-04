@@ -106,6 +106,9 @@ package struct DalBaglantisiSonucu {
 package final class SayfaBaglantilari {
     package init() {}
 
+    /// Ana sayfada gösterilen en fazla son açılan sayfa.
+    package static let anaSayfaKartSayisi = 6
+
     package private(set) var sayfalar: [SayfaSecenegi] = []
     private var hedefler: [String: [URL]] = [:]
     private var urlIndeksi: [URL: SayfaSecenegi] = [:]
