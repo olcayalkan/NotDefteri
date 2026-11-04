@@ -14,9 +14,9 @@ package let kBaslikYuksekligi: CGFloat = 34
 
 /// Editör yerleşimi: yazıya olabildiğince yer kalsın diye kenar payları küçük tutulur.
 /// En geniş metin satırı; geniş pencerede satır okunmaz uzunluğa çıkmasın.
-package let kEnGenisMetin: CGFloat = 960
+package let kEnGenisMetin: CGFloat = 1200
 /// Metnin iki yanında kalan en az pay; solda blok tutamacı (⋮⋮) ve başlık katlama üçgeni durur.
-package let kEditorYanPayi: CGFloat = 40
+package let kEditorYanPayi: CGFloat = 24
 /// Metnin üstünde ve altında editörün iç boşluğu.
 package let kEditorDikeyBoslugu: CGFloat = 4
 /// Editör altındaki kelime sayısı şeridi.
