@@ -4,7 +4,7 @@ import NotDefteriCekirdek
 extension NotMetinGorunumu: NSTextStorageDelegate {
     func textStorage(_ textStorage: NSTextStorage, willProcessEditing editedMask: NSTextStorageEditActions,
                      range editedRange: NSRange, changeInLength delta: Int) {
-        guard !yaziOlcegiUygulaniyor, !baglarGuncelleniyor else { return }
+        guard !yaziOlcegiUygulaniyor, !baglarGuncelleniyor, !cevreGorunumuUygulaniyor else { return }
         if !sayfaYukleniyor, !baglarGuncelleniyor, !yaziOlcegiUygulaniyor {
             baglarGuncelleniyor = true
             uyariSinirlariniGuncelle(textStorage, aralik: editedRange)
@@ -20,7 +20,8 @@ extension NotMetinGorunumu: NSTextStorageDelegate {
             if NSMaxRange(paragraf) < ns.length {
                 paragraf = NSUnionRange(paragraf, ns.paragraphRange(for: NSRange(location: NSMaxRange(paragraf), length: 0)))
             }
-            belgeAdaptoru.gorunumuUygula(textStorage, aralik: paragraf)
+            belgeAdaptoru.gorunumuUygula(textStorage, aralik: paragraf, cevresiyle: false)
+            bekleyenCevreAraligi = bekleyenCevreAraligi.map { NSUnionRange($0, paragraf) } ?? paragraf
         }
         guard !sayfaYukleniyor, !baglarGuncelleniyor, textStorage.length > 0 else { return }
         baglarGuncelleniyor = true

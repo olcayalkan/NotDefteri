@@ -12,6 +12,16 @@ package let kKenarPanelMaksGenislik: CGFloat = 360
 /// Özel başlık çubuğunun yüksekliği.
 package let kBaslikYuksekligi: CGFloat = 34
 
+/// Editör yerleşimi: yazıya olabildiğince yer kalsın diye kenar payları küçük tutulur.
+/// En geniş metin satırı; geniş pencerede satır okunmaz uzunluğa çıkmasın.
+package let kEnGenisMetin: CGFloat = 960
+/// Metnin iki yanında kalan en az pay; solda blok tutamacı (⋮⋮) ve başlık katlama üçgeni durur.
+package let kEditorYanPayi: CGFloat = 40
+/// Metnin üstünde ve altında editörün iç boşluğu.
+package let kEditorDikeyBoslugu: CGFloat = 4
+/// Editör altındaki kelime sayısı şeridi.
+package let kAltBilgiYuksekligi: CGFloat = 22
+
 /// Otomatik kaydın bekleme süresi. Kesintisiz yazarken bile en fazla
 /// bu aralıkta bir disk yazımı olur.
 package let kOtomatikKayitAraligi: TimeInterval = 5
@@ -31,6 +41,19 @@ package let kKutuIcBoslugu: CGFloat = 8
 /// kKutuIcBoslugu kadar dışına çizildiği için kutu ile komşu paragraf arasında yaklaşık yarım
 /// satır kalır. Yalnızca görünümdür; Markdown'a satır yazılmaz.
 package let kKutuDisBoslugu: CGFloat = (kTabanPunto * 0.6).rounded() + kKutuIcBoslugu
+
+/// macOS'ta kutunun altındaki boşluk (üstte boş satır ya da kutu varsa üstteki de). Çerçevenin
+/// dışında 2 pt kalır; kutudan sonraki yazı ve alttaki kutu kopuk duruyordu. Çerçeve yazıya
+/// değmesin diye iç boşluktan küçük olamaz.
+package let kKutuAltBoslugu: CGFloat = kKutuIcBoslugu + 2
+
+/// macOS'ta iki kutu arasındaki tek boş satırın yüksekliği. Satır kalır (tıklanıp yazılabilir,
+/// kayıtta boş satır), yalnızca kutular arası boşluğu tam satır kadar açmaz.
+package let kKutularArasiBosSatirYuksekligi: CGFloat = 6
+
+/// macOS'ta bitişik alıntı ile uyarı kutusu arasına kayıtta yazılan boş satırın yüksekliği;
+/// düzenlerken bitişik görünen ikili, yeniden açılınca da bitişik görünür.
+package let kAyracSatiriYuksekligi: CGFloat = 1
 
 /// Uyarı kutusu renkleri (0–1 RGB). Doygun sistem renkleri yerine kağıtta göz yormayan
 /// koyu tonlar; koyulaşan tema zemininde açık tonlar seçilmiyordu.

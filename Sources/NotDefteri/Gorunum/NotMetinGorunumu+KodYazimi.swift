@@ -11,16 +11,19 @@ extension NotMetinGorunumu {
         return olay.isARepeat
     }
 
-    /// İmleç kod bloğundaysa bloğun dil etiketi ("" etiketsiz). Bloğun son satırında imleç
-    /// satır sonunun önündedir; belgenin sonunda soldaki karaktere bakılır, ama bloktan
+    /// İmleç kod bloğundaysa bloğun dil etiketi ("" etiketsiz). Uyarı kutusunda da kod kuralları
+    /// geçerlidir; dil etiketi olmadığından genel kurallar ("") kullanılır. Bloğun son satırında
+    /// imleç satır sonunun önündedir; belgenin sonunda soldaki karaktere bakılır, ama bloktan
     /// sonraki boş paragraf koda sayılmaz.
     func koddakiDil(_ konum: Int) -> String? {
         guard let depo = textStorage, depo.length > 0 else { return nil }
         let ns = depo.string as NSString
         let bakilan = konum < depo.length ? konum : konum - 1
-        guard bakilan >= 0, konum < depo.length || ns.character(at: bakilan) != 10,
-              depo.attribute(kKodBloguAnahtari, at: bakilan, effectiveRange: nil) != nil else { return nil }
-        return depo.attribute(kKodBloguDiliAnahtari, at: bakilan, effectiveRange: nil) as? String ?? ""
+        guard bakilan >= 0, konum < depo.length || ns.character(at: bakilan) != 10 else { return nil }
+        if depo.attribute(kKodBloguAnahtari, at: bakilan, effectiveRange: nil) != nil {
+            return depo.attribute(kKodBloguDiliAnahtari, at: bakilan, effectiveRange: nil) as? String ?? ""
+        }
+        return depo.attribute(kUyariKutusuAnahtari, at: bakilan, effectiveRange: nil) != nil ? "" : nil
     }
 
     /// Tek karakterlik yazımın kod bloğundaki eş davranışı; kod dışında `nil`.
@@ -65,8 +68,20 @@ extension NotMetinGorunumu {
               let kalip = kodKalibi(kelime, dil: dil, girinti: girinti, birim: kodGirintiBirimi(secim.location))
         else { return false }
         let aralik = NSRange(location: secim.location - (kelime as NSString).length, length: (kelime as NSString).length)
-        insertText(kalip.metin, replacementRange: aralik)
-        setSelectedRange(NSRange(location: aralik.location + kalip.imlec, length: 0))
+        var imlec = kalip.imlec
+        if let kutu = blok(paragrafAraligi()), kutu.tur == .uyari {
+            // Kutuda kalıbın her satırı kutu satırı olur; işaretsiz satır kutudan kopardı.
+            let icerik = NSMutableAttributedString(string: kalip.metin, attributes: typingAttributes)
+            kutuyaKat(icerik, kutu: kutu, satirBasinda: false, ardindanSatirSonu: false)
+            var devam = kutu
+            devam.devam = true
+            let satirlar = (kalip.metin as NSString).substring(to: kalip.imlec).filter { $0 == "\n" }.count
+            imlec += satirlar * blokIsaretiniUret(devam).length
+            insertText(icerik, replacementRange: aralik)
+        } else {
+            insertText(kalip.metin, replacementRange: aralik)
+        }
+        setSelectedRange(NSRange(location: aralik.location + imlec, length: 0))
         return true
     }
 
@@ -74,9 +89,12 @@ extension NotMetinGorunumu {
     private func kodGirintiBirimi(_ konum: Int) -> String {
         guard let depo = textStorage else { return "\t" }
         var blok = NSRange()
-        _ = depo.attribute(kKodBloguAnahtari, at: min(konum, depo.length - 1), longestEffectiveRange: &blok,
-                           in: NSRange(location: 0, length: depo.length))
-        for satir in (depo.string as NSString).substring(with: blok).components(separatedBy: "\n") {
+        let bakilan = min(konum, depo.length - 1)
+        let anahtar = depo.attribute(kKodBloguAnahtari, at: bakilan, effectiveRange: nil) != nil ? kKodBloguAnahtari : kUyariKutusuAnahtari
+        _ = depo.attribute(anahtar, at: bakilan, longestEffectiveRange: &blok, in: NSRange(location: 0, length: depo.length))
+        for tamSatir in (depo.string as NSString).substring(with: blok).components(separatedBy: "\n") {
+            // Satır başındaki görünmez blok işareti girintiden sayılmaz.
+            let satir = tamSatir.drop { $0 == "\u{200B}" }
             if satir.hasPrefix("\t") { return "\t" }
             if satir.hasPrefix("  ") { return "    " }
         }

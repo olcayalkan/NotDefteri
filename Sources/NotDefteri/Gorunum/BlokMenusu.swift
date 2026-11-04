@@ -59,6 +59,8 @@ final class BlokMenusu: NSView {
             case .tablo: return ["table", "tablo"]
             case .kod: return ["code", "kod"]
             case .uyari: return ["att", "uyari"]
+            case .uyariKirmizi: return ["red"]
+            case .uyariYesil: return ["info"]
             default: return []
             }
         }
@@ -192,7 +194,7 @@ extension NotMetinGorunumu {
               depo.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
               depo.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else { return false }
         let sorgu = ns.substring(with: NSRange(location: slash.location + 1, length: imlec - slash.location - 1))
-        guard let komut = [BlokMenusu.Komut.kod, .uyari, .tablo].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
+        guard let komut = [BlokMenusu.Komut.kod, .uyari, .uyariKirmizi, .uyariYesil, .tablo].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
         let aralik = NSRange(location: slash.location, length: imlec - slash.location)
         blokMenusu.gizle()
         slashAraligi = nil

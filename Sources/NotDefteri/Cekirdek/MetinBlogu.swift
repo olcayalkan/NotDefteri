@@ -216,7 +216,29 @@ package func kodBloguSinirlari(acilis: String, kapanis: String) -> [String: Stri
 /// Açılış satırı kayıtta aynen kalır; yalnızca görünüm için dil etiketi okunur.
 package func kodBloguDilEtiketi(_ sinirlar: [String: String]) -> String {
     let acilis = sinirlar["acilis"] ?? ""
-    return acilis.drop(while: { $0 == "`" }).split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
+    return acilis.drop(while: { $0 == "`" }).split(whereSeparator: { $0.isWhitespace })
+        .first { $0 != kOrtaliKodIsareti }.map(String.init) ?? ""
+}
+
+/// Kodun satırlarına `<center>` yazılamaz (kodun parçası olurdu); ortalama bütün bloğa
+/// uygulanır ve açılış çitinin bilgi satırında saklanır: ```swift {center}
+package let kOrtaliKodIsareti = "{center}"
+
+package func kodBloguOrtaliMi(_ sinirlar: [String: String]) -> Bool {
+    (sinirlar["acilis"] ?? "").drop(while: { $0 == "`" })
+        .split(whereSeparator: { $0.isWhitespace }).contains { $0 == kOrtaliKodIsareti }
+}
+
+package func kodBloguOrtalanmis(_ sinirlar: [String: String], ortali: Bool) -> [String: String] {
+    guard kodBloguOrtaliMi(sinirlar) != ortali else { return sinirlar }
+    var yeni = sinirlar
+    let acilis = sinirlar["acilis"] ?? "```\n"
+    let son = acilis.hasSuffix("\r\n") ? "\r\n" : acilis.hasSuffix("\n") ? "\n" : ""
+    let cit = String(acilis.prefix { $0 == "`" })
+    var bilgi = acilis.dropFirst(cit.count).dropLast(son.count).split(whereSeparator: { $0.isWhitespace }).map(String.init)
+    if ortali { bilgi.append(kOrtaliKodIsareti) } else { bilgi.removeAll { $0 == kOrtaliKodIsareti } }
+    yeni["acilis"] = cit + bilgi.joined(separator: " ") + son
+    return yeni
 }
 
 package func kodBloguGovdesi(_ metin: NSAttributedString) -> String {

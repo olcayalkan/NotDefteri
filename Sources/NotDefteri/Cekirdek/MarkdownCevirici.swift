@@ -178,7 +178,14 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
 
 /// Kaydedilmemiş yeni bir notun içeriğinden otomatik bir dosya adı üretir (ilk satırdan).
 package func otomatikBaslikUret(icerik: String) -> String {
-    let ilkSatir = icerik.split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init) ?? ""
+    // Tabloyla başlayan sayfanın adı `┌───┬───` çerçevesi olmasın: kutu çizgileri atılır,
+    // ad ilk dolu satırdan (tablonun başlık satırı) gelir.
+    let ilkSatir = icerik.split(separator: "\n", omittingEmptySubsequences: true).lazy
+        .map { satir in
+            String(satir.unicodeScalars.map { (0x2500...0x257F).contains($0.value) ? " " : Character($0) })
+                .split(separator: " ", omittingEmptySubsequences: true).joined(separator: " ")
+        }
+        .first { !$0.isEmpty } ?? ""
     var baslik = guvenliDosyaAdi(isaretlemeleriTemizle(ilkSatir)
         .trimmingCharacters(in: .whitespacesAndNewlines)
         .replacingOccurrences(of: "\0", with: "-"), varsayilan: "")
@@ -595,12 +602,45 @@ private func kanonikMarkdownUret(_ metin: NSAttributedString) -> String {
             var konum = 0
             while konum < ns.length {
                 let satir = ns.lineRange(for: NSRange(location: konum, length: 0))
-                sonuc += satirMarkdownunuUret(parca.attributedSubstring(from: satir))
+                let satirParcasi = parca.attributedSubstring(from: satir)
+                let yazi = satirMarkdownunuUret(satirParcasi)
+                let ortali = satirParcasi.length > 0 &&
+                    satirParcasi.attribute(kOrtaliAnahtari, at: 0, effectiveRange: nil) as? Bool == true
+                let onEk = MetinBlogu(oznitelik: satirParcasi.length > 0
+                    ? satirParcasi.attribute(kMetinBloguAnahtari, at: 0, effectiveRange: nil) : nil)?.markdownOnEki ?? ""
+                sonuc += ortali ? ortaliSatiriSar(yazi, onEk: onEk) : yazi
                 konum = NSMaxRange(satir)
             }
         }
     }
     return sonuc
+}
+
+/// Ortalı satır Obsidian ve GitHub'ın da ortaladığı `<center>` ile sarılır; boş satır sarılmaz.
+/// Kutu, liste ve alıntıda etiket blok önekinden sonra gelir (`> [!💡 mavi] <center>…`).
+private func ortaliSatiriSar(_ yazi: String, onEk: String) -> String {
+    guard yazi.hasPrefix(onEk) else { return yazi }
+    let son = yazi.hasSuffix("\r\n") ? "\r\n" : yazi.hasSuffix("\n") ? "\n" : yazi.hasSuffix("\r") ? "\r" : ""
+    let govde = String(yazi.dropFirst(onEk.count).dropLast(son.count))
+    return govde.isEmpty ? yazi : "\(onEk)<center>\(govde)</center>\(son)"
+}
+
+/// `<center>…</center>` satırının içi ve satır sonu; içi ayrıca Markdown olarak çözülür.
+private func ortaliSatirIcerigi(_ yazi: String) -> String? {
+    let govde = yazi.trimmingCharacters(in: .newlines)
+    guard govde.hasPrefix("<center>"), govde.hasSuffix("</center>"),
+          govde.count > "<center></center>".count else { return nil }
+    let ic = govde.dropFirst("<center>".count).dropLast("</center>".count)
+    guard !ic.contains("</center>") else { return nil }
+    return String(ic) + yazi.dropFirst(govde.count)
+}
+
+/// Blok öneki (kutu, liste, alıntı) korunur, `<center>` yalnızca önekten sonraki metinde aranır.
+private func ortaliBlokSatiriIcerigi(_ yazi: String) -> String? {
+    let ns = NSString(string: yazi)
+    let onEk = metinBlogunuCozumle(yazi.trimmingCharacters(in: .newlines))?.uzunluk ?? 0
+    guard onEk <= ns.length, let ic = ortaliSatirIcerigi(ns.substring(from: onEk)) else { return nil }
+    return ns.substring(to: onEk) + ic
 }
 
 package func sayfaMarkdownunuUret(_ metin: NSAttributedString, ustbilgi: SayfaUstbilgisi) -> String {
@@ -617,6 +657,15 @@ package func markdownMetniUret(_ metin: NSAttributedString) -> String {
     var oncekiBlok: MetinBlogu?
     while konum < metin.length {
         var aralik = NSRange()
+        // Hücre paragrafları (macOS yerel tablo) yeniden tek Markdown tablosu olarak yazılır.
+        if let tablo = tabloHucrelerindenMarkdown(metin, konum: konum) {
+            // Obsidian metne bitişik tabloyu tablo saymaz; önüne boş satır konur.
+            if !sonuc.isEmpty, !sonuc.hasSuffix("\n\n") { sonuc += sonuc.hasSuffix("\n") ? "\n" : "\n\n" }
+            sonuc += tablo.markdown
+            oncekiBlok = nil
+            konum = NSMaxRange(tablo.aralik)
+            continue
+        }
         let tabloGorseli = metin.attribute(kTabloGorselAnahtari, at: konum, effectiveRange: nil) != nil
         let kodBlogu = metin.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) != nil
         let blok = kodBlogu ? nil : MetinBlogu(oznitelik: metin.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))
@@ -635,6 +684,7 @@ package func markdownMetniUret(_ metin: NSAttributedString) -> String {
             aralik = NSRange(location: konum, length: NSMaxRange(satir) - konum)
         }
         let parca = metin.attributedSubstring(from: aralik)
+        // Linux kutu tablosu: model değişmediyse kendi Markdown'ı, yoksa çerçeveden geri çözülür.
         if tabloGorseli, let model = TabloModeli(oznitelik: parca.attribute(kTabloModeliAnahtari, at: 0, effectiveRange: nil)),
            model.gorsel().metin == parca.string {
             sonuc += model.markdown()
@@ -658,6 +708,10 @@ package func markdownMetniUret(_ metin: NSAttributedString) -> String {
     return sonuc
 }
 
+// MARK: - Linux kutu tablosu
+// macOS tabloyu editörde hücre paragraflarına böler (`tablolariHucrele`); Linux (GTK) yerel
+// tablo çizemediği için tablo burada `┌─┬─┐` çerçeveli görsele çevrilir.
+
 private struct TabloMarkdownParcasi {
     let baslik: [String]
     let govde: [[String]]
@@ -678,9 +732,7 @@ private func tabloMarkdownParcasiniCoz(_ ns: NSString, baslangic: Int) -> TabloM
     var son = NSMaxRange(ayiracAraligi)
     while son < ns.length {
         let aralik = ns.lineRange(for: NSRange(location: son, length: 0))
-        // Ayıraç satırı yalnız başlığın hemen ardından yapısaldır. Gövdedeki
-        // `---` hücreleri kullanıcı verisidir; aksi halde hücre düzenlemesi
-        // tablonun geri kalanını ayrı bir paragraf gibi yorumlatır.
+        // Ayıraç satırı yalnız başlığın hemen ardından yapısaldır; gövdedeki `---` hücre verisidir.
         guard let hucreler = tabloHucreleri(ns.substring(with: aralik)), hucreler.count == sutun else { break }
         govde.append(hucreler)
         son = NSMaxRange(aralik)
@@ -704,7 +756,7 @@ private func tabloGorselKapsami(_ ns: NSString, baslangic: Int) -> NSRange? {
     return nil
 }
 
-private func tabloGorseliniUret(_ tablo: TabloMarkdownParcasi, taban: URL) -> NSAttributedString {
+private func tabloGorseliniUret(_ tablo: TabloMarkdownParcasi) -> NSAttributedString {
     let model = TabloModeli(markdown: tablo.kaynak)
     let gorsel = model?.gorsel() ?? tabloGorunumunuUret(baslik: tablo.baslik, govde: tablo.govde)
     let sonuc = NSMutableAttributedString(string: "")
@@ -713,8 +765,7 @@ private func tabloGorseliniUret(_ tablo: TabloMarkdownParcasi, taban: URL) -> NS
     let kimlik = UUID().uuidString
     while konum < ns.length {
         let aralik = ns.lineRange(for: NSRange(location: konum, length: 0))
-        // Izgara, hesaplandığı ham hücre metniyle birebir aynı kalmalı. Satır içi Markdown
-        // çözülürse (`**`, backtick vb.) görünür genişlik değişir ve sütun çizgileri kayar.
+        // Izgara ham hücre metniyle birebir kalmalı; satır içi Markdown çözülürse sütunlar kayar.
         let parca = NSMutableAttributedString(string: ns.substring(with: aralik))
         ciplakBaglariIsaretle(parca, aralik: NSRange(location: 0, length: parca.length))
         let tur = gorsel.satirTurleri[satir]
@@ -726,12 +777,9 @@ private func tabloGorseliniUret(_ tablo: TabloMarkdownParcasi, taban: URL) -> NS
     }
     let kanonik = tabloGorselindenMarkdownUret(gorsel.metin) ?? tablo.kaynak
     let kaynak = MarkdownKaynagi(metin: tablo.kaynak, kanonik: kanonik)
-    sonuc.addAttribute(kMarkdownKaynakAnahtari, value: kaynak.oznitelikDegeri,
-                       range: NSRange(location: 0, length: sonuc.length))
-    if let model {
-        sonuc.addAttribute(kTabloModeliAnahtari, value: model.oznitelikDegeri,
-                           range: NSRange(location: 0, length: sonuc.length))
-    }
+    let tumu = NSRange(location: 0, length: sonuc.length)
+    sonuc.addAttribute(kMarkdownKaynakAnahtari, value: kaynak.oznitelikDegeri, range: tumu)
+    if let model { sonuc.addAttribute(kTabloModeliAnahtari, value: model.oznitelikDegeri, range: tumu) }
     return sonuc
 }
 
@@ -741,12 +789,14 @@ package func markdowndenAttributedStringUret(_ metin: String, taban: URL = notla
     var konum = 0
     var uyari: MetinBlogu?
     while konum < ns.length {
+        #if !os(macOS)
         if let tablo = tabloMarkdownParcasiniCoz(ns, baslangic: konum) {
-            parcalar.append(tabloGorseliniUret(tablo, taban: taban))
+            parcalar.append(tabloGorseliniUret(tablo))
             konum = tablo.son
             uyari = nil
             continue
         }
+        #endif
         let satir = ns.lineRange(for: NSRange(location: konum, length: 0))
         let yazi = ns.substring(with: satir)
         let cozum = metinBlogunuCozumle(yazi.trimmingCharacters(in: .newlines))
@@ -778,6 +828,10 @@ package func markdowndenAttributedStringUret(_ metin: String, taban: URL = notla
                 bosSatir[kBosKodSatiriAnahtari] = true
                 parca.append(NSAttributedString(string: "\n", attributes: bosSatir))
             }
+        } else if let ic = ortaliBlokSatiriIcerigi(yazi) {
+            parca = NSMutableAttributedString(attributedString: satiriAttributedStringeCevir(ic, taban: taban, devamBlogu: uyari))
+            ciplakBaglariIsaretle(parca, aralik: NSRange(location: 0, length: parca.length))
+            parca.addAttribute(kOrtaliAnahtari, value: true, range: NSRange(location: 0, length: parca.length))
         } else {
             parca = NSMutableAttributedString(attributedString: satiriAttributedStringeCevir(yazi, taban: taban, devamBlogu: uyari))
             ciplakBaglariIsaretle(parca, aralik: NSRange(location: 0, length: parca.length))

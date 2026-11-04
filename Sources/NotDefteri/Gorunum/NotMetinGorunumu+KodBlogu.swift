@@ -155,6 +155,11 @@ extension NotMetinGorunumu {
                 let bilgi = depo.attribute(kKodBloguAnahtari, at: konum, longestEffectiveRange: &blok, in: tumu) as? [String: String]
                 if let bilgi, gorulen.insert(blok.location).inserted {
                     bloklar.append((blok, depo.mutableString.substring(with: blok), kodBloguDilEtiketi(bilgi)))
+                } else if bilgi == nil,
+                          depo.attribute(kUyariKutusuAnahtari, at: konum, longestEffectiveRange: &blok, in: tumu) != nil,
+                          gorulen.insert(blok.location).inserted {
+                    // Uyarı kutusu da kod gibi renklenir; dil etiketi yok, genel kurallar.
+                    bloklar.append((blok, depo.mutableString.substring(with: blok), ""))
                 }
                 konum = NSMaxRange(blok)
             }
@@ -263,7 +268,8 @@ extension NotMetinGorunumu: NSLayoutManagerDelegate {
                        forDrawingToScreen toScreen: Bool, atCharacterIndex charIndex: Int,
                        effectiveRange effectiveCharRange: NSRangePointer?) -> [NSAttributedString.Key: Any]? {
         guard toScreen else { return nil }
-        guard let tur = attrs[kKodTokenAnahtari] as? KodTokenTuru else { return attrs }
+        // Uyarı kutusundaki bağlantı kendi rengini korur.
+        guard let tur = attrs[kKodTokenAnahtari] as? KodTokenTuru, attrs[.link] == nil else { return attrs }
         var sonuc = attrs
         sonuc[.foregroundColor] = kodRengi(tur, tema: aktifTema)
         return sonuc

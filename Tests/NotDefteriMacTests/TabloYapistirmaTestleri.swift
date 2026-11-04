@@ -43,7 +43,47 @@ final class TabloYapistirmaTestleri: XCTestCase {
         }
         let gorunum = NotMetinGorunumu()
         XCTAssertTrue(gorunum.readSelection(from: pano, type: tur))
+        sonGorunum = gorunum
         return markdownMetniUret(try XCTUnwrap(gorunum.textStorage))
+    }
+
+    /// Son yapıştırmanın yapıldığı editör.
+    private var sonGorunum: NotMetinGorunumu?
+
+    /// Yapıştırılan tablo yerel `NSTextTable` ızgarasıdır; hücreler sıradan metin gibi
+    /// seçilip silinir, kayıt Markdown tablosu olarak kalır.
+    func testYapistirilanTabloYerelTabloOlurVeSilinebilir() throws {
+        _ = try yapistir(vimHtml)
+        let gorunum = try XCTUnwrap(sonGorunum)
+        let depo = try XCTUnwrap(gorunum.textStorage)
+        let hucre = (gorunum.string as NSString).range(of: "Cut word")
+        XCTAssertNotEqual(hucre.location, NSNotFound, gorunum.string)
+        let stil = try XCTUnwrap(depo.attribute(.paragraphStyle, at: hucre.location, effectiveRange: nil) as? NSParagraphStyle)
+        XCTAssertTrue(stil.textBlocks.first is NSTextTableBlock, "hücre yerel tabloda değil")
+        XCTAssertFalse(gorunum.string.contains("|"), gorunum.string)
+
+        gorunum.setSelectedRange(hucre)
+        gorunum.deleteBackward(nil)
+        let kayit = markdownMetniUret(depo)
+        XCTAssertTrue(kayit.contains("| dw |  |"), kayit)
+        XCTAssertTrue(kayit.contains("| dd | Cut full line |"), kayit)
+
+        gorunum.selectAll(nil)
+        gorunum.deleteBackward(nil)
+        XCTAssertEqual(gorunum.string, "", "yapıştırılan içeriğin tamamı silinmedi")
+    }
+
+    /// Düz metin olarak kopyalanan tablo (sekmeyle ayrılmış satırlar) da tablo olur.
+    func testSekmeliDuzMetinTabloOlarakYapisir() throws {
+        pano.clearContents()
+        pano.setString("State\tMeaning\nopen\tAccepts connections\nopen|filtered\tOpen or filtered\n", forType: .string)
+        let gorunum = NotMetinGorunumu()
+        XCTAssertTrue(gorunum.readSelection(from: pano, type: .string))
+        let depo = try XCTUnwrap(gorunum.textStorage)
+        XCTAssertNotNil(depo.attribute(kTabloHucresiAnahtari, at: 0, effectiveRange: nil), gorunum.string)
+        let kayit = markdownMetniUret(depo)
+        XCTAssertTrue(kayit.contains("| State | Meaning |\n| --- | --- |\n| open | Accepts connections |\n"), kayit)
+        XCTAssertTrue(kayit.contains("| open\\|filtered | Open or filtered |"), kayit)
     }
 
     func testWebTablosuYanYanaKalir() throws {

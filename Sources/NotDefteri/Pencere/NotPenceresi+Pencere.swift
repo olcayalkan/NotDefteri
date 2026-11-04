@@ -62,7 +62,7 @@ extension NotPenceresi {
         let toplamGenislik = icerikGorunum.bounds.width
         let yukseklik = max(0, icerikGorunum.bounds.height - kBaslikYuksekligi)
         let baslikYuksekligi = min(SayfaSecenekAlani.yukseklik, yukseklik)
-        sayfaAltBilgisi.frame.origin.y = 5
+        sayfaAltBilgisi.frame.origin.y = (kAltBilgiYuksekligi - 16) / 2
         sayfaAltBilgisi.frame.size.height = 16
         sayfaSecenekAlani.frame.origin.y = yukseklik - baslikYuksekligi
         sayfaSecenekAlani.frame.size.height = baslikYuksekligi
@@ -83,9 +83,8 @@ extension NotPenceresi {
             surukleTutamaci.animator().frame = NSRect(x: hedefGenislik - 3, y: 0, width: 6, height: yukseklik)
             let metinGenisligi = max(0, toplamGenislik - hedefGenislik)
             anaSayfa.animator().frame = NSRect(x: hedefGenislik, y: 0, width: metinGenisligi, height: yukseklik)
-            let altBilgiYuksekligi: CGFloat = 26
-            kaydirmaGorunumu.animator().frame = NSRect(x: hedefGenislik, y: altBilgiYuksekligi, width: metinGenisligi,
-                                                       height: max(0, yukseklik - baslikYuksekligi - altBilgiYuksekligi))
+            kaydirmaGorunumu.animator().frame = NSRect(x: hedefGenislik, y: kAltBilgiYuksekligi, width: metinGenisligi,
+                                                       height: max(0, yukseklik - baslikYuksekligi - kAltBilgiYuksekligi))
         }, completionHandler: animasyonlu ? tamamla : nil)
         if !animasyonlu { tamamla() }
     }

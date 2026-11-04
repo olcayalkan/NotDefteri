@@ -66,25 +66,25 @@ extension NotPenceresi {
 
     @objc func sayfaGenisliginiUygula() {
         guard let kapsayici = metinGorunumu.textContainer else { return }
-        // Mevcut ortak yerleşim 26 puan alt bilgi payı bırakır. Dosyalar bu payın
+        // Mevcut ortak yerleşim alt bilgi payı (kAltBilgiYuksekligi) bırakır. Dosyalar bu payın
         // üstüne gelir; genişlik/kenar panel animasyonu da bu yolu çağırır.
         let alanYuksekligi = max(0, icerikGorunum.bounds.height - kBaslikYuksekligi)
-        let editorUstu = max(26, alanYuksekligi - min(SayfaSecenekAlani.yukseklik, alanYuksekligi))
+        let editorUstu = max(kAltBilgiYuksekligi, alanYuksekligi - min(SayfaSecenekAlani.yukseklik, alanYuksekligi))
         sayfaDosyalariAlani.isHidden = !anaSayfa.isHidden || sayfaDosyalariAlani.dosyaSayisi == 0
-        let dosyaYuksekligi = sayfaDosyalariAlani.isHidden ? 0 : min(sayfaDosyalariAlani.hedefYukseklik, max(0, editorUstu - 26) * 0.4)
+        let dosyaYuksekligi = sayfaDosyalariAlani.isHidden ? 0 : min(sayfaDosyalariAlani.hedefYukseklik, max(0, editorUstu - kAltBilgiYuksekligi) * 0.4)
         var editorKare = kaydirmaGorunumu.frame
-        editorKare.origin.y = 26 + dosyaYuksekligi
+        editorKare.origin.y = kAltBilgiYuksekligi + dosyaYuksekligi
         editorKare.size.height = max(0, editorUstu - editorKare.minY)
         if kaydirmaGorunumu.frame != editorKare { kaydirmaGorunumu.frame = editorKare }
         let clip = kaydirmaGorunumu.contentView
         let genislik = clip.bounds.width
         // Çok dar editörde bile mevcut görselin asgari eni için yer bırak.
-        let yanPay = min(48, max(0, (genislik - kEnKucukResimEni - kapsayici.lineFragmentPadding * 2) / 2))
+        let yanPay = min(kEditorYanPayi, max(0, (genislik - kEnKucukResimEni - kapsayici.lineFragmentPadding * 2) / 2))
         let kullanilabilir = max(1, genislik - yanPay * 2)
         // "Tam genişlik" seçeneği kaldırıldı; eski sayfalardaki `genislik: tam` satırı dosyada
         // korunur ama okunur genişliği değiştirmez.
-        let kapGenisligi = min(760, kullanilabilir)
-        let inset = NSSize(width: max(0, (genislik - kapGenisligi) / 2), height: 12)
+        let kapGenisligi = min(kEnGenisMetin, kullanilabilir)
+        let inset = NSSize(width: max(0, (genislik - kapGenisligi) / 2), height: kEditorDikeyBoslugu)
         if metinGorunumu.textContainerInset != inset { metinGorunumu.textContainerInset = inset }
         // Boy veya yalnızca merkez değiştiğinde bütün belgeyi yeniden dizme.
         if kapsayici.size.width != kapGenisligi {
@@ -96,7 +96,7 @@ extension NotPenceresi {
         sayfaSecenekAlani.frame.size.width = min(SayfaSecenekAlani.genislik, kapGenisligi + baslikPayi * 2)
         sayfaAltBilgisi.frame.origin.x = sol + kapsayici.lineFragmentPadding
         sayfaAltBilgisi.frame.size.width = max(0, kapGenisligi - kapsayici.lineFragmentPadding * 2)
-        sayfaDosyalariAlani.frame = NSRect(x: sayfaAltBilgisi.frame.minX, y: 26,
+        sayfaDosyalariAlani.frame = NSRect(x: sayfaAltBilgisi.frame.minX, y: kAltBilgiYuksekligi,
             width: sayfaAltBilgisi.frame.width, height: dosyaYuksekligi)
         metinGorunumu.needsDisplay = true
     }

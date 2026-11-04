@@ -32,8 +32,10 @@ private let kodDesenleri: [String: NSRegularExpression] = {
         // seçili bir dilin daha kesin kurallarını asla değiştirmez.
         "genel": "and as async await break case catch class const continue def default defer do else elseif elif enum export extends false finally for from func function guard if import in init interface let local nil null package private protected public return self static struct switch then this throw throws true try type var void while with yield"
     ]
-    let cYorumu = #"/\*[\s\S]*?(?:\*/|\z)|//[^\r\n]*"#
-    let tirnak = #""(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'"#
+    // "https://" yorum başlatmaz; harfe bitişik kesme ("Ankara'da") string açmaz. Uyarı kutusundaki
+    // düz yazı da bu kurallarla renklenir.
+    let cYorumu = #"/\*[\s\S]*?(?:\*/|\z)|(?<!:)//[^\r\n]*"#
+    let tirnak = #""(?:\\[\s\S]|[^"\\])*"|(?<![\p{L}\p{N}])'(?:\\[\s\S]|[^'\\])*'"#
     var sonuc: [String: NSRegularExpression] = [:]
     for (dil, liste) in kelimeler {
         let yorum: String

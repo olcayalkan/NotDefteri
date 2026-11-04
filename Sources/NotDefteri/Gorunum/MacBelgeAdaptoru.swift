@@ -60,7 +60,6 @@ final class MacBelgeAdaptoru {
          .verticalGlyphForm, .textEffect, .superscript]
     private static var solukRenk: NSColor { kMetinRenk.withAlphaComponent(0.45) }
     private static var kodArkaplani: NSColor { kMetinRenk.withAlphaComponent(0.08) }
-    private static var tabloCerceveRengi: NSColor { kMetinRenk.withAlphaComponent(0.62) }
     private static let vurguArkaplani = NSColor.systemYellow.withAlphaComponent(0.3)
     private static var fontlar: [String: NSFont] = [:]
 
@@ -78,7 +77,6 @@ final class MacBelgeAdaptoru {
         let boyut = punto(o) * olcek
         let kalin = kalinMi(o)
         if o[kSatirIciKodAnahtari] as? Bool != true, o[kKodBloguAnahtari] == nil,
-           o[kTabloSatiriAnahtari] == nil,
            let kaynak = o[kMacKaynakGorunumu] as? [NSAttributedString.Key: Any], let font = kaynak[.font] as? NSFont {
             let yonetici = NSFontManager.shared
             var yeni = yonetici.convert(font, toSize: boyut)
@@ -89,8 +87,7 @@ final class MacBelgeAdaptoru {
         return Self.fontUret(boyut: boyut,
                              kalin: kalin,
                              italik: o[kItalikAnahtari] as? Bool == true,
-                             mono: o[kSatirIciKodAnahtari] as? Bool == true || o[kKodBloguAnahtari] != nil ||
-                                o[kTabloSatiriAnahtari] != nil)
+                             mono: o[kSatirIciKodAnahtari] as? Bool == true || o[kKodBloguAnahtari] != nil)
     }
 
     func kalinMi(_ o: [NSAttributedString.Key: Any]) -> Bool {
@@ -134,7 +131,7 @@ final class MacBelgeAdaptoru {
 
     /// Önizleme gibi NSTextStorage delegesi olmayan tüketiciler için yükleme sınırı.
     func gorunumluBelge(_ anlamsal: NSAttributedString) -> NSAttributedString {
-        let belge = NSMutableAttributedString(attributedString: anlamsal)
+        let belge = NSMutableAttributedString(attributedString: tablolariHucrele(anlamsal))
         gorunumuUygula(belge, aralik: NSRange(location: 0, length: belge.length))
         return belge
     }
@@ -148,6 +145,8 @@ final class MacBelgeAdaptoru {
     }
 
     static func belgeyiAc(_ anlamsal: NSAttributedString, taban: URL, olcek: CGFloat = 1) -> NSAttributedString {
+        // Aşağıdaki satır aralıkları anlamsal belgede de kullanılır; tablo önce hücrelenir.
+        let anlamsal = tablolariHucrele(anlamsal)
         let adaptor = MacBelgeAdaptoru()
         adaptor.olcek = olcek
         let belge = NSMutableAttributedString(attributedString: adaptor.gorunumluBelge(anlamsal))
@@ -240,21 +239,43 @@ final class MacBelgeAdaptoru {
     }
 
     /// Depodaki aralığın görünümünü anlamsala eşitler; yalnızca farklı olan öznitelik yazılır.
-    func gorunumuUygula(_ depo: NSMutableAttributedString, aralik: NSRange) {
+    /// `cevresiyle` false: düzenleme sürerken (willProcessEditing) yalnızca verilen aralık yazılır ve
+    /// komşuya bağlı boşluklar olduğu gibi kalır. O sırada aralık dışına ya da değişen boşluğa yazmak
+    /// düzenlenen aralığı genişletip imleci kaydırıyordu; çevre, düzenleme bitince ayrıca uygulanır.
+    func gorunumuUygula(_ depo: NSMutableAttributedString, aralik: NSRange, cevresiyle: Bool = true) {
         var aralik = NSIntersectionRange(aralik, NSRange(location: 0, length: depo.length))
         guard !uygulaniyor, aralik.length > 0 else { return }
         uygulaniyor = true
         defer { uygulaniyor = false }
-        // Kutu kenarındaki boşluk ilk/son paragrafa bağlıdır; kutu büyüyüp küçülünce eski kenar
-        // paragrafında boşluk kalmasın diye düzenlenen aralık kutunun tamamına genişler.
-        aralik = Self.kutularaGenislet(depo, aralik)
+        // Kutu kenarındaki boşluk ilk/son paragrafa ve kutunun komşu satırına bağlıdır. Kutu
+        // büyüyüp küçülünce ya da komşusu değişince eski boşluk kalmasın (yeniden açınca değişirdi)
+        // diye aralık komşu paragraflara, kutuların tamamına ve onların komşularına genişler.
+        if cevresiyle {
+            aralik = Self.komsularaGenislet(depo, Self.kutularaGenislet(depo, Self.komsularaGenislet(depo, aralik)))
+        }
         var islemler: [(NSRange, [NSAttributedString.Key: Any], [NSAttributedString.Key])] = []
         func isle(_ o: [NSAttributedString.Key: Any], _ alt: NSRange) {
             var istenen = gorunum(o)
             if let kenar = Self.kutuKenari(depo, o, alt) {
                 let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
-                if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, kKutuDisBoslugu) }
-                if kenar.alt { stil.paragraphSpacing = max(stil.paragraphSpacing, kKutuDisBoslugu) }
+                // Üstte boş satır ya da başka kutu varsa ayrımı o verir; boşluk ikiye katlanmasın.
+                let ust = Self.oncekiSatirBosVeyaKutu(depo, alt.location) ? kKutuAltBoslugu : kKutuDisBoslugu
+                if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, ust) }
+                if kenar.alt { stil.paragraphSpacing = max(stil.paragraphSpacing, kKutuAltBoslugu) }
+                istenen[.paragraphStyle] = stil
+            } else if let yukseklik = Self.ayracSatiri(depo, alt.location) ? kAyracSatiriYuksekligi
+                        : Self.kutularArasiBosSatir(depo, alt.location) ? kKutularArasiBosSatirYuksekligi : nil {
+                let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
+                stil.minimumLineHeight = yukseklik
+                stil.maximumLineHeight = yukseklik
+                istenen[.paragraphStyle] = stil
+            }
+            if !cevresiyle, let eski = o[.paragraphStyle] as? NSParagraphStyle {
+                let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
+                stil.paragraphSpacingBefore = eski.paragraphSpacingBefore
+                stil.paragraphSpacing = eski.paragraphSpacing
+                stil.minimumLineHeight = eski.minimumLineHeight
+                stil.maximumLineHeight = eski.maximumLineHeight
                 istenen[.paragraphStyle] = stil
             }
             var ekle: [NSAttributedString.Key: Any] = [:]
@@ -305,6 +326,61 @@ final class MacBelgeAdaptoru {
         return sonuc
     }
 
+    private static func komsularaGenislet(_ depo: NSAttributedString, _ aralik: NSRange) -> NSRange {
+        let ns = depo.string as NSString
+        var sonuc = aralik
+        if aralik.location > 0 { sonuc = NSUnionRange(sonuc, ns.paragraphRange(for: NSRange(location: aralik.location - 1, length: 0))) }
+        if NSMaxRange(aralik) < ns.length { sonuc = NSUnionRange(sonuc, ns.paragraphRange(for: NSRange(location: NSMaxRange(aralik), length: 0))) }
+        return sonuc
+    }
+
+    private static func kutudaMi(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+        konum >= 0 && konum < depo.length && kutuAnahtarlari.contains { depo.attribute($0, at: konum, effectiveRange: nil) != nil }
+    }
+
+    private static func bosSatirMi(_ ns: NSString, _ paragraf: NSRange) -> Bool {
+        ns.substring(with: paragraf).trimmingCharacters(in: .newlines).isEmpty
+    }
+
+    private static func oncekiSatirBosVeyaKutu(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+        let ns = depo.string as NSString
+        let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+        guard paragraf.location > 0 else { return false }
+        var onceki = ns.paragraphRange(for: NSRange(location: paragraf.location - 1, length: 0))
+        // Ayraç satırı görünmez; kutu bitişik yazılmış gibi ondan önceki satıra bakılır.
+        if ayracSatiri(depo, onceki.location), onceki.location > 0 {
+            onceki = ns.paragraphRange(for: NSRange(location: onceki.location - 1, length: 0))
+            return kutudaMi(depo, onceki.location)
+        }
+        return bosSatirMi(ns, onceki) || kutudaMi(depo, onceki.location)
+    }
+
+    private static func blokTuru(_ depo: NSAttributedString, _ konum: Int) -> MetinBlogu.Tur? {
+        guard konum >= 0, konum < depo.length else { return nil }
+        return MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur
+    }
+
+    /// Bitişik alıntı ve uyarıyı Obsidian tek kutu okumasın diye kayıt araya boş satır yazar
+    /// (`markdownMetniUret`). Düzenlerken o satır yoktu, açınca tam satır olarak beliriyordu;
+    /// her iki durumda da aynı görünsün diye bu tek boş satır neredeyse sıfır yükseklikte çizilir.
+    private static func ayracSatiri(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+        let ns = depo.string as NSString
+        let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+        guard paragraf.location > 0, NSMaxRange(paragraf) < ns.length, ns.substring(with: paragraf).hasSuffix("\n"),
+              bosSatirMi(ns, paragraf) else { return false }
+        let once = blokTuru(depo, paragraf.location - 1), sonra = blokTuru(depo, NSMaxRange(paragraf))
+        return (once == .alinti && sonra == .uyari) || (once == .uyari && sonra == .alinti)
+    }
+
+    /// İki kutu arasındaki tek boş satır; kutular arası boşluk bir satır yüksekliğine çıkmasın.
+    private static func kutularArasiBosSatir(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+        let ns = depo.string as NSString
+        let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
+        guard paragraf.location > 0, NSMaxRange(paragraf) < ns.length, ns.substring(with: paragraf).hasSuffix("\n"),
+              bosSatirMi(ns, paragraf) else { return false }
+        return kutudaMi(depo, paragraf.location - 1) && kutudaMi(depo, NSMaxRange(paragraf))
+    }
+
     /// Parça kutunun ilk paragrafındaysa üst, son paragrafındaysa alt kenardadır.
     private static func kutuKenari(_ depo: NSAttributedString, _ o: [NSAttributedString.Key: Any],
                                    _ alt: NSRange) -> (ust: Bool, alt: Bool)? {
@@ -339,18 +415,11 @@ final class MacBelgeAdaptoru {
             g[.backgroundColor] = Self.vurguArkaplani
         } else if o[kSatirIciKodAnahtari] as? Bool == true {
             g[.backgroundColor] = Self.kodArkaplani
-        } else if o[kTabloSatiriAnahtari] as? String == TabloSatiriTuru.cerceve.rawValue {
-            // Satır zeminleri öznitelik değil: `NotYerlesimYoneticisi` çerçevenin içine çizer.
-            g[.foregroundColor] = Self.tabloCerceveRengi
         }
         if let bag = o[kBaglantiAnahtari] { g[.link] = bag }
         // Kodun görsel girintisi yalnızca Mac stilidir; gövdeye ve kayda sekme eklenmez.
         let geometri: [String: Any]? = o[kKodBloguAnahtari] != nil
             ? ["ilkSatirGirintisi": 24.0, "govdeGirintisi": 24.0, "sekmeAraligi": 24.0]
-            : o[kTabloSatiriAnahtari] != nil
-                ? ["ilkSatirGirintisi": 14.0, "govdeGirintisi": 14.0, "sekmeAraligi": 14.0,
-                   "paragrafBoslugu": 0.0, "satirAraligi": 0.0, "satirYuksekligiCarpani": 1.0,
-                   "satirSonuKirma": true]
             : o[kParagrafGeometrisiAnahtari] as? [String: Any]
         if let stil = paragrafStili(geometri) {
             if blok?.tur == .yapilacak, let metinFontu = font(o) as NSFont? {
@@ -363,7 +432,52 @@ final class MacBelgeAdaptoru {
                 g[.paragraphStyle] = stil
             }
         }
+        if let hucre = TabloHucresi(oznitelik: o[kTabloHucresiAnahtari]) {
+            let stil = ((g[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+            stil.textBlocks = [Self.tabloBlogu(hucre)]
+            g[.paragraphStyle] = stil
+        }
+        if o[kOrtaliAnahtari] as? Bool == true || (o[kKodBloguAnahtari] as? [String: String]).map(kodBloguOrtaliMi) == true {
+            let stil = ((g[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+            stil.alignment = .center
+            g[.paragraphStyle] = stil
+        }
         return g
+    }
+
+    /// Bir tablonun bütün hücreleri aynı `NSTextTable` nesnesini paylaşmalı; yoksa AppKit
+    /// her hücreyi ayrı tabloya koyar. Tablo pencere genişliğine yayılır, uzun hücre kırılır.
+    private static var tablolar: [String: NSTextTable] = [:]
+    /// Hücre bloğu da hücre başına tektir: `NSTextBlock` kimlikle karşılaştırılır. Her tuşta
+    /// yeni blok üretilseydi `gorunumuUygula` paragraf stilini yeniden yazar, imleç sonraki
+    /// hücreye atlardı. Tema rengi değişince bloklar yeniden kurulur.
+    private static var bloklar: [String: NSTextTableBlock] = [:]
+    private static var blokRengi: NSColor?
+
+    private static func tabloBlogu(_ hucre: TabloHucresi) -> NSTextTableBlock {
+        if blokRengi != kMetinRenk { bloklar = [:]; blokRengi = kMetinRenk }
+        let anahtar = "\(hucre.tablo)|\(hucre.satir)|\(hucre.sutun)"
+        if let blok = bloklar[anahtar] { return blok }
+        let tablo = tablolar[hucre.tablo] ?? {
+            let yeni = NSTextTable()
+            yeni.numberOfColumns = hucre.sutunSayisi
+            yeni.layoutAlgorithm = .automaticLayoutAlgorithm
+            yeni.collapsesBorders = true
+            yeni.hidesEmptyCells = false
+            yeni.setContentWidth(100, type: .percentageValueType)
+            tablolar[hucre.tablo] = yeni
+            return yeni
+        }()
+        let blok = NSTextTableBlock(table: tablo, startingRow: hucre.satir, rowSpan: 1,
+                                    startingColumn: hucre.sutun, columnSpan: 1)
+        blok.setBorderColor(kMetinRenk.withAlphaComponent(0.35))
+        blok.setWidth(1, type: .absoluteValueType, for: .border)
+        blok.setWidth(6, type: .absoluteValueType, for: .padding)
+        // Başlık belirgin; gövdede çift satırlar (2., 4., …) hafif gölgeli, satır gözle izlenir.
+        if hucre.satir == 0 { blok.backgroundColor = kMetinRenk.withAlphaComponent(0.10) }
+        else if hucre.satir.isMultiple(of: 2) { blok.backgroundColor = kMetinRenk.withAlphaComponent(0.045) }
+        bloklar[anahtar] = blok
+        return blok
     }
 
     /// Paragraf geometrisi taban punto uzayındadır; görünüm ölçeğinden etkilenmez.

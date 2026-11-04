@@ -29,6 +29,18 @@ final class TabloTestleri: XCTestCase {
         XCTAssertNil(tabloMarkdownUret(satir: 31, sutun: 2))
     }
 
+    #if os(macOS)
+    /// macOS'ta tablo kutuya çevrilmez: düz Markdown metni olarak açılır ve aynen kaydolur.
+    func testMarkdownTablosuDuzMetinKalirVeAynenKaydolur() throws {
+        let metin = "| Ad | Değer |\n| :--- | ---: |\n| Bir | 1 |\n"
+        let belge = markdowndenAttributedStringUret(metin)
+        XCTAssertEqual(belge.string, metin)
+        XCTAssertNil(belge.attribute(kTabloSatiriAnahtari, at: 0, effectiveRange: nil))
+        XCTAssertNil(belge.attribute(kTabloGorselAnahtari, at: 0, effectiveRange: nil))
+        XCTAssertEqual(markdownMetniUret(belge), metin)
+    }
+    #else
+    /// Linux (GTK) yerel tablo çizemez; tablo çerçeveli görsel olarak açılır ve aynen kaydolur.
     func testMarkdownTablosuGorunumOzniteligiAlirVeAynenKaydolur() throws {
         let metin = "| Ad | Değer |\n| :--- | ---: |\n| Bir | 1 |\n"
         let belge = markdowndenAttributedStringUret(metin)
@@ -40,13 +52,14 @@ final class TabloTestleri: XCTestCase {
         XCTAssertNotNil(belge.attribute(kTabloGorselAnahtari, at: 0, effectiveRange: nil))
         XCTAssertEqual(markdownMetniUret(belge), metin)
     }
+    #endif
 
     func testSiradanBoruMetniTabloDegildir() {
         let belge = markdowndenAttributedStringUret("a | b\n")
         XCTAssertNil(belge.attribute(kTabloSatiriAnahtari, at: 0, effectiveRange: nil))
     }
 
-    func testKutuluTablodaHucreDuzenleninceMarkdownaGeriDoner() {
+    func testDuzTablodaHucreDuzenlenir() {
         let belge = NSMutableAttributedString(attributedString: markdowndenAttributedStringUret(
             "| Ad | Değer |\n| --- | --- |\n| Bir | 1 |\n"))
         let ad = (belge.string as NSString).range(of: "Ad")
@@ -62,6 +75,38 @@ final class TabloTestleri: XCTestCase {
         XCTAssertNil(tabloGorselindenMarkdownUret(gorsel))
     }
 
+    #if os(macOS)
+    func testTabloHamMarkdowniKorur() {
+        let kod = "\u{0060}#\u{0060}"
+        let kaynak = "| \(kod) | **Kalın** |\n| --- | --- |\n| kod ışı | Türkçe ş |\n"
+        let belge = markdowndenAttributedStringUret(kaynak)
+        XCTAssertFalse(belge.string.contains("┌"))
+        XCTAssertEqual(markdownMetniUret(belge), kaynak)
+    }
+
+    /// macOS editörü tabloyu hücre paragraflarına böler; kayıt aynı Markdown'a döner.
+    func testHucrelenenTabloAynenKaydolur() {
+        let kaynak = "önce\n\n| Ad | Değer |\n| --- | --- |\n| a\\|b | 1 |\n\nsonra\n"
+        let hucreli = tablolariHucrele(markdowndenAttributedStringUret(kaynak))
+        XCTAssertTrue(hucreli.string.contains("a|b\n1\n"), hucreli.string)
+        XCTAssertFalse(hucreli.string.contains("| Ad"))
+        XCTAssertEqual(markdownMetniUret(hucreli), kaynak)
+    }
+
+    /// Kod bloğundaki boru satırları tabloya çevrilmez.
+    func testKodBlogundakiTabloHucrelenmez() {
+        let kaynak = "```\n| a | b |\n| --- | --- |\n| 1 | 2 |\n```\n"
+        let belge = tablolariHucrele(markdowndenAttributedStringUret(kaynak))
+        XCTAssertNil(belge.attribute(kTabloHucresiAnahtari, at: 4, effectiveRange: nil))
+        XCTAssertEqual(markdownMetniUret(belge), kaynak)
+    }
+
+    /// Metne bitişik eklenen tablo (`/tablo`) kayıtta boş satırla ayrılır.
+    func testTablonunOnuneBosSatirKonur() {
+        let hucreli = tablolariHucrele(markdowndenAttributedStringUret("Notlar\n| a | b |\n| --- | --- |\n| 1 | 2 |\n"))
+        XCTAssertEqual(markdownMetniUret(hucreli), "Notlar\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n")
+    }
+    #else
     func testTabloHamMarkdowniKorurVeCizgilerHizalidir() {
         let kod = "\u{0060}#\u{0060}"
         let kaynak = "| \(kod) | **Kalın** |\n| --- | --- |\n| kod ışı | Türkçe ş |\n"
@@ -69,11 +114,17 @@ final class TabloTestleri: XCTestCase {
         XCTAssertTrue(belge.string.contains(kod))
         XCTAssertTrue(belge.string.contains("**Kalın**"))
         XCTAssertEqual(markdownMetniUret(belge), kaynak)
-        let satirlar = belge.string.split(separator: "\n", omittingEmptySubsequences: true)
-        let icerikSatirlari = satirlar.filter { $0.first == "│" }
+        let icerikSatirlari = belge.string.split(separator: "\n", omittingEmptySubsequences: true).filter { $0.first == "│" }
         func ayiracKonumlari(_ satir: Substring) -> [Int] {
             satir.enumerated().compactMap { $0.element == "│" ? $0.offset : nil }
         }
         XCTAssertEqual(ayiracKonumlari(icerikSatirlari[0]), ayiracKonumlari(icerikSatirlari[1]))
+    }
+    #endif
+
+    func testSekmeliMetinTabloyaCevrilir() {
+        XCTAssertEqual(sekmeliMetniTabloyaCevir("a\tb\n1\t2"), "| a | b |\n| --- | --- |\n| 1 | 2 |")
+        XCTAssertEqual(sekmeliMetniTabloyaCevir("tek\tsatır"), "tek\tsatır", "tek satır tablo değildir")
+        XCTAssertEqual(sekmeliMetniTabloyaCevir("düz metin"), "düz metin")
     }
 }
