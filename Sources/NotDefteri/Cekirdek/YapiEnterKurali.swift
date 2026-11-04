@@ -134,18 +134,25 @@ private func kodKapanisiniTamamla(_ yeni: NSMutableAttributedString, kod: [Strin
     yeni.addAttribute(kKodBloguAnahtari, value: kod, range: NSRange(location: 0, length: yeni.length))
 }
 
-/// Kod bloğunun ya da uyarı kutusunun son satırı boşken Enter (art arda ikinci Enter) kutudan
-/// çıkar: boş satır kutudan atılır, imleç kutunun altındaki boş düz satıra geçer; öyle bir satır
-/// yoksa açılır. Tek satırlık kutuda çıkılmaz; yeni açılan boş kutuda Enter ilk satırı açar.
+/// Kutunun son satırı boşken Enter kutudan çıkar: uyarı kutusunda art arda ikinci, kod bloğunda
+/// üçüncü Enter (kodda tek boş satır sık yazılır). Sondaki boş satırlar kutudan atılır, imleç
+/// kutunun altındaki boş düz satıra geçer; öyle bir satır yoksa açılır. Tek satırlık kutuda çıkılmaz.
 private func kutununSonBosSatirindanCik(_ belge: NSAttributedString, ns: NSString, paragraf: NSRange,
                                         kod: [String: String]?) -> YapiEnterDegisimi? {
     var tam = NSRange()
     _ = belge.attribute(kod != nil ? kKodBloguAnahtari : kUyariKutusuAnahtari, at: min(paragraf.location, belge.length - 1),
                         longestEffectiveRange: &tam, in: NSRange(location: 0, length: belge.length))
     guard paragraf.location > tam.location, NSMaxRange(paragraf) >= NSMaxRange(tam) else { return nil }
+    var kes = paragraf.location
+    if kod != nil {
+        let onceki = ns.paragraphRange(for: NSRange(location: paragraf.location - 1, length: 0))
+        guard onceki.location > tam.location,
+              kodBloguGovdesi(belge.attributedSubstring(from: onceki)).trimmingCharacters(in: .newlines).isEmpty else { return nil }
+        kes = onceki.location
+    }
     let kapsam = NSUnionRange(tam, paragraf)
     let yeni = NSMutableAttributedString(attributedString: belge.attributedSubstring(
-        from: NSRange(location: tam.location, length: paragraf.location - tam.location)))
+        from: NSRange(location: tam.location, length: kes - tam.location)))
     if let kod { kodKapanisiniTamamla(yeni, kod: kod) }
     let alt = NSMaxRange(kapsam)
     let altBosDuz = alt < belge.length && ns.character(at: alt) == 10 &&

@@ -171,10 +171,11 @@ final class UyariPanoTestleri: XCTestCase {
 
     // MARK: Kod bloğunda Enter ve dışarıdan yapıştırma
 
-    /// Kodun son satırında iki Enter koddan çıkar; yazılan metin kutunun altına düşer.
-    func testKoddaIkiEnterKutudanCikar() {
+    /// Kodun son satırında üç Enter koddan çıkar; yazılan metin kutunun altına düşer.
+    func testKoddaUcEnterKutudanCikar() {
         let e = editor("```\nabc\n```\n")
         e.setSelectedRange(NSRange(location: NSMaxRange((e.string as NSString).range(of: "abc")), length: 0))
+        e.insertNewline(nil)
         e.insertNewline(nil)
         e.insertNewline(nil)
         e.insertText("x", replacementRange: e.selectedRange())

@@ -23,8 +23,8 @@ final class KodBloguEnterTestleri: XCTestCase {
         XCTAssertEqual(markdownMetniUret(belge), "```swift\nilk\n\n\norta\nson\n```\n")
     }
 
-    /// Kodun son satırında art arda iki Enter koddan çıkar; boş satır kodda kalmaz.
-    func testSonSatirdaIkinciEnterKoddanCikar() throws {
+    /// Kodun son satırında art arda üç Enter koddan çıkar; boş satırlar kodda kalmaz.
+    func testSonSatirdaUcuncuEnterKoddanCikar() throws {
         for (kaynak, beklenen) in [("```swift\nilk\n```\n", "```swift\nilk\n```\ndisarida\n"),
                                    // Altındaki boş satır yeniden kullanılır; boş satır çoğalmaz.
                                    ("```swift\nilk\n```\n\nalt\n", "```swift\nilk\n```\ndisarida\nalt\n"),
@@ -32,9 +32,14 @@ final class KodBloguEnterTestleri: XCTestCase {
                                    ("```swift\nilk\n", "```swift\nilk\n```\ndisarida\n")] {
             let belge = NSMutableAttributedString(attributedString: markdowndenAttributedStringUret(kaynak))
             let imlec = (belge.string as NSString).range(of: "ilk").upperBound
-            let ilk = try XCTUnwrap(yapiEnterKurali(belge, imlec: NSRange(location: imlec, length: 0)))
-            let bos = uygula(ilk, belge: belge)
-            XCTAssertNotNil(belge.attribute(kKodBloguAnahtari, at: bos, effectiveRange: nil), kaynak)
+            var bos = imlec
+            // İlk iki Enter kodda boş satır açar.
+            for _ in 0..<2 {
+                let degisim = try XCTUnwrap(yapiEnterKurali(belge, imlec: NSRange(location: bos, length: 0)))
+                bos = uygula(degisim, belge: belge)
+                XCTAssertNotNil(belge.attribute(kKodBloguAnahtari, at: bos, effectiveRange: nil), kaynak)
+                XCTAssertNotNil(degisim.yazim[kKodBloguAnahtari], kaynak)
+            }
             let ikinci = try XCTUnwrap(yapiEnterKurali(belge, imlec: NSRange(location: bos, length: 0)))
             let araDurum = NSAttributedString(attributedString: belge)
             let eski = belge.attributedSubstring(from: ikinci.aralik)
