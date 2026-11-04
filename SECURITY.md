@@ -1,20 +1,20 @@
-# Güvenlik Politikası
+# Security Policy
 
-## Desteklenen sürüm
+## Supported versions
 
-Yalnızca `main` dalındaki son sürüm güvenlik düzeltmesi alır.
+Only the latest version on the `main` branch receives security fixes.
 
-## Açık bildirme
+## Reporting a vulnerability
 
-Güvenlik açığını **herkese açık issue olarak açmayın**.
+Please **do not open a public issue** for security vulnerabilities.
 
-1. [Güvenlik açığı bildir](https://github.com/olcayalkan/NotDefteri/security/advisories/new) sayfasından gizli bildirim gönderin.
-2. Etkilenen platformu (macOS / Linux), sürümü ve yeniden üretme adımlarını yazın.
+1. Send a private report from the [Report a vulnerability](https://github.com/olcayalkan/NotDefteri/security/advisories/new) page.
+2. Include the affected platform (macOS / Linux), the version and steps to reproduce.
 
-Bildirim birkaç gün içinde yanıtlanır. Düzeltme yayınlanana kadar ayrıntılar gizli tutulur.
+Reports are answered within a few days. Details stay private until a fix is released.
 
-## Kapsam
+## Scope
 
-- Not dosyalarının okunması, yazılması ve dışa aktarılması (Markdown, HTML, PDF)
-- Görsel ve bağlantı işleme
-- Derleme ve CI iş akışları
+- Reading, writing and exporting notes (Markdown, HTML, PDF)
+- Image and link handling
+- Build and CI workflows

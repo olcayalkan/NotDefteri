@@ -1,15 +1,15 @@
 name: CodeQL
 run-name: "CodeQL · ${{ github.ref_name }}"
 
-# Kod taraması: Swift kaynağı ve iş akışları güvenlik açığına karşı taranır.
-# Sonuçlar Security → Code scanning sekmesine düşer.
+# Code scanning: Swift sources and workflows are scanned for vulnerabilities.
+# Results appear under Security → Code scanning.
 
 on:
   push:
     branches: [main]
   pull_request:
   schedule:
-    - cron: "17 4 * * 1"   # Her pazartesi; yeni kurallar eski kodda da çalışsın.
+    - cron: "17 4 * * 1"   # Every Monday, so new queries also run on unchanged code.
   workflow_dispatch:
 
 permissions:
@@ -20,40 +20,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tara:
-    name: CodeQL · ${{ matrix.dil }}
-    runs-on: ${{ matrix.makine }}
+  scan:
+    name: CodeQL · ${{ matrix.lang }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     permissions:
       contents: read
       actions: read
-      security-events: write   # Yalnızca sonuç yüklemek için.
+      security-events: write   # Only to upload results.
     strategy:
       fail-fast: false
       matrix:
         include:
-          - dil: swift      # Swift çözümlemesi macOS'ta derlenerek yapılır.
-            makine: macos-15
-            derleme: manual
-          - dil: actions    # İş akışı dosyaları; derleme gerekmez.
-            makine: ubuntu-24.04
-            derleme: none
+          - lang: swift      # Swift is analyzed by building on macOS.
+            runner: macos-15
+            build: manual
+          - lang: actions    # Workflow files; no build needed.
+            runner: ubuntu-24.04
+            build: none
     steps:
-      - name: Kaynak kodu al
+      - name: Check out source
         uses: actions/checkout@v7
 
-      - name: CodeQL'i başlat
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.dil }}
-          build-mode: ${{ matrix.derleme }}
+          languages: ${{ matrix.lang }}
+          build-mode: ${{ matrix.build }}
           queries: security-and-quality
 
-      - name: Derle
-        if: matrix.derleme == 'manual'
+      - name: Build
+        if: matrix.build == 'manual'
         run: swift build
 
-      - name: Çözümle
+      - name: Analyze
         uses: github/codeql-action/analyze@v4
         with:
-          category: "/language:${{ matrix.dil }}"
+          category: "/language:${{ matrix.lang }}"
