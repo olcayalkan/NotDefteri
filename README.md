@@ -32,7 +32,7 @@ Click a card to jump to the section that explains how to use it.
 
 - **Quick finder** (`⌘P` / `Ctrl+P`): type part of a page name and jump to it. It ignores Turkish letter
   differences (typing “istanbul” also finds “İstanbul”).
-- **Home page.** Today's date with a live clock, recently opened pages, and one-click new page, daily note or template.
+- **Home page.** Recently opened pages, your open tasks, and one-click new page, daily note or template.
 - **Page links.** Type `[[` to get page suggestions and jump to the chosen page in one click.
   Links update themselves when a page is moved or renamed.
 - **Block menu.** Type `/` at the start of a line for headings, lists, quotes, callouts and more.
@@ -165,7 +165,8 @@ Drag the image's corner to resize it.
 
 ### To-dos
 
-`- [ ] task` lines are check boxes; click the box to check a task off.
+`- [ ] task` lines are collected on the **Home page**. A task you check off there is also checked off
+on its own page.
 
 ---
 
@@ -251,15 +252,12 @@ swift test           # run the tests
 
 | Folder | Contents |
 |---|---|
-| `Sources/NotDefteriCekirdek/` | Platform-independent logic: Markdown converter, page tree, saving, search (shared by both platforms) |
-| `Sources/NotDefteriMac/` | macOS interface (AppKit) |
+| `Sources/NotDefteri/Cekirdek/` | Platform-independent logic: Markdown converter, page tree, saving, search (shared by both platforms) |
+| `Sources/NotDefteri/` (the rest) | macOS interface (AppKit) |
 | `Sources/NotDefteriLinux/` | Linux interface (GTK 4) |
 | `Sources/CGtk/` | C bridge for GTK |
-| `Tests/` | Core, macOS and Linux tests |
+| `Tests/` | Core and macOS tests |
 | `06_Metadata/` | Code map and architecture decisions. Read these before the code |
-
-The [project wiki](https://github.com/olcayalkan/NotDefteri/wiki) covers usage, architecture and development in more depth
-(source: [`docs/wiki/`](docs/wiki/Home.md)).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and code conventions
 (Turkish identifiers, layers, comment style).
