@@ -783,7 +783,45 @@ private func tabloGorseliniUret(_ tablo: TabloMarkdownParcasi) -> NSAttributedSt
     return sonuc
 }
 
+/// Not geçişlerinde (A → B → A) aynı sayfa yeniden ayrıştırılmasın. Ayrıştırma saf bir işlevdir:
+/// aynı metin ve taban aynı belgeyi verir. Yalnızca büyük metinler, değiştirilemez kopya olarak tutulur.
+private let ayristirmaOnbellegi = AyristirmaOnbellegi(kapasite: 8)
+
+private final class AyristirmaOnbellegi {
+    private struct Anahtar: Hashable { let metin: String; let taban: String }
+    private let kilit = NSLock()
+    private let kapasite: Int
+    private var degerler: [Anahtar: NSAttributedString] = [:]
+    private var sira: [Anahtar] = []
+
+    init(kapasite: Int) { self.kapasite = kapasite }
+
+    func deger(_ metin: String, _ taban: URL, uret: () -> NSAttributedString) -> NSAttributedString {
+        let anahtar = Anahtar(metin: metin, taban: taban.standardizedFileURL.path)
+        kilit.lock()
+        if let bulunan = degerler[anahtar] {
+            sira.removeAll { $0 == anahtar }; sira.append(anahtar)
+            kilit.unlock()
+            return bulunan
+        }
+        kilit.unlock()
+        let yeni = NSAttributedString(attributedString: uret())
+        kilit.lock(); defer { kilit.unlock() }
+        if degerler.updateValue(yeni, forKey: anahtar) == nil { sira.append(anahtar) }
+        if sira.count > kapasite { degerler[sira.removeFirst()] = nil }
+        return yeni
+    }
+}
+
+/// Bu boyutun altındaki metin (satır, tablo, küçük not) zaten hızlı açılır; önbelleğe girmez.
+private let kOnbellekEnAzUzunluk = 4_000
+
 package func markdowndenAttributedStringUret(_ metin: String, taban: URL = notlarKlasoru()) -> NSAttributedString {
+    guard metin.utf8.count >= kOnbellekEnAzUzunluk else { return markdownuAyristir(metin, taban: taban) }
+    return ayristirmaOnbellegi.deger(metin, taban) { markdownuAyristir(metin, taban: taban) }
+}
+
+private func markdownuAyristir(_ metin: String, taban: URL) -> NSAttributedString {
     var parcalar: [NSAttributedString] = []
     let ns = NSString(string: metin)
     var konum = 0
