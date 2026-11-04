@@ -30,7 +30,7 @@ extension NotPenceresi {
             return false
         }
 
-        switch kaydedici.yaz(metin: metin, url: url, mevcutURL: mevcutDosyaURL) {
+        switch BagimlilikKonteyneri.paylasilan.sayfayiKaydet(.init(metin: metin, url: url, mevcutURL: mevcutDosyaURL, kaydedici: kaydedici)) {
         case .gerekmedi:
             return true
         case .basarisiz(let neden):
@@ -38,7 +38,6 @@ extension NotPenceresi {
             return false
         case .yazildi:
             kayitHatasiBildirildi = false
-            SayfaGecmisi.kaydet(metin: metin, icerikURL: url)
             mevcutDosyaURL = url
             baslikEtiketiniGuncelle()
             kenarPaneli.notIceriginiArkaPlandaGuncelle(url, metin: metin)

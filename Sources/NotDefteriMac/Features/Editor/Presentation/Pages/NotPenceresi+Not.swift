@@ -27,14 +27,14 @@ extension NotPenceresi {
                 self.kenarPaneli.yenile(secili: self.mevcutDosyaURL)
             }
         }
-        guard let icerik = try? String(contentsOf: url, encoding: .utf8) else { return }
+        guard case .success(let sayfa) = BagimlilikKonteyneri.paylasilan.sayfayiAc(url) else { return }
+        let icerik = sayfa.ham
         anaSayfayiGizle()
-        let sayfa = sayfaUstbilgisiniAyir(icerik)
         hizliBulucu.gizle()
         metinGorunumu.yuzerGorunumleriGizle()
         metinGorunumu.bagTamamlamaAraligi = nil
         metinGorunumu.slashAraligi = nil
-        sayfaUstbilgisi = sayfa.bilgi
+        sayfaUstbilgisi = sayfa.ustbilgi
         metinGorunumu.katlamaSayfasiniAc(url)
         metinGorunumu.sayfaYukleniyor = true
         metinGorunumu.textStorage?.setAttributedString(MacBelgeAdaptoru.markdownuAc(sayfa.govde, taban: sayfaKlasoru(url), olcek: metinGorunumu.belgeAdaptoru.olcek))

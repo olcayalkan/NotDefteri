@@ -416,17 +416,17 @@ final class LinuxEditor {
     @discardableResult
     private func ac(_ url: URL) -> Bool {
         defer { notSecimiBildir?(mevcutURL) }
-        let icerik: String
+        let sayfa: Sayfa
         do {
             try notlarYolunuDogrula(url)
-            icerik = try String(contentsOf: url, encoding: .utf8)
+            sayfa = try BagimlilikKonteyneri.paylasilan.sayfayiAc(url).get()
         }
         catch {
-            diyalog("Not açılamadı", error.localizedDescription, dugmeler: ["Tamam"]) { _ in }
+            diyalog("Not açılamadı", (error as? Basarisizlik)?.mesaj ?? error.localizedDescription, dugmeler: ["Tamam"]) { _ in }
             return false
         }
-        let sayfa = sayfaUstbilgisiniAyir(icerik)
-        ustbilgi = sayfa.bilgi
+        let icerik = sayfa.ham
+        ustbilgi = sayfa.ustbilgi
         for kanca in notKapanmadanOnce { kanca() }
         imlecIzlenmiyor = true
         adaptor.yukle(markdowndenAttributedStringUret(sayfa.govde, taban: sayfaKlasoru(url)))
@@ -684,7 +684,7 @@ final class LinuxEditor {
             return .hata(kayitHatasi("Notun dosyası veya klasörü artık mevcut değil.", url: url, bildir: bildir))
         }
         let metin = sayfaMarkdownunuUret(anlamsalBelge, ustbilgi: ustbilgi)
-        switch kaydedici.yaz(metin: metin, url: url, mevcutURL: mevcutURL) {
+        switch BagimlilikKonteyneri.paylasilan.sayfayiKaydet(.init(metin: metin, url: url, mevcutURL: mevcutURL, kaydedici: kaydedici)) {
         case .gerekmedi:
             bekleyenKayitHatasi = nil
             kayitHatasiBildirildi = false
@@ -692,7 +692,6 @@ final class LinuxEditor {
         case .yazildi:
             kayitHatasiBildirildi = false
             bekleyenKayitHatasi = nil
-            SayfaGecmisi.kaydet(metin: metin, icerikURL: url)
             for kanca in kayitSonrasi { kanca(url, metin) }
             durumuBildir()
             return .yazildi

@@ -2,7 +2,7 @@
 import PackageDescription
 
 var targets: [Target] = [
-    .target(name: "NotDefteriCekirdek", path: "Sources/NotDefteri/Cekirdek"),
+    .target(name: "NotDefteriCekirdek", path: "Sources/NotDefteriCekirdek"),
     .testTarget(name: "NotDefteriCekirdekTests", dependencies: ["NotDefteriCekirdek"],
                 path: "Tests/NotDefteriCekirdekTests")
 ]
@@ -10,7 +10,7 @@ var targets: [Target] = [
 #if os(macOS)
 targets += [
     .target(name: "NotDefteriMac", dependencies: ["NotDefteriCekirdek"],
-            path: "Sources/NotDefteri", exclude: ["Cekirdek"]),
+            path: "Sources/NotDefteriMac"),
     .executableTarget(name: "NotDefteri", dependencies: ["NotDefteriMac"],
                       path: "Sources/Calistirici"),
     .testTarget(name: "NotDefteriMacTests", dependencies: ["NotDefteriCekirdek", "NotDefteriMac"],
