@@ -46,7 +46,7 @@ swift test           # run the tests
 - To keep your notes safe while trying the app, point it at another folder:
   `NOTDEFTERI_KOK=/tmp/try not`
 - On every PR, CI builds, tests and packages the app on macOS and Linux. Nothing is merged until
-  "CI sonucu" (CI result) is green.
+  "CI result" is green.
 
 ## Workflow
 

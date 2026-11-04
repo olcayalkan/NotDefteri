@@ -1,24 +1,24 @@
-## Ne değişti
+## What changed
 
-<!-- Kısa özet. Neden gerekli olduğunu da yaz. -->
+<!-- Short summary. Also explain why it is needed. -->
 
-Kapatır: #
+Closes #
 
-## Tür
+## Type
 
-- [ ] Hata düzeltme
-- [ ] Yeni özellik
+- [ ] Bug fix
+- [ ] New feature
 - [ ] Refactor
-- [ ] Dokümantasyon
+- [ ] Documentation
 
-## Etkilenen platform
+## Affected platform
 
 - [ ] macOS
 - [ ] Linux
 
-## Kontrol listesi
+## Checklist
 
-- [ ] `swift build` ve `swift test` yerelde geçiyor
-- [ ] Tanımlayıcılar ve yorumlar Türkçe
-- [ ] Satır kaydıran değişiklikte `06_Metadata/Kod-Haritasi.md` güncellendi
-- [ ] Kullanıcıya görünen değişiklik `CHANGELOG.md`'ye eklendi
+- [ ] `swift build` and `swift test` pass locally
+- [ ] Identifiers and code comments follow the project convention (Turkish)
+- [ ] `06_Metadata/Kod-Haritasi.md` is updated when code moves between files
+- [ ] User-visible changes are added to `CHANGELOG.md`
