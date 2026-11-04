@@ -15,6 +15,7 @@ final class BaslikCubugu: NSView {
     var ileriAlTiklandi: (() -> Void)?
     var sayfaYoluTiklandi: ((URL) -> Void)?
     private var sayfalar: [URL] = []
+    private let yerlestirici = PencereYerlestirici()
     private let yol = NSStackView()
 
     let notAdiEtiketi = NSTextField(labelWithString: "Yeni Not")
@@ -196,7 +197,9 @@ final class BaslikCubugu: NSView {
         kapatTiklandi?()
     }
 
+    /// Başlıktaki boş alan: sürükle taşır/kenara yerleştirir, çift tık doldurur/eski hâline döner.
     override func mouseDown(with event: NSEvent) {
-        pencere?.performDrag(with: event)
+        guard let pencere else { return }
+        if event.clickCount == 2 { yerlestirici.ciftTiklandi(pencere) } else { yerlestirici.surukle(pencere) }
     }
 }
