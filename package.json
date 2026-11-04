@@ -4,12 +4,6 @@
   "description": "Claude Code + Obsidian Starter Kit - AI-powered second brain",
   "type": "module",
   "scripts": {
-    "setup": "pnpm install && echo '✅ Setup complete! Configure GEMINI_API_KEY for vision features'",
-    "test-gemini": "GEMINI_API_KEY=${GEMINI_API_KEY} node .claude/mcp-servers/gemini-vision.mjs",
-    "lint": "eslint --config .config/eslint.config.js . --fix && prettier --config .config/.prettierrc.js --write .",
-    "lint:check": "eslint --config .config/eslint.config.js . && prettier --config .config/.prettierrc.js --check .",
-    "format": "prettier --config .config/.prettierrc.js --write .",
-    "format:check": "prettier --config .config/.prettierrc.js --check .",
     "attachments:list": "ls -1 '05_Attachments/' | grep -v Organized | head -20",
     "attachments:count": "ls -1 '05_Attachments/' | grep -v Organized | wc -l",
     "attachments:organized": "ls -1 '05_Attachments/Organized' 2>/dev/null | wc -l || echo '0'",
@@ -34,27 +28,5 @@
     "para-method"
   ],
   "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "@google/generative-ai": "^0.21.0",
-    "@modelcontextprotocol/sdk": "^1.25.2"
-  },
-  "devDependencies": {
-    "@eslint/compat": "^1.4.1",
-    "@typescript-eslint/eslint-plugin": "^8.53.0",
-    "@typescript-eslint/parser": "^8.53.0",
-    "eslint": "^9.39.2",
-    "eslint-plugin-check-file": "^3.3.1",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-perfectionist": "^4.15.1",
-    "globals": "^16.5.0",
-    "prettier": "^3.7.4",
-    "prettier-plugin-packagejson": "^2.5.21",
-    "prettier-plugin-sort-json": "^4.2.0",
-    "typescript-eslint": "^8.53.0"
-  },
-  "overrides": {
-    "minimatch": "^11.0.1"
-  },
-  "packageManager": "pnpm@9.15.4"
+  "license": "MIT"
 }
