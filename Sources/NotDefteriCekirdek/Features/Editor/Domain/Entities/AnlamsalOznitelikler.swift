@@ -112,3 +112,39 @@ private final class MarkdownKaynakNesnesi: NSObject {
     }
 }
 #endif
+
+/// Görselin gösterilen bölümü; kaynağın 0…1 oranında, sol üstten ölçülür.
+/// Anlamsal görselde `gorsel["kirpma"]` dizesi olarak yalnızca tam değilse bulunur.
+package struct GorselKirpma: Equatable, Sendable {
+    package var x, y, w, h: Double
+
+    package static let tam = GorselKirpma(x: 0, y: 0, w: 1, h: 1)
+    /// Kenar en az bu kadar kalır.
+    package static let enAz = 0.02
+
+    package init(x: Double, y: Double, w: Double, h: Double) {
+        (self.x, self.y, self.w, self.h) = (x, y, w, h)
+    }
+
+    /// "x,y,w,h" dizesinden; geçersizse nil.
+    package init?(metin: String?) {
+        guard let parcalar = metin?.split(separator: ",").compactMap({ Double($0) }), parcalar.count == 4 else { return nil }
+        self.init(x: parcalar[0], y: parcalar[1], w: parcalar[2], h: parcalar[3])
+        guard gecerliMi else { return nil }
+    }
+
+    package var gecerliMi: Bool {
+        [x, y, w, h].allSatisfy(\.isFinite) && x >= 0 && y >= 0 && w >= Self.enAz && h >= Self.enAz
+            && x + w <= 1.000_1 && y + h <= 1.000_1
+    }
+
+    package var tamMi: Bool { abs(x) < 0.000_1 && abs(y) < 0.000_1 && abs(w - 1) < 0.000_1 && abs(h - 1) < 0.000_1 }
+
+    /// En fazla 4 basamakla "x,y,w,h".
+    package var metin: String {
+        [x, y, w, h].map { deger in
+            let yuvarli = (deger * 10_000).rounded() / 10_000
+            return yuvarli == yuvarli.rounded() ? String(Int(yuvarli)) : String(yuvarli)
+        }.joined(separator: ",")
+    }
+}

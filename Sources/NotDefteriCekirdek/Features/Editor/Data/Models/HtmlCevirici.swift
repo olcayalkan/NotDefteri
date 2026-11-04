@@ -44,9 +44,7 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
                 let kok = notlarKlasoru().standardizedFileURL.resolvingSymlinksInPath().path + "/"
                 guard url.standardizedFileURL.resolvingSymlinksInPath().path.hasPrefix(kok) else { return }
                 do {
-                    let en = gorsel["genislik"] as? Double
-                    let stil = en.flatMap { $0.isFinite && (1...10_000).contains($0) ? " style=\"width:\(Int($0))px\"" : nil } ?? ""
-                    icerik += "<img alt=\"\"\(stil) src=\"\(try htmlGorseli(url))\">"
+                    icerik += htmlGorselEtiketi(gorsel, kaynak: try htmlGorseli(url))
                 } catch { hata = error }
                 return
             }
@@ -109,4 +107,19 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
     @media print{:root{--zemin:#fff;--metin:#202124;--kod:#eef0f2;--bag:#1464b4}body{margin:0}}
     </style><body>\(govde)</body></html>
     """
+}
+
+/// Kırpılmış görsel taşan kısmı gizleyen kutuda, kaydırılarak gösterilir.
+private func htmlGorselEtiketi(_ gorsel: [String: Any], kaynak: String) -> String {
+    let en = (gorsel["genislik"] as? Double).flatMap { $0.isFinite && (1...10_000).contains($0) ? $0 : nil }
+    let boy = (gorsel["yukseklik"] as? Double).flatMap { $0.isFinite && (1...10_000).contains($0) ? $0 : nil }
+    guard let en, let boy, let k = GorselKirpma(metin: gorsel["kirpma"] as? String), !k.tamMi else {
+        let stil = en.map { " style=\"width:\(Int($0))px\"" } ?? ""
+        return "<img alt=\"\"\(stil) src=\"\(kaynak)\">"
+    }
+    func px(_ d: Double) -> String { "\(Int(d.rounded()))px" }
+    let tamEn = en / k.w, tamBoy = boy / k.h
+    return "<span style=\"display:inline-block;overflow:hidden;width:\(px(en));height:\(px(boy))\">"
+        + "<img alt=\"\" style=\"display:block;max-width:none;width:\(px(tamEn));height:\(px(tamBoy));"
+        + "margin-left:-\(px(k.x * tamEn));margin-top:-\(px(k.y * tamBoy))\" src=\"\(kaynak)\"></span>"
 }

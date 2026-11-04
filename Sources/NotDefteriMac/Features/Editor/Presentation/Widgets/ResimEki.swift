@@ -13,8 +13,8 @@ func resimBoyutuGecerliMi(_ boyut: NSSize) -> Bool {
         && boyut.width <= kEnBuyukResimBoyutu && boyut.height <= kEnBuyukResimBoyutu
 }
 
-/// Görselin tutulduğu yer: kenarlar o yönde uzatır (sol/sağ eni, üst/alt boyu), köşeler
-/// oranı koruyarak bütün görseli büyütür. `yatay`: -1 sol, 1 sağ; `dikey`: -1 üst, 1 alt
+/// Görselin tutulduğu yer: kenarlar o taraftan kırpar (sol kenar solu, üst kenar üstü keser;
+/// geri çekmek kırpılanı açar), köşeler oranı koruyarak bütün görseli büyütür. `yatay`: -1 sol, 1 sağ; `dikey`: -1 üst, 1 alt
 /// (metin görünümü ters çevrili, y aşağı doğru artar).
 struct ResimTutamaci: Equatable {
     let yatay: CGFloat
@@ -56,7 +56,31 @@ struct ResimTutamaci: Equatable {
         return NSCursor(image: resim, hotSpot: NSPoint(x: boyut.width / 2, y: boyut.height / 2))
     }
 
-    /// Başlangıç boyutuna, farenin başlangıçtan kayması (`fark`) uygulanır.
+    /// Kenardan kırpma: tutulan kenar hareket eder, karşı kenar ve ölçek yerinde kalır.
+    /// Kırpılmış kısım geri açılabilir; görselin dışına taşılmaz.
+    func kirp(baslangic: NSSize, kirpma k: GorselKirpma, fark: NSPoint, enAz: NSSize, enFazla: NSSize) -> (NSSize, GorselKirpma) {
+        func eksen(_ boy: CGFloat, _ fark: CGFloat, yon: CGFloat, konum: Double, oran: Double, enAz: CGFloat, enFazla: CGFloat) -> (CGFloat, Double, Double) {
+            let olcek = oran / Double(max(1, boy))          // 1 pt'nin kaynakta kapladığı oran
+            let acik = yon < 0 ? konum : 1 - konum - oran   // tutulan tarafta kırpılmış kısım
+            let ust = min(enFazla, boy + CGFloat(acik / olcek))
+            let alt = max(enAz, CGFloat(GorselKirpma.enAz / olcek))
+            let yeni = min(max(boy + fark * yon, alt), max(alt, ust)).rounded()
+            let yeniOran = min(yon < 0 ? konum + oran : 1 - konum, Double(yeni) * olcek)
+            return (yeni, yon < 0 ? konum + oran - yeniOran : konum, yeniOran)
+        }
+        var boyut = baslangic, sonuc = k
+        if yatay != 0 {
+            (boyut.width, sonuc.x, sonuc.w) = eksen(baslangic.width, fark.x, yon: yatay, konum: k.x, oran: k.w,
+                                                    enAz: enAz.width, enFazla: enFazla.width)
+        }
+        if dikey != 0 {
+            (boyut.height, sonuc.y, sonuc.h) = eksen(baslangic.height, fark.y, yon: dikey, konum: k.y, oran: k.h,
+                                                     enAz: enAz.height, enFazla: enFazla.height)
+        }
+        return (boyut, sonuc)
+    }
+
+    /// Köşeden: başlangıç boyutuna, farenin başlangıçtan kayması (`fark`) uygulanır.
     func yeniBoyut(baslangic: NSSize, fark: NSPoint, enAz: NSSize, enFazla: NSSize) -> NSSize {
         func sinirla(_ deger: CGFloat, _ alt: CGFloat, _ ust: CGFloat) -> CGFloat { min(max(deger, alt), max(alt, ust)) }
         let dx = fark.x * yatay, dy = fark.y * dikey
@@ -88,6 +112,11 @@ final class ResimEki: NSTextAttachment {
         get { (attachmentCell as? ResimEkiHucresi)?.gosterimBoyutu ?? .zero }
         set { (attachmentCell as? ResimEkiHucresi)?.gosterimBoyutu = newValue }
     }
+
+    var kirpma: GorselKirpma {
+        get { (attachmentCell as? ResimEkiHucresi)?.kirpma ?? .tam }
+        set { (attachmentCell as? ResimEkiHucresi)?.kirpma = newValue }
+    }
 }
 
 /// Görseli çizen ve tutamaçlarından boyutlandırmayı yöneten hücre.
@@ -97,6 +126,10 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
         didSet {
             if !resimBoyutuGecerliMi(gosterimBoyutu) { gosterimBoyutu = oldValue }
         }
+    }
+    /// Görselin gösterilen bölümü.
+    var kirpma: GorselKirpma = .tam {
+        didSet { if !kirpma.gecerliMi { kirpma = oldValue } }
     }
     /// Görselin kendi en/boy oranı; kenardan uzatılmamış görselin ilk boyutu bundan hesaplanır.
     var enBoyOrani: CGFloat = 4.0 / 3.0
@@ -141,9 +174,16 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
         NSGraphicsContext.restoreGraphicsState()
         NSGraphicsContext.saveGraphicsState()
         yol.addClip()
-        image?.draw(in: kart, from: .zero, operation: .sourceOver, fraction: 1.0, respectFlipped: true, hints: nil)
+        image?.draw(in: kart, from: kaynakAlani, operation: .sourceOver, fraction: 1.0, respectFlipped: true, hints: nil)
         NSGraphicsContext.restoreGraphicsState()
         if tutamaclarGorunur || boyutlandiriliyor { tutamaclariCiz(cellFrame) }
+    }
+
+    /// Kırpmanın görseldeki karşılığı; NSImage koordinatı alttan başlar.
+    private var kaynakAlani: NSRect {
+        guard !kirpma.tamMi, let boyut = image?.size else { return .zero }
+        return NSRect(x: kirpma.x * boyut.width, y: (1 - kirpma.y - kirpma.h) * boyut.height,
+                      width: kirpma.w * boyut.width, height: kirpma.h * boyut.height)
     }
 
     /// Yalnızca tutamaçlar çizilir: köşelerde daire, kenar ortalarında çubuk. Beyaz dolgu,
@@ -218,6 +258,7 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
               let ekIndeksi = ekinIndeksi(metinDeposu) else { return false }
 
         let baslangicBoyutu = gosterimBoyutu
+        let baslangicKirpmasi = kirpma
         let baslangicAnlamsali = metinDeposu.attribute(kGorselAnahtari, at: ekIndeksi, effectiveRange: nil) as? [String: Any]
         // Satıra sığdırılan görsel, ilk harekette saklanan büyük boyutuna sıçramasın.
         let baslangicCercevesi = NSSize(width: max(1, cellFrame.width), height: max(1, cellFrame.height))
@@ -237,16 +278,23 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
             if olay.type == .leftMouseUp { break }
             let nokta = metinGorunumu.convert(olay.locationInWindow, from: nil)
             let fark = NSPoint(x: nokta.x - baslangicNoktasi.x, y: nokta.y - baslangicNoktasi.y)
-            let yeniBoyut = fark == .zero ? baslangicBoyutu
-                : tutulan.yeniBoyut(baslangic: baslangicCercevesi, fark: fark, enAz: enAz, enFazla: enFazla)
-            guard resimBoyutuGecerliMi(yeniBoyut), yeniBoyut != gosterimBoyutu else { continue }
+            let (yeniBoyut, yeniKirpma): (NSSize, GorselKirpma)
+            if fark == .zero { (yeniBoyut, yeniKirpma) = (baslangicBoyutu, baslangicKirpmasi) }
+            else if tutulan.koseMi {
+                (yeniBoyut, yeniKirpma) = (tutulan.yeniBoyut(baslangic: baslangicCercevesi, fark: fark, enAz: enAz, enFazla: enFazla), baslangicKirpmasi)
+            } else {
+                (yeniBoyut, yeniKirpma) = tutulan.kirp(baslangic: baslangicCercevesi, kirpma: baslangicKirpmasi, fark: fark, enAz: enAz, enFazla: enFazla)
+            }
+            guard resimBoyutuGecerliMi(yeniBoyut), yeniKirpma.gecerliMi,
+                  yeniBoyut != gosterimBoyutu || yeniKirpma != kirpma else { continue }
             gosterimBoyutu = yeniBoyut
+            kirpma = yeniKirpma
             yerlesimiTazele(metinGorunumu, ekIndeksi: ekIndeksi)
             metinGorunumu.displayIfNeeded()
             tutulan.imlec.set()
         }
-        if gosterimBoyutu != baslangicBoyutu {
-            geriAlmayiKaydet(boyut: baslangicBoyutu, anlamsal: baslangicAnlamsali, metinGorunumu: metinGorunumu)
+        if gosterimBoyutu != baslangicBoyutu || kirpma != baslangicKirpmasi {
+            geriAlmayiKaydet(boyut: baslangicBoyutu, kirpma: baslangicKirpmasi, anlamsal: baslangicAnlamsali, metinGorunumu: metinGorunumu)
             metinGorunumu.didChangeText()
         } else if let baslangicAnlamsali {
             // Sürükleyip başladığı yere dönmek boyutsuz kaynağa boyut eklememeli.
@@ -255,13 +303,14 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
         return true
     }
 
-    private func geriAlmayiKaydet(boyut: NSSize, anlamsal: [String: Any]?, metinGorunumu: NSTextView) {
+    private func geriAlmayiKaydet(boyut: NSSize, kirpma eski: GorselKirpma, anlamsal: [String: Any]?, metinGorunumu: NSTextView) {
         metinGorunumu.undoManager?.registerUndo(withTarget: self) { [weak metinGorunumu] hucre in
             guard let metinGorunumu, let depo = metinGorunumu.textStorage,
                   let indeks = hucre.ekinIndeksi(depo) else { return }
             let mevcut = depo.attribute(kGorselAnahtari, at: indeks, effectiveRange: nil) as? [String: Any]
-            hucre.geriAlmayiKaydet(boyut: hucre.gosterimBoyutu, anlamsal: mevcut, metinGorunumu: metinGorunumu)
+            hucre.geriAlmayiKaydet(boyut: hucre.gosterimBoyutu, kirpma: hucre.kirpma, anlamsal: mevcut, metinGorunumu: metinGorunumu)
             hucre.gosterimBoyutu = boyut
+            hucre.kirpma = eski
             hucre.yerlesimiTazele(metinGorunumu, ekIndeksi: indeks, anlamsal: anlamsal)
             metinGorunumu.didChangeText()
         }

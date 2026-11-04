@@ -16,7 +16,7 @@ package func boyutMetni(_ boyut: CGFloat) -> String {
 /// Metinden biçimlendirme işaretlerini ("**", "<punto=..>") temizler.
 package func isaretlemeleriTemizle(_ metin: String) -> String {
     metin
-        .replacingOccurrences(of: "!\\[[^\\]]*\\]\\([^)]*\\)(\\{[0-9]+x[0-9]+\\})?", with: "", options: .regularExpression)
+        .replacingOccurrences(of: "!\\[[^\\]]*\\]\\([^)]*\\)(\\{[0-9]+x[0-9]+( kirp=[0-9.,]+)?\\})?", with: "", options: .regularExpression)
         .replacingOccurrences(of: "(?m)^#{1,3} ", with: "", options: .regularExpression)
         .replacingOccurrences(of: #"(?m)^ *> \[![^\]\s]+ (?:gri|mavi|sarı|kırmızı|yeşil)\] ?"#, with: "", options: .regularExpression)
         .replacingOccurrences(of: "(?m)^ *(?:- \\[[ xX]\\] |[-*] |[0-9]+\\. |> )", with: "", options: .regularExpression)
@@ -145,7 +145,8 @@ private func satirMarkdownunuUret(_ attr: NSAttributedString) -> String {
             sonuc += "![](\(yol))"
             if let en = gorsel["genislik"] as? Double, let boy = gorsel["yukseklik"] as? Double,
                anlamsalGorselBoyutuGecerliMi(en: en, boy: boy) {
-                sonuc += "{\(Int(en))x\(Int(boy))}"
+                let kirpma = GorselKirpma(metin: gorsel["kirpma"] as? String).flatMap { $0.tamMi ? nil : " kirp=\($0.metin)" } ?? ""
+                sonuc += "{\(Int(en))x\(Int(boy))\(kirpma)}"
             }
             satirBasi = false
             return
@@ -210,7 +211,7 @@ package func otomatikAdDegismeli(mevcut: String, istenen: String) -> Bool {
 
 // Yol taraması önceki 1024 karakter sınırını korur; iç içe adaylar da sınırlı maliyetle işlenir.
 private let kResimBagiDeseni = try! NSRegularExpression(
-    pattern: #"!\[[^\]]*\]\(([^)]{0,1024})\)(?:\{([0-9]+)x([0-9]+)\})?"#)
+    pattern: #"!\[[^\]]*\]\(([^)]{0,1024})\)(?:\{([0-9]+)x([0-9]+)(?: kirp=([0-9.]+,[0-9.]+,[0-9.]+,[0-9.]+))?\})?"#)
 
 /// Dosya varsa anlamsal görsel üretir; yoksa kaynak metin olduğu gibi kalır.
 /// Boyutsuz görselin doğal ölçüsünü ve dosyanın çözülebilirliğini platform belirler.
@@ -232,6 +233,10 @@ package func resimBaginiCozumle(_ ns: NSString, _ baslangic: Int, taban: URL, me
        anlamsalGorselBoyutuGecerliMi(en: en, boy: boy) {
         gorsel["genislik"] = en
         gorsel["yukseklik"] = boy
+        if eslesme.range(at: 4).location != NSNotFound,
+           let kirpma = GorselKirpma(metin: ns.substring(with: eslesme.range(at: 4))), !kirpma.tamMi {
+            gorsel["kirpma"] = kirpma.metin
+        }
     }
     return (gorsel, eslesme.range.length)
 }

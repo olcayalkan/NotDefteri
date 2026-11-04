@@ -541,6 +541,8 @@ final class MacBelgeAdaptoru {
                     let boyut = Self.boyut(gorsel).flatMap { $0.width >= kEnKucukResimEni ? $0 : nil }
                         ?? mevcut.dogalGosterimBoyutu
                     if mevcut.gosterimBoyutu != boyut { mevcut.gosterimBoyutu = boyut }
+                    let kirpma = Self.kirpma(gorsel)
+                    if mevcut.kirpma != kirpma { mevcut.kirpma = kirpma }
                     ek = mevcut
                 } else if let yeni = Self.resimEki(gorsel) {
                     ekler.append((konum, yeni))
@@ -548,7 +550,8 @@ final class MacBelgeAdaptoru {
                 } else { continue }
                 if let yeni = Self.gorselAnlamsali(ek),
                    gorsel["genislik"] as? Double != yeni["genislik"] as? Double ||
-                   gorsel["yukseklik"] as? Double != yeni["yukseklik"] as? Double {
+                   gorsel["yukseklik"] as? Double != yeni["yukseklik"] as? Double ||
+                   gorsel["kirpma"] as? String != yeni["kirpma"] as? String {
                     anlamsallar.append((konum, yeni))
                 }
             }
@@ -573,18 +576,26 @@ final class MacBelgeAdaptoru {
         return NSSize(width: en, height: boy)
     }
 
+    private static func kirpma(_ gorsel: [String: Any]) -> GorselKirpma {
+        GorselKirpma(metin: gorsel["kirpma"] as? String) ?? .tam
+    }
+
     /// Eski okuyucu gibi doğal boyutu ve minimum genişlik davranışını ek üreticisi çözer.
     private static func resimEki(_ gorsel: [String: Any]) -> ResimEki? {
         guard let url = gorsel["dosyaURL"] as? URL, let resim = NSImage(contentsOf: url) else { return nil }
-        return resimEkiUret(gorsel: resim, dosyaURL: url, bagYolu: gorsel["yol"] as? String, gosterimBoyutu: boyut(gorsel))
+        let ek = resimEkiUret(gorsel: resim, dosyaURL: url, bagYolu: gorsel["yol"] as? String, gosterimBoyutu: boyut(gorsel))
+        ek.kirpma = kirpma(gorsel)
+        return ek
     }
 
     /// Ekten anlamsal görsel; eski yazıcı gibi geçersiz boyutta 200x150 yazılır.
     static func gorselAnlamsali(_ ek: ResimEki) -> [String: Any]? {
         guard let url = ek.dosyaURL else { return nil }
         let boyut = resimBoyutuGecerliMi(ek.gosterimBoyutu) ? ek.gosterimBoyutu : NSSize(width: 200, height: 150)
-        return ["yol": ek.bagYolu ?? "\(kGorsellerKlasorAdi)/\(url.lastPathComponent)", "dosyaURL": url,
-                "genislik": Double(boyut.width), "yukseklik": Double(boyut.height)]
+        var gorsel: [String: Any] = ["yol": ek.bagYolu ?? "\(kGorsellerKlasorAdi)/\(url.lastPathComponent)", "dosyaURL": url,
+                                     "genislik": Double(boyut.width), "yukseklik": Double(boyut.height)]
+        if !ek.kirpma.tamMi { gorsel["kirpma"] = ek.kirpma.metin }
+        return gorsel
     }
 
     // MARK: Görünüm → anlamsal (dış zengin metin)

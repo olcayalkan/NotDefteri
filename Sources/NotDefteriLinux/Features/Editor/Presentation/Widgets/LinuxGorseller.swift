@@ -427,6 +427,25 @@ private func gorselOku(_ url: URL) -> OpaquePointer? {
     return resim
 }
 
+/// Kırpılmış görselin yalnızca gösterilen bölümü; kırpma yoksa bütün görsel.
+private func gorselOku(_ url: URL, kirpma: GorselKirpma?) -> OpaquePointer? {
+    guard let k = kirpma, !k.tamMi, let tam = gorselOku(url) else { return gorselOku(url) }
+    g_object_unref(UnsafeMutableRawPointer(tam))   // Yalnızca dosyanın geçerliliği denetlendi.
+    var hata: UnsafeMutablePointer<GError>?
+    guard let pixbuf = gdk_pixbuf_new_from_file(url.path, &hata) else {
+        if let hata { g_error_free(hata) }
+        return gorselOku(url)
+    }
+    defer { g_object_unref(UnsafeMutableRawPointer(pixbuf)) }
+    let en = Double(gdk_pixbuf_get_width(pixbuf)), boy = Double(gdk_pixbuf_get_height(pixbuf))
+    let x = Int32((k.x * en).rounded()), y = Int32((k.y * boy).rounded())
+    let w = max(1, min(Int32(en) - x, Int32((k.w * en).rounded())))
+    let h = max(1, min(Int32(boy) - y, Int32((k.h * boy).rounded())))
+    guard let parca = gdk_pixbuf_new_subpixbuf(pixbuf, x, y, w, h) else { return gorselOku(url) }
+    defer { g_object_unref(UnsafeMutableRawPointer(parca)) }
+    return gdk_texture_new_for_pixbuf(parca)
+}
+
 private final class LinuxGorselHucresi {
     let anchor: UnsafeMutablePointer<GtkTextChildAnchor>
     private weak var editor: LinuxEditor?
@@ -443,7 +462,7 @@ private final class LinuxGorselHucresi {
     init(anchor: UnsafeMutablePointer<GtkTextChildAnchor>, gorsel: [String: Any], editor: LinuxEditor) {
         self.anchor = anchor; self.gorsel = gorsel; self.editor = editor
         g_object_ref(UnsafeMutableRawPointer(anchor))
-        let texture = (gorsel["dosyaURL"] as? URL).flatMap(gorselOku)
+        let texture = (gorsel["dosyaURL"] as? URL).flatMap { gorselOku($0, kirpma: GorselKirpma(metin: gorsel["kirpma"] as? String)) }
         gorselVar = texture != nil
         g_object_ref_sink(UnsafeMutableRawPointer(cizim))
         if let texture {

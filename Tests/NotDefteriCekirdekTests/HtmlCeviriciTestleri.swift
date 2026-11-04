@@ -89,6 +89,16 @@ final class HtmlCeviriciTestleri: GeciciKokTestCase {
         XCTAssertTrue(html.contains("width:120px"))
     }
 
+    func testKirpilmisGorselTasanKismiGizler() throws {
+        let klasor = kok.appendingPathComponent("Sayfa")
+        try fm.createDirectory(at: klasor.appendingPathComponent(kGorsellerKlasorAdi), withIntermediateDirectories: true)
+        try Data([0x89, 0x50, 0x4E, 0x47]).write(to: klasor.appendingPathComponent("\(kGorsellerKlasorAdi)/r.png"))
+
+        let html = try htmlUret(markdown: "![](\(kGorsellerKlasorAdi)/r.png){200x100 kirp=0.5,0,0.5,1}", baslik: "S", taban: klasor)
+        XCTAssertTrue(html.contains("overflow:hidden;width:200px;height:100px"), html)
+        XCTAssertTrue(html.contains("width:400px;height:100px;margin-left:-200px;margin-top:-0px"), html)
+    }
+
     func testGorselMimeTurleri() throws {
         let dosya = kok.appendingPathComponent("a.JPG")
         try Data([1, 2, 3]).write(to: dosya)
