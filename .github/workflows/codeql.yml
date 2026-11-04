@@ -21,13 +21,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Each platform compiles only its own sources, so Swift is scanned on both:
-  # macOS covers the core and AppKit targets, Linux covers the core and GTK targets.
-  # Tests are built too, so every Swift file in the repository is analyzed.
+  # CodeQL analyzes Swift only on macOS runners, so it covers the code that builds on
+  # macOS: the core, AppKit and executable targets and their tests. The GTK target
+  # (Sources/NotDefteriLinux) only builds on Linux and cannot be scanned by CodeQL.
   scan:
     name: CodeQL · ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
-    container: ${{ matrix.container }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -42,29 +41,14 @@ jobs:
             lang: swift
             runner: macos-15
             build: manual
-          - name: swift-linux
-            category: /language:swift-linux
-            lang: swift
-            runner: ubuntu-24.04
-            container: swift:6.2-jammy
-            build: manual
           - name: actions      # Workflow files; no build needed.
             category: /language:actions
             lang: actions
             runner: ubuntu-24.04
             build: none
-    defaults:
-      run:
-        shell: bash
     steps:
       - name: Check out source
         uses: actions/checkout@v7
-
-      - name: Install system packages (GTK 4)
-        if: matrix.name == 'swift-linux'
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends libgtk-4-dev pkg-config jq
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
