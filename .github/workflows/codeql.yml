@@ -21,9 +21,13 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Each platform compiles only its own sources, so Swift is scanned on both:
+  # macOS covers the core and AppKit targets, Linux covers the core and GTK targets.
+  # Tests are built too, so every Swift file in the repository is analyzed.
   scan:
-    name: CodeQL · ${{ matrix.lang }}
+    name: CodeQL · ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -33,15 +37,34 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - lang: swift      # Swift is analyzed by building on macOS.
+          - name: swift-macos
+            category: /language:swift
+            lang: swift
             runner: macos-15
             build: manual
-          - lang: actions    # Workflow files; no build needed.
+          - name: swift-linux
+            category: /language:swift-linux
+            lang: swift
+            runner: ubuntu-24.04
+            container: swift:6.2-jammy
+            build: manual
+          - name: actions      # Workflow files; no build needed.
+            category: /language:actions
+            lang: actions
             runner: ubuntu-24.04
             build: none
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Check out source
         uses: actions/checkout@v7
+
+      - name: Install system packages (GTK 4)
+        if: matrix.name == 'swift-linux'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libgtk-4-dev pkg-config jq
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -50,11 +73,18 @@ jobs:
           build-mode: ${{ matrix.build }}
           queries: security-and-quality
 
-      - name: Build
+      - name: Build app and tests
         if: matrix.build == 'manual'
-        run: swift build
+        run: swift build --build-tests
 
       - name: Analyze
         uses: github/codeql-action/analyze@v4
         with:
-          category: "/language:${{ matrix.lang }}"
+          category: ${{ matrix.category }}
+          output: sarif-results
+
+      # Lists the findings on the run page and in the job log, so they are visible
+      # without opening the Security tab.
+      - name: Findings summary
+        if: always()
+        run: .github/scripts/codeql-summary.sh sarif-results "CodeQL · ${{ matrix.name }}"
