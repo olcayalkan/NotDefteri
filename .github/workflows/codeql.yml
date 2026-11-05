@@ -22,8 +22,8 @@ concurrency:
 
 jobs:
   # CodeQL analyzes Swift only on macOS runners. swift-macos covers the core, AppKit and
-  # executable targets and their tests; swift-gtk builds the GTK target and its tests on
-  # macOS with Homebrew GTK 4 (NOTDEFTERI_GTK=1 in Package.swift) so they are scanned too.
+  # executable targets and their tests; swift-gtk builds the GTK app target on macOS with
+  # Homebrew GTK 4 (NOTDEFTERI_GTK=1 in Package.swift) so it is scanned too.
   scan:
     name: CodeQL · ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
@@ -48,8 +48,9 @@ jobs:
             runner: macos-15
             build: manual
             gtk: true
-            # Compile only: the GTK modules are not linked or run on macOS.
-            command: swift build --target NotDefteriLinux && swift build --target NotDefteriLinuxTests
+            # Compile only the GTK app module: it is not linked or run on macOS. The GTK
+            # tests use Linux-only GLib declarations; they run in the Linux CI job instead.
+            command: swift build --target NotDefteriLinux
           - name: actions      # Workflow files; no build needed.
             category: /language:actions
             lang: actions
