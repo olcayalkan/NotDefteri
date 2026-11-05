@@ -191,14 +191,21 @@ final class LinuxAnaSayfa {
 
     private func selamBolumu(_ kutu: Parca) {
         let saatDilimi = Calendar.current.component(.hour, from: Date())
-        ekle(kutu, etiket(saatDilimi < 12 ? "Günaydın" : saatDilimi < 18 ? "İyi günler" : "İyi akşamlar", sinif: "nd-ana-selam"))
+        // Selam ve saat aynı satırda, taban çizgileri hizalı; dar pencerede selam kısalır, saat tam kalır.
+        let selamSatiri = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 16)!
+        let selam = etiket(saatDilimi < 12 ? "Günaydın" : saatDilimi < 18 ? "İyi günler" : "İyi akşamlar", sinif: "nd-ana-selam")
+        let saat = etiket(Self.saatBicimi.string(from: Date()), sinif: "nd-ana-saat")
+        gtk_label_set_ellipsize(nd_label(saat), PANGO_ELLIPSIZE_NONE)
+        for parca in [selam, saat] {
+            gtk_widget_set_valign(parca, GTK_ALIGN_BASELINE)
+            ekle(selamSatiri, parca)
+        }
+        ekle(kutu, selamSatiri)
+        saatEtiketi = saat
         let bicim = DateFormatter()
         bicim.locale = Locale(identifier: "tr_TR")
         bicim.dateFormat = "d MMMM yyyy, EEEE"
         ekle(kutu, etiket(bicim.string(from: Date()), sinif: "nd-ana-soluk"))
-        let saat = etiket(Self.saatBicimi.string(from: Date()), sinif: "nd-ana-saat")
-        ekle(kutu, saat)
-        saatEtiketi = saat
     }
 
     private func kartBolumu(_ kutu: Parca, _ ad: String, _ kartlar: [(url: URL, tarih: Date?)]) {

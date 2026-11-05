@@ -42,6 +42,7 @@ final class AnaSayfa: NSScrollView {
     private let selam = NSTextField(labelWithString: "")
     private let tarih = NSTextField(labelWithString: "")
     private let saat = NSTextField(labelWithString: "")
+    private lazy var selamSatiri = SelamSatiri(selam: selam, saat: saat)
     private var saatZamanlayicisi: Timer?
 
     private static let tarihBicimi: DateFormatter = {
@@ -144,6 +145,8 @@ final class AnaSayfa: NSScrollView {
         saat.stringValue = Self.saatBicimi.string(from: simdi)
         selam.stringValue = Self.selam(simdi)
         tarih.stringValue = Self.tarihBicimi.string(from: simdi)
+        // Selam saat dilimiyle değişir; elle dizilen satır yeni genişliği kendiliğinden görmez.
+        selamSatiri.needsLayout = true
     }
 
     private static func selam(_ tarih: Date) -> String {
@@ -168,9 +171,8 @@ final class AnaSayfa: NSScrollView {
         saatiYaz()
 
         var satirlar: [AnaSayfaBelgesi.Satir] = [
-            .tek(selam, yukseklik: 38, ustBosluk: 0),
+            .tek(selamSatiri, yukseklik: 50, ustBosluk: 0),
             .tek(tarih, yukseklik: 20, ustBosluk: 2),
-            .tek(saat, yukseklik: 50, ustBosluk: 4),
             .tek(bolumBasligi("Son açılanlar", renk: renk), yukseklik: 24, ustBosluk: 26)
         ]
         if sonlar.isEmpty {
@@ -239,6 +241,38 @@ final class AnaSayfa: NSScrollView {
                                   .systemTeal, .systemGreen, .systemIndigo, .systemRed]
         let toplam = ad.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
         return renkler[toplam % renkler.count]
+    }
+}
+
+/// Selam ve sağında saat, taban çizgileri hizalı. Yer yetmezse selam kısalır, saat hep tam görünür.
+/// Auto Layout (NSStackView) elle dizilen belgenin içinde çözülmediği için yerleşim elle yapılır.
+private final class SelamSatiri: NSView {
+    private let selam: NSTextField
+    private let saat: NSTextField
+    private static let aralik: CGFloat = 16
+
+    init(selam: NSTextField, saat: NSTextField) {
+        self.selam = selam
+        self.saat = saat
+        super.init(frame: .zero)
+        selam.lineBreakMode = .byTruncatingTail
+        addSubview(selam)
+        addSubview(saat)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+    override var isFlipped: Bool { true }
+
+    override func layout() {
+        super.layout()
+        // intrinsicContentSize hizalama dikdörtgenidir; etiketin kenar payı eklenmezse metin "…" ile kesilir.
+        let saatBoyutu = saat.frame(forAlignmentRect: NSRect(origin: .zero, size: saat.intrinsicContentSize)).size
+        let selamBoyutu = selam.frame(forAlignmentRect: NSRect(origin: .zero, size: selam.intrinsicContentSize)).size
+        let selamGenisligi = max(0, min(selamBoyutu.width, bounds.width - saatBoyutu.width - Self.aralik))
+        saat.frame = NSRect(x: selamGenisligi + Self.aralik, y: 0, width: saatBoyutu.width, height: saatBoyutu.height)
+        // Küçük yazılı selam, büyük saatin taban çizgisine oturtulur.
+        let taban = saat.firstBaselineOffsetFromTop - selam.firstBaselineOffsetFromTop
+        selam.frame = NSRect(x: 0, y: taban, width: selamGenisligi, height: selamBoyutu.height)
     }
 }
 
