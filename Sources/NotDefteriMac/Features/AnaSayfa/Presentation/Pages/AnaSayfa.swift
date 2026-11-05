@@ -42,7 +42,7 @@ final class AnaSayfa: NSScrollView {
     private let selam = NSTextField(labelWithString: "")
     private let tarih = NSTextField(labelWithString: "")
     private let saat = NSTextField(labelWithString: "")
-    private lazy var selamSatiri = SelamSatiri(selam: selam, saat: saat)
+    private lazy var selamSatiri = SelamSatiri(selam: selam, tarih: tarih, saat: saat)
     private var saatZamanlayicisi: Timer?
 
     private static let tarihBicimi: DateFormatter = {
@@ -171,8 +171,7 @@ final class AnaSayfa: NSScrollView {
         saatiYaz()
 
         var satirlar: [AnaSayfaBelgesi.Satir] = [
-            .tek(selamSatiri, yukseklik: 50, ustBosluk: 0),
-            .tek(tarih, yukseklik: 20, ustBosluk: 2),
+            .tek(selamSatiri, yukseklik: SelamSatiri.yukseklik, ustBosluk: 0),
             .tek(bolumBasligi("Son açılanlar", renk: renk), yukseklik: 24, ustBosluk: 26)
         ]
         if sonlar.isEmpty {
@@ -244,19 +243,29 @@ final class AnaSayfa: NSScrollView {
     }
 }
 
-/// Selam ve sağında saat, taban çizgileri hizalı. Yer yetmezse selam kısalır, saat hep tam görünür.
+/// Solda selam ve altında tarih, sağ kenara yaslı saat. Yer yetmezse selam ve tarih kısalır,
+/// saat hep tam görünür; tarih saatin altına kaymasın diye üçü aynı görünümde dizilir.
 /// Auto Layout (NSStackView) elle dizilen belgenin içinde çözülmediği için yerleşim elle yapılır.
 private final class SelamSatiri: NSView {
     private let selam: NSTextField
+    private let tarih: NSTextField
     private let saat: NSTextField
     private static let aralik: CGFloat = 16
+    /// Saat, selamın üst kenarından bu kadar aşağıda başlar; iki satırlık sol sütunla dengeli durur.
+    private static let saatUstPayi: CGFloat = 15
+    private static let selamYuksekligi: CGFloat = 50
+    private static let tarihYuksekligi: CGFloat = 20
+    static let yukseklik: CGFloat = selamYuksekligi + 2 + tarihYuksekligi
 
-    init(selam: NSTextField, saat: NSTextField) {
+    init(selam: NSTextField, tarih: NSTextField, saat: NSTextField) {
         self.selam = selam
+        self.tarih = tarih
         self.saat = saat
         super.init(frame: .zero)
         selam.lineBreakMode = .byTruncatingTail
+        tarih.lineBreakMode = .byTruncatingTail
         addSubview(selam)
+        addSubview(tarih)
         addSubview(saat)
     }
 
@@ -266,13 +275,19 @@ private final class SelamSatiri: NSView {
     override func layout() {
         super.layout()
         // intrinsicContentSize hizalama dikdörtgenidir; etiketin kenar payı eklenmezse metin "…" ile kesilir.
-        let saatBoyutu = saat.frame(forAlignmentRect: NSRect(origin: .zero, size: saat.intrinsicContentSize)).size
-        let selamBoyutu = selam.frame(forAlignmentRect: NSRect(origin: .zero, size: selam.intrinsicContentSize)).size
-        let selamGenisligi = max(0, min(selamBoyutu.width, bounds.width - saatBoyutu.width - Self.aralik))
-        saat.frame = NSRect(x: selamGenisligi + Self.aralik, y: 0, width: saatBoyutu.width, height: saatBoyutu.height)
-        // Küçük yazılı selam, büyük saatin taban çizgisine oturtulur.
+        func boyut(_ etiket: NSTextField) -> NSSize {
+            etiket.frame(forAlignmentRect: NSRect(origin: .zero, size: etiket.intrinsicContentSize)).size
+        }
+        let saatBoyutu = boyut(saat)
+        let solGenislik = max(0, bounds.width - saatBoyutu.width - Self.aralik)
+        saat.frame = NSRect(x: bounds.width - saatBoyutu.width, y: Self.saatUstPayi,
+                            width: saatBoyutu.width, height: saatBoyutu.height)
+        // Selam, saatin eski (üst paysız) yerindeki taban çizgisinde kalır.
+        let selamBoyutu = boyut(selam)
         let taban = saat.firstBaselineOffsetFromTop - selam.firstBaselineOffsetFromTop
-        selam.frame = NSRect(x: 0, y: taban, width: selamGenisligi, height: selamBoyutu.height)
+        selam.frame = NSRect(x: 0, y: taban, width: min(selamBoyutu.width, solGenislik), height: selamBoyutu.height)
+        tarih.frame = NSRect(x: 0, y: Self.selamYuksekligi + 2, width: min(boyut(tarih).width, solGenislik),
+                             height: Self.tarihYuksekligi)
     }
 }
 
