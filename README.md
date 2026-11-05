@@ -50,7 +50,7 @@ Click a card to jump to the section that explains how to use it.
 
 <p align="center">
   <img src="docs/kurulum.svg" width="100%"
-       alt="Installation in the terminal: clone the repository with git clone, cd NotDefteri, install the shortcut with ./scripts/kisayol-kur.sh, then type not to build and open the app.">
+       alt="Installation in the terminal: clone the repository with git clone, cd NotDefteri, install the shortcut with ./Devs/Scripts/kisayol-kur.sh, then type not to build and open the app.">
 </p>
 
 **Quick install (macOS).** Copy the commands and paste them into the terminal:
@@ -58,7 +58,7 @@ Click a card to jump to the section that explains how to use it.
 ```bash
 git clone https://github.com/olcayalkan/NotDefteri.git
 cd NotDefteri
-./scripts/kisayol-kur.sh
+./Devs/Scripts/kisayol-kur.sh
 not
 ```
 
@@ -91,7 +91,7 @@ On Linux, `linux-kur.sh` sets this up for you. On macOS, install it once; after 
 in the terminal opens the app (building it first if needed):
 
 ```bash
-./scripts/kisayol-kur.sh
+./Devs/Scripts/kisayol-kur.sh
 ```
 
 | Command | What it does |
@@ -103,7 +103,7 @@ in the terminal opens the app (building it first if needed):
 
 The shortcut is the file `~/.local/bin/not`, and it calls `calistir.sh` in this folder.
 If `~/.local/bin` is not on your PATH, a line is added to `~/.zshrc` (macOS) or `~/.bashrc` (Linux).
-On Linux, `calistir.sh` hands over to `scripts/linux-calistir.sh` automatically.
+On Linux, `calistir.sh` hands over to `Devs/Scripts/linux-calistir.sh` automatically.
 
 ### Linux (Ubuntu 22.04)
 
@@ -112,7 +112,7 @@ app menu entry. It opens the app when it is done.
 
 ```bash
 git clone https://github.com/olcayalkan/NotDefteri.git ~/NotDefteri
-~/NotDefteri/scripts/linux-kur.sh
+~/NotDefteri/Devs/Scripts/linux-kur.sh
 ```
 
 After that, just type this in the terminal:
@@ -230,7 +230,7 @@ All notes live in the **`~/Documents/NotDefteri/`** folder. Every page is a fold
 
 | Problem | Solution |
 |---|---|
-| Linux: `not` not found, or "Swift not found" | Run `~/NotDefteri/scripts/linux-kur.sh` (again) |
+| Linux: `not` not found, or "Swift not found" | Run `~/NotDefteri/Devs/Scripts/linux-kur.sh` (again) |
 | Linux: the app does not open or crashes | Check the log: the newest `.log` file in `~/.local/state/NotDefteri/` |
 | Linux: the first launch took very long | The first build is a full build (a few minutes). Later launches take about 1.5&nbsp;s |
 | The app does not open a second time | It runs as a single window; starting it again brings the open window to the front |
@@ -257,7 +257,7 @@ swift test           # run the tests
 | `Sources/NotDefteriLinux/` | Linux interface (GTK 4) |
 | `Sources/CGtk/` | C bridge for GTK |
 | `Tests/` | Core and macOS tests |
-| `06_Metadata/` | Code map and architecture decisions. Read these before the code |
+| `Devs/` | Developer notes and scripts: code map and architecture decisions (`Mimari/`), plans (`Planlar/`), references (`Kaynaklar/`), install and build scripts (`Scripts/`). Read `Devs/Mimari/` before the code |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and code conventions
 (Turkish identifiers, layers, comment style).

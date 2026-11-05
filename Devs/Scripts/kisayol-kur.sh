@@ -2,12 +2,12 @@
 # Terminalde `not` yazınca Not Defteri'yi açan kısayolu kurar (macOS ve Linux).
 # Kısayol bu deponun calistir.sh'sini çağırır; derleme gerekiyorsa önce derler.
 #
-# Kullanım: ./scripts/kisayol-kur.sh      (bir kez yeterli)
+# Kullanım: ./Devs/Scripts/kisayol-kur.sh      (bir kez yeterli)
 #           not            aç
 #           not -r         optimize (release) derlemeyle aç
 #           not -t         önce testleri çalıştır
 set -euo pipefail
-KOK="$(cd "$(dirname "$0")/.." && pwd)"
+KOK="$(cd "$(dirname "$0")/../.." && pwd)"
 DIZIN="$HOME/.local/bin"
 KISAYOL="$DIZIN/not"
 
@@ -24,7 +24,7 @@ fi
 mkdir -p "$DIZIN"
 cat > "$KISAYOL" <<KISAYOL_SONU
 #!/usr/bin/env bash
-# Not Defteri kısayolu; scripts/kisayol-kur.sh üretti.
+# Not Defteri kısayolu; Devs/Scripts/kisayol-kur.sh üretti.
 exec "$KOK/calistir.sh" "\$@"
 KISAYOL_SONU
 chmod +x "$KISAYOL"

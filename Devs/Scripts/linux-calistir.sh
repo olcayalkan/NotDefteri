@@ -2,13 +2,13 @@
 # Linux'ta NotDefteri'yi başlatır. Kod değiştiyse önce derler.
 #
 # Kullanım:
-#   ./scripts/linux-calistir.sh                derle (gerekiyorsa, debug) ve başlat — macOS'taki `swift run` gibi
-#   ./scripts/linux-calistir.sh --release      optimize derleme; değişiklikten sonra tüm modül yeniden derlenir (yavaş)
-#   ./scripts/linux-calistir.sh --menuye-ekle  uygulama menüsüne "Not Defteri" kısayolu ekle (bir kez)
+#   ./Devs/Scripts/linux-calistir.sh                derle (gerekiyorsa, debug) ve başlat — macOS'taki `swift run` gibi
+#   ./Devs/Scripts/linux-calistir.sh --release      optimize derleme; değişiklikten sonra tüm modül yeniden derlenir (yavaş)
+#   ./Devs/Scripts/linux-calistir.sh --menuye-ekle  uygulama menüsüne "Not Defteri" kısayolu ekle (bir kez)
 #
-# İlk kurulum için önce ./scripts/linux-kur.sh çalıştırılır.
+# İlk kurulum için önce ./Devs/Scripts/linux-kur.sh çalıştırılır.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 KOK="$(pwd)"
 
 # Masaüstü terminali giriş kabuğu değildir; ~/.profile okunmadığı için swift yolda olmayabilir.
@@ -26,7 +26,7 @@ if [[ "${1:-}" == "--menuye-ekle" ]]; then
 Type=Application
 Name=Not Defteri
 Comment=Markdown tabanlı not defteri
-Exec="$KOK/scripts/linux-calistir.sh"
+Exec="$KOK/Devs/Scripts/linux-calistir.sh"
 Icon=accessories-text-editor
 Terminal=false
 Categories=Office;Utility;TextEditor;
@@ -36,7 +36,7 @@ EOF
 fi
 
 if ! command -v swift >/dev/null 2>&1; then
-    echo "Swift bulunamadı. Önce ./scripts/linux-kur.sh çalıştırın." >&2
+    echo "Swift bulunamadı. Önce ./Devs/Scripts/linux-kur.sh çalıştırın." >&2
     exit 1
 fi
 

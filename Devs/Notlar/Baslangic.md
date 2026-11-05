@@ -29,15 +29,17 @@ Amaç: kodu her seferinde baştan okumadan çalışabilmek.
 swift build -c release && .build/release/NotDefteri
 ```
 
-## Vault Düzeni
+## Devs Düzeni
+
+Geliştirmeye ait her şey `Devs/` altında; uygulama kodu (`Sources/`, `Tests/`) kökte.
 
 | Klasör | İçerik |
 |---|---|
-| `06_Metadata/` | Kod haritası, mimari kararlar — **önce buraya bak** |
-| `03_Resources/` | Format spesifikasyonu, referans |
-| `01_Projects/` | Aktif işler |
-| `00_Inbox/` | Ham fikirler |
-| `04_Archive/` | Biten işler |
+| `Devs/Mimari/` | Kod haritası, mimari kararlar — **önce buraya bak** |
+| `Devs/Kaynaklar/` | Format spesifikasyonu, Linux test sunucusu |
+| `Devs/Planlar/` | Açık işler ve özellik planları |
+| `Devs/Scripts/` | Kurulum, Linux başlatma ve README animasyonu scriptleri |
+| `Devs/Notlar/` | Bu giriş notu ve ilk analiz (`ozet.md`) |
 
 ## Dikkat
 
