@@ -47,6 +47,7 @@ and this project adheres to
 
 ### Fixed
 
+- Code blocks: pressing Enter three times on the last line no longer jumps out of the block to the content below; Enter always stays in the code, and **Ctrl+Enter** leaves it (macOS and Linux).
 - macOS: the block handle (⋮⋮) fell inside code blocks and callouts; it now sits left of the frame, aligned with the first line. While dragging, the moved block is outlined in blue, a translucent copy follows the pointer, and the drop position is shown as a thick line with a ring at its start, midway between the visible edges of two blocks (with a background-colored halo so it does not blend into box borders).
 - macOS: the space around boxes updates immediately when a neighboring line changes; the spacing seen while editing does not change after reopening the app. A blank line saved between an adjacent quote and callout is drawn at almost zero height on open (it used to appear as a full line first).
 - macOS: a single-line fragment copied from a code block, callout, quote, list item, heading or table cell no longer splits the target line into a new block; it is pasted inline (a fragment from code becomes inline code, inline formatting is kept). Multi-line selections still move blocks. No blank line is left below a code block pasted at the end of a line.

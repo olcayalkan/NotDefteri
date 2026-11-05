@@ -171,15 +171,15 @@ final class UyariPanoTestleri: XCTestCase {
 
     // MARK: Kod bloğunda Enter ve dışarıdan yapıştırma
 
-    /// Kodun son satırında üç Enter koddan çıkar; yazılan metin kutunun altına düşer.
-    func testKoddaUcEnterKutudanCikar() {
-        let e = editor("```\nabc\n```\n")
+    /// Kodun son satırında üç Enter kodda kalır; yazılan metin kodun altındaki içeriğe atlamaz.
+    func testKoddaUcEnterKoddaKalir() {
+        let e = editor("```\nabc\n```\nalt\n")
         e.setSelectedRange(NSRange(location: NSMaxRange((e.string as NSString).range(of: "abc")), length: 0))
         e.insertNewline(nil)
         e.insertNewline(nil)
         e.insertNewline(nil)
         e.insertText("x", replacementRange: e.selectedRange())
-        XCTAssertEqual(md(e), "```\nabc\n```\nx\n")
+        XCTAssertEqual(md(e), "```\nabc\n\n\nx\n```\nalt\n")
     }
 
     /// Enter'dan sonra koda yapıştırılan, kodun dışındaki satırlar: liste işareti ("•\t") koda
