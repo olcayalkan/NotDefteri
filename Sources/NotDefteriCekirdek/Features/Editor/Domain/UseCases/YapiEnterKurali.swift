@@ -43,8 +43,9 @@ package func yapiEnterKurali(_ belge: NSAttributedString, imlec: NSRange, koddan
     let eski = belge.attributedSubstring(from: paragraf)
     let isaret = blokIsaretiUzunlugu(eski)
     let bos = kodBloguGovdesi(eski).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    if kod != nil || blok?.tur == .uyari, imlec.length == 0, kodBloguGovdesi(eski).trimmingCharacters(in: .newlines).isEmpty,
-       let cikis = kutununSonBosSatirindanCik(belge, ns: ns, paragraf: paragraf, kod: kod) {
+    // Kod bloğu Enter'la hiç terk edilmez (art arda boş satır kodda sık yazılır); çıkış yalnızca Ctrl+Enter.
+    if kod == nil, blok?.tur == .uyari, imlec.length == 0, kodBloguGovdesi(eski).trimmingCharacters(in: .newlines).isEmpty,
+       let cikis = uyariSonBosSatirindanCik(belge, ns: ns, paragraf: paragraf) {
         return cikis
     }
     // Kod bloğunun ve uyarı kutusunun ortasındaki boş satır Enter'la terk edilmez (boş satır kutunun
@@ -134,26 +135,17 @@ private func kodKapanisiniTamamla(_ yeni: NSMutableAttributedString, kod: [Strin
     yeni.addAttribute(kKodBloguAnahtari, value: kod, range: NSRange(location: 0, length: yeni.length))
 }
 
-/// Kutunun son satırı boşken Enter kutudan çıkar: uyarı kutusunda art arda ikinci, kod bloğunda
-/// üçüncü Enter (kodda tek boş satır sık yazılır). Sondaki boş satırlar kutudan atılır, imleç
-/// kutunun altındaki boş düz satıra geçer; öyle bir satır yoksa açılır. Tek satırlık kutuda çıkılmaz.
-private func kutununSonBosSatirindanCik(_ belge: NSAttributedString, ns: NSString, paragraf: NSRange,
-                                        kod: [String: String]?) -> YapiEnterDegisimi? {
+/// Uyarı kutusunun son satırı boşken Enter (art arda ikinci) kutudan çıkar. Sondaki boş satır kutudan
+/// atılır, imleç kutunun altındaki boş düz satıra geçer; öyle bir satır yoksa açılır. Tek satırlık
+/// kutuda çıkılmaz. Kod bloğu bu yolu kullanmaz: kodda üçüncü Enter imleci kodun altına atıyordu.
+private func uyariSonBosSatirindanCik(_ belge: NSAttributedString, ns: NSString, paragraf: NSRange) -> YapiEnterDegisimi? {
     var tam = NSRange()
-    _ = belge.attribute(kod != nil ? kKodBloguAnahtari : kUyariKutusuAnahtari, at: min(paragraf.location, belge.length - 1),
+    _ = belge.attribute(kUyariKutusuAnahtari, at: min(paragraf.location, belge.length - 1),
                         longestEffectiveRange: &tam, in: NSRange(location: 0, length: belge.length))
     guard paragraf.location > tam.location, NSMaxRange(paragraf) >= NSMaxRange(tam) else { return nil }
-    var kes = paragraf.location
-    if kod != nil {
-        let onceki = ns.paragraphRange(for: NSRange(location: paragraf.location - 1, length: 0))
-        guard onceki.location > tam.location,
-              kodBloguGovdesi(belge.attributedSubstring(from: onceki)).trimmingCharacters(in: .newlines).isEmpty else { return nil }
-        kes = onceki.location
-    }
     let kapsam = NSUnionRange(tam, paragraf)
     let yeni = NSMutableAttributedString(attributedString: belge.attributedSubstring(
-        from: NSRange(location: tam.location, length: kes - tam.location)))
-    if let kod { kodKapanisiniTamamla(yeni, kod: kod) }
+        from: NSRange(location: tam.location, length: paragraf.location - tam.location)))
     let alt = NSMaxRange(kapsam)
     let altBosDuz = alt < belge.length && ns.character(at: alt) == 10 &&
         ![kKodBloguAnahtari, kUyariKutusuAnahtari, kMetinBloguAnahtari, kBaslikSeviyesiAnahtari].contains {
