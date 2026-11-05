@@ -48,7 +48,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 
 | Dosya | Satır | İçerik |
 |---|---|---|
-| `AnaSayfa.swift` | 492 | Selamlama/tarih ve selamla sağ kenar arasında ortalı canlı saat (`SelamSatiri`, elle yerleşim), yatay son açılan/favori kartları, ilk 20 gruplu yapılacak ve hızlı eylemler; tema renkleri |
+| `AnaSayfa.swift` | 496 | Selamlama/tarih ve selamla sağ kenar arasında (ortanın 20 pt sağında) canlı saat (`SelamSatiri`, elle yerleşim), yatay son açılan/favori kartları, ilk 20 gruplu yapılacak ve hızlı eylemler; tema renkleri |
 | `ResimEki.swift` | 225 | `ResimEki`, `ResimEkiHucresi` — sürüklenerek boyutlandırma |
 | `BaslikCubugu.swift` | 195 | Özel pencere kontrolleri, tıklanabilir ata sayfa yolu; sayfa adı/yolu düğmelere eşit uzak alanda pencerenin ortasında |
 | `SayfaSecenekAlani.swift` | 41 | Editörün sol üstünde yalnızca düğme kadar (`genislik` 52 pt) alan; hover'da "•••" sayfa seçenekleri (Küçük yazı, dışa aktar, geçmiş) |

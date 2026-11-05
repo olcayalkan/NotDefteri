@@ -254,6 +254,8 @@ private final class SelamSatiri: NSView {
     private static let aralik: CGFloat = 16
     /// Saat, selamın üst kenarından bu kadar aşağıda başlar; iki satırlık sol sütunla dengeli durur.
     private static let saatUstPayi: CGFloat = 15
+    /// Tam ortaya göre sağa kayma; göz ortayı biraz sağda daha dengeli buluyor.
+    private static let saatSagaKayma: CGFloat = 20
     private static let selamYuksekligi: CGFloat = 50
     private static let tarihYuksekligi: CGFloat = 20
     static let yukseklik: CGFloat = selamYuksekligi + 2 + tarihYuksekligi
@@ -290,9 +292,11 @@ private final class SelamSatiri: NSView {
         let selamBoyutu = boyut(selam)
         let selamGenisligi = min(selamBoyutu.width, solGenislik)
         let tarihGenisligi = min(boyut(tarih).width, solGenislik)
-        // Saat, sol bloğun bitişiyle sağ kenar arasının ortasında; en az `aralik` kadar uzak durur.
+        // Saat, sol bloğun bitişiyle sağ kenar arasının ortasından `saatSagaKayma` kadar sağda;
+        // selamdan en az `aralik` uzak durur, sağ kenarı hiç aşmaz.
         let solBitis = max(selamGenisligi, tarihGenisligi)
-        let saatX = solBitis + max(Self.aralik, (bounds.width - solBitis - saatBoyutu.width) / 2)
+        let orta = solBitis + max(Self.aralik, (bounds.width - solBitis - saatBoyutu.width) / 2)
+        let saatX = max(orta, min(orta + Self.saatSagaKayma, bounds.width - saatBoyutu.width))
         saat.frame = NSRect(x: saatX, y: Self.saatUstPayi, width: saatBoyutu.width, height: saatBoyutu.height)
         // Selam, saatin eski (üst paysız) yerindeki taban çizgisinde kalır.
         let taban = saat.firstBaselineOffsetFromTop - selam.firstBaselineOffsetFromTop

@@ -202,6 +202,8 @@ final class LinuxAnaSayfa {
         gtk_widget_set_halign(saat, GTK_ALIGN_CENTER)
         gtk_widget_set_valign(saat, GTK_ALIGN_START)
         gtk_widget_set_margin_top(saat, 15)
+        // Ortalanan kutu sol payın yarısı kadar sağa kayar: 40 px pay, saati ortadan 20 px sağa alır.
+        gtk_widget_set_margin_start(saat, 40)
         ekle(selamSatiri, selam)
         ekle(selamSatiri, saat)
         ekle(kutu, selamSatiri)
