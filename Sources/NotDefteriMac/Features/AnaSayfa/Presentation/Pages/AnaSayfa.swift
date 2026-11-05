@@ -243,8 +243,9 @@ final class AnaSayfa: NSScrollView {
     }
 }
 
-/// Solda selam ve altında tarih, sağ kenara yaslı saat. Yer yetmezse selam ve tarih kısalır,
-/// saat hep tam görünür; tarih saatin altına kaymasın diye üçü aynı görünümde dizilir.
+/// Solda selam ve altında tarih; saat, sol bloğun bitişiyle sağ kenar arasının tam ortasında.
+/// Yer daraldıkça saat sağ kenara yaslanır, selam ve tarih kısalır; saat hep tam görünür.
+/// Tarih saatin altına kaymasın diye üçü aynı görünümde dizilir.
 /// Auto Layout (NSStackView) elle dizilen belgenin içinde çözülmediği için yerleşim elle yapılır.
 private final class SelamSatiri: NSView {
     private let selam: NSTextField
@@ -272,6 +273,12 @@ private final class SelamSatiri: NSView {
     required init?(coder: NSCoder) { fatalError() }
     override var isFlipped: Bool { true }
 
+    /// Pencere boyutu değişince saat yeni ortaya taşınır; elle yerleşimde bu kendiliğinden olmaz.
+    override func setFrameSize(_ yeniBoyut: NSSize) {
+        super.setFrameSize(yeniBoyut)
+        needsLayout = true
+    }
+
     override func layout() {
         super.layout()
         // intrinsicContentSize hizalama dikdörtgenidir; etiketin kenar payı eklenmezse metin "…" ile kesilir.
@@ -280,14 +287,17 @@ private final class SelamSatiri: NSView {
         }
         let saatBoyutu = boyut(saat)
         let solGenislik = max(0, bounds.width - saatBoyutu.width - Self.aralik)
-        saat.frame = NSRect(x: bounds.width - saatBoyutu.width, y: Self.saatUstPayi,
-                            width: saatBoyutu.width, height: saatBoyutu.height)
-        // Selam, saatin eski (üst paysız) yerindeki taban çizgisinde kalır.
         let selamBoyutu = boyut(selam)
+        let selamGenisligi = min(selamBoyutu.width, solGenislik)
+        let tarihGenisligi = min(boyut(tarih).width, solGenislik)
+        // Saat, sol bloğun bitişiyle sağ kenar arasının ortasında; en az `aralik` kadar uzak durur.
+        let solBitis = max(selamGenisligi, tarihGenisligi)
+        let saatX = solBitis + max(Self.aralik, (bounds.width - solBitis - saatBoyutu.width) / 2)
+        saat.frame = NSRect(x: saatX, y: Self.saatUstPayi, width: saatBoyutu.width, height: saatBoyutu.height)
+        // Selam, saatin eski (üst paysız) yerindeki taban çizgisinde kalır.
         let taban = saat.firstBaselineOffsetFromTop - selam.firstBaselineOffsetFromTop
-        selam.frame = NSRect(x: 0, y: taban, width: min(selamBoyutu.width, solGenislik), height: selamBoyutu.height)
-        tarih.frame = NSRect(x: 0, y: Self.selamYuksekligi + 2, width: min(boyut(tarih).width, solGenislik),
-                             height: Self.tarihYuksekligi)
+        selam.frame = NSRect(x: 0, y: taban, width: selamGenisligi, height: selamBoyutu.height)
+        tarih.frame = NSRect(x: 0, y: Self.selamYuksekligi + 2, width: tarihGenisligi, height: Self.tarihYuksekligi)
     }
 }
 
