@@ -7,8 +7,8 @@
 #   ./calistir.sh -t       önce testleri çalıştır, geçerse başlat
 #   ./calistir.sh -d       baştan derle (temiz)
 #
-# Linux'ta da aynı komut çalışır (GTK başlatıcısı scripts/linux-calistir.sh'ye geçer).
-# Terminalde yalnızca `not` yazarak açmak için bir kez: ./scripts/kisayol-kur.sh
+# Linux'ta da aynı komut çalışır (GTK başlatıcısı Devs/Scripts/linux-calistir.sh'ye geçer).
+# Terminalde yalnızca `not` yazarak açmak için bir kez: ./Devs/Scripts/kisayol-kur.sh
 
 set -e
 cd "$(dirname "$0")"
@@ -21,7 +21,7 @@ if [[ "$(uname -s)" == Linux ]]; then
           swift test > /dev/null 2>&1 || { echo "Testler başarısız, açılmıyor."; exit 1; }
           set -- ;;
     esac
-    exec ./scripts/linux-calistir.sh "$@"
+    exec ./Devs/Scripts/linux-calistir.sh "$@"
 fi
 
 IKILI=".build/debug/NotDefteri"

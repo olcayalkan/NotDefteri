@@ -20,5 +20,5 @@ Closes #
 
 - [ ] `swift build` and `swift test` pass locally
 - [ ] Identifiers and code comments follow the project convention (Turkish)
-- [ ] `06_Metadata/Kod-Haritasi.md` is updated when code moves between files
+- [ ] `Devs/Mimari/Kod-Haritasi.md` is updated when code moves between files
 - [ ] User-visible changes are added to `CHANGELOG.md`

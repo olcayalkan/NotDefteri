@@ -11,7 +11,7 @@ ona Mac'ten **Windows App** ile görsel olarak bağlanma ve işi bitince kapatma
 
 Bu belge yalnızca **arayüz yolunu** anlatır: anahtar dosyası, Terminal ve SSH tüneli gerekmez.
 Kapsam dışı: uygulamanın Linux'ta derlenmesinin ayrıntıları. Onlar `README.md` →
-"NotDefteri'yi Linux'ta çalıştırma" ve `scripts/linux-kur.sh` içinde.
+"NotDefteri'yi Linux'ta çalıştırma" ve `Devs/Scripts/linux-kur.sh` içinde.
 
 > **Doğrulama durumu (2026-10-07):** Bölüm 1–7 bir kez gerçekten uygulandı ve çalıştı.
 > Bölüm 3'teki Bütçe adımı, Bölüm 7'deki kalıcı polkit kuralı, Bölüm 8 (kodu
@@ -177,7 +177,7 @@ EOF
 # 💻
 git clone -b linux-destegi https://github.com/olcayalkan/NotDefteri.git ~/NotDefteri
 cd ~/NotDefteri
-./scripts/linux-kur.sh
+./Devs/Scripts/linux-kur.sh
 ```
 
 Betik GTK4 ve Swift'i kurar, ardından `swift build` ve `swift run` çalıştırır.

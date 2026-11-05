@@ -12,12 +12,12 @@ yalnızca transform ve opacity; giriş/çıkış güçlü ease-out, yer değişt
 80 ms kademe. Hareket azaltıldığında kayma kalkar, solma ve yazma sürer ("az ve yumuşak,
 sıfır değil"). Animasyon desteklemeyen görüntüleyicide son hâl görünür.
 
-    python3 scripts/readme-animasyonlar.py
+    python3 Devs/Scripts/readme-animasyonlar.py
 """
 from html import escape
 from pathlib import Path
 
-DOCS = Path(__file__).resolve().parent.parent / "docs"
+DOCS = Path(__file__).resolve().parents[2] / "docs"
 
 # Sepya teması (Tema.swift) ve ondan türeyen sıcak tek renk ailesi.
 SEPYA = "#d6cfba"
@@ -705,7 +705,7 @@ KURULUM = [
     ("komut", "git clone https://github.com/olcayalkan/NotDefteri.git", 0.6),
     ("cikti", "Cloning into 'NotDefteri'...", 0.5),
     ("komut", "cd NotDefteri", 0.6),
-    ("komut", "./scripts/kisayol-kur.sh", 0.5),
+    ("komut", "./Devs/Scripts/kisayol-kur.sh", 0.5),
     ("basari", "Installed. Just type 'not' in the terminal.", 0.4),
     ("komut", "not", 0.8),
     ("cikti", "Building...", 0.3),

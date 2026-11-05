@@ -3,7 +3,7 @@
 # terminal kısayolu (`not`), uygulama menüsü girdisi; sonunda pencereyi açar.
 # Tekrar çalıştırmak güvenlidir (güncellemeden sonra da kullanılabilir).
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 if [[ "$(uname -s)" != Linux ]]; then
     echo "Bu betik Ubuntu 22.04 Linux içindir." >&2
@@ -48,13 +48,13 @@ KISAYOL=/usr/local/bin/not
 if [[ -e "$KISAYOL" ]] && ! grep -qs "kur.sh üretti" "$KISAYOL"; then
     echo "Uyarı: $KISAYOL başka bir programa ait; üzerine yazılmadı." >&2
 else
-    printf '#!/usr/bin/env bash\n# Not Defteri kısayolu; scripts/linux-kur.sh üretti.\nexec "%s/calistir.sh" "$@"\n' "$KOK" \
+    printf '#!/usr/bin/env bash\n# Not Defteri kısayolu; Devs/Scripts/linux-kur.sh üretti.\nexec "%s/calistir.sh" "$@"\n' "$KOK" \
         | sudo tee "$KISAYOL" >/dev/null
     sudo chmod 755 "$KISAYOL"
 fi
 
 # Uygulama menüsü: Office > Not Defteri
-./scripts/linux-calistir.sh --menuye-ekle
+./Devs/Scripts/linux-calistir.sh --menuye-ekle
 
 echo
 echo "Kurulum tamam. Bundan sonra terminalde yalnızca: not"
