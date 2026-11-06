@@ -72,7 +72,7 @@ final class BlokMenusu: NSView {
     private var dilSorgusu = ""
     private var dilEslesmeleri: [String] = []
     private let dilBasligi = NSTextField(labelWithString: "")
-    private let diller = ["", "swift", "go", "python", "javascript", "typescript", "bash", "json", "sql", "html", "css"]
+    static let diller = ["", "swift", "go", "python", "javascript", "typescript", "bash", "json", "sql", "html", "css"]
     private var eslesmeler = Komut.allCases
     private var secili = 0
     private var dugmeler: [NSButton] = []
@@ -132,7 +132,7 @@ final class BlokMenusu: NSView {
 
     private func dilleriFiltrele() {
         let sorgu = dilSorgusu.lowercased()
-        dilEslesmeleri = diller.filter {
+        dilEslesmeleri = Self.diller.filter {
             sorgu.isEmpty || $0.contains(sorgu) || dilAdiniNormallestir(sorgu) == $0
         }
         secili = 0

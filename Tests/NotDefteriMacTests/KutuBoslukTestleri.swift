@@ -76,6 +76,26 @@ final class KutuBoslukTestleri: XCTestCase {
         XCTAssertEqual(ozet(e), yenidenAcilinca(e))
     }
 
+    /// Kodun içindeki boş satır kutular arası boş satır gibi ezilmez; yapıştırılan çıktı olduğu gibi görünür.
+    func testKodIcindekiBosSatirEzilmez() throws {
+        let e = editor("```\nbir\n\niki\n```\n")
+        let depo = try XCTUnwrap(e.textStorage)
+        let bos = (e.string as NSString).range(of: "bir").upperBound + 1
+        let stil = depo.attribute(.paragraphStyle, at: bos, effectiveRange: nil) as? NSParagraphStyle
+        XCTAssertNotEqual(stil?.maximumLineHeight, kKutularArasiBosSatirYuksekligi)
+    }
+
+    /// Belge sonundaki kutunun çerçevesi, görünmez son satırı içine alıp fazladan boşluk bırakmaz.
+    func testBelgeSonundakiKutuFazlaBoslukBirakmaz() throws {
+        func cerceve(_ md: String) throws -> NSRect {
+            let e = editor(md)
+            e.layoutManager?.ensureLayout(for: e.textContainer!)
+            let blok = try XCTUnwrap(e.cerceveliBlokAraliklari(NSRange(location: 0, length: e.textStorage!.length), anahtar: kKodBloguAnahtari).first)
+            return try XCTUnwrap(e.blokCerceveKaresi(blok, anahtar: kKodBloguAnahtari))
+        }
+        XCTAssertEqual(try cerceve("```\nkod\n```\n").height, try cerceve("```\nkod\n```\nalt\n").height, accuracy: 0.5)
+    }
+
     private func yukseklik(_ e: NotMetinGorunumu) -> CGFloat {
         let yerlesim = e.layoutManager!, kap = e.textContainer!
         yerlesim.ensureLayout(for: kap)

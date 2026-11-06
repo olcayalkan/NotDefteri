@@ -228,6 +228,37 @@ extension NotMetinGorunumu {
         if NSPasteboard.general.setString(metin, forType: .string) { kodAraclari.kopyalandi() }
     }
 
+    /// Sağ tık menüsü: kutu oluştuktan sonra da dil (dolayısıyla sözdizimi renkleri) değişebilsin.
+    func kodDilOgesi(_ sinirlar: [String: String]) -> NSMenuItem {
+        let oge = NSMenuItem(title: "Dil", action: nil, keyEquivalent: "")
+        let menu = NSMenu(title: "Dil")
+        let mevcut = kodBloguDilEtiketi(sinirlar)
+        for dil in BlokMenusu.diller {
+            let alt = menu.addItem(withTitle: dil.isEmpty ? "Otomatik" : dil, action: #selector(kodDiliniSec(_:)), keyEquivalent: "")
+            alt.target = self
+            alt.representedObject = dil
+            alt.state = mevcut == dil ? .on : .off
+        }
+        oge.submenu = menu
+        return oge
+    }
+
+    @objc private func kodDiliniSec(_ sender: NSMenuItem) {
+        guard let dil = sender.representedObject as? String else { return }
+        kodDiliniDegistir(dil)
+    }
+
+    func kodDiliniDegistir(_ dil: String) {
+        guard isEditable, let depo = textStorage, depo.length > 0 else { return }
+        var aralik = NSRange()
+        guard let sinirlar = depo.attribute(kKodBloguAnahtari, at: min(selectedRange().location, depo.length - 1), longestEffectiveRange: &aralik,
+                                            in: NSRange(location: 0, length: depo.length)) as? [String: String] else { return }
+        let yeni = NSMutableAttributedString(attributedString: depo.attributedSubstring(from: aralik))
+        yeni.addAttributes(kodBloguOznitelikleri(kodBloguDilli(sinirlar, dil: dil)), range: NSRange(location: 0, length: yeni.length))
+        blokDuzenle(aralik, yeni: yeni, secim: selectedRange(), yazim: typingAttributes)
+        blokYaziminiGuncelle()
+    }
+
     func kodDilSeciminiBaslat(_ aralik: NSRange) {
         guard let pencere = window else { return }
         blokMenusu.dilleriGoster()

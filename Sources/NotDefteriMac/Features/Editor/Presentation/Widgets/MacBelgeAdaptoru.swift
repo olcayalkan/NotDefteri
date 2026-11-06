@@ -407,7 +407,8 @@ final class MacBelgeAdaptoru {
         let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
         guard paragraf.location > 0, NSMaxRange(paragraf) < ns.length, ns.substring(with: paragraf).hasSuffix("\n"),
               bosSatirMi(ns, paragraf) else { return false }
-        return kutudaMi(depo, paragraf.location - 1) && kutudaMi(depo, NSMaxRange(paragraf))
+        // Kutunun kendi boş satırı değil, iki kutunun arasındaki satır aranıyor.
+        return !kutudaMi(depo, paragraf.location) && kutudaMi(depo, paragraf.location - 1) && kutudaMi(depo, NSMaxRange(paragraf))
     }
 
     /// Parça kutunun ilk paragrafındaysa üst, son paragrafındaysa alt kenardadır.

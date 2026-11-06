@@ -91,6 +91,20 @@ final class KodBloguGorselTestleri: XCTestCase {
         XCTAssertEqual(e.kodAraclari.dugme.attributedTitle.string, "Kopyalandı")
     }
 
+    /// Dil sonradan değişir: gövde ve ortalama korunur, kayda ve renklendirme etiketine yansır, kutu tek parça kalır.
+    func testKodDiliSonradanDegisir() throws {
+        let e = editor("```swift {center}\nilk\nson\n```\nalt\n")
+        imleciKoy(e, sonuna: "ilk")
+        e.kodDiliniDegistir("python")
+        XCTAssertEqual(markdownMetniUret(e.textStorage!), "```python {center}\nilk\nson\n```\nalt\n")
+        XCTAssertEqual(kodBloklari(e).count, 1)
+        let konum = (e.string as NSString).range(of: "son").location
+        let bilgi = try XCTUnwrap(e.textStorage?.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String])
+        XCTAssertEqual(kodBloguDilEtiketi(bilgi), "python")
+        e.kodDiliniDegistir("")
+        XCTAssertEqual(markdownMetniUret(e.textStorage!), "```{center}\nilk\nson\n```\nalt\n")
+    }
+
     /// Alt alta iki kod bloğunun çerçeveleri arada boşluk kalmadan bitişir; yeniden açınca da aynı.
     func testBitisikKodBloklariArasindaBoslukYok() throws {
         let e = editor("```\nbir\n```\n```\niki\n```\n")

@@ -606,6 +606,13 @@ final class NotMetinGorunumu: NSTextView {
             menu = uyariRenkMenusu()
         } else {
             menu = super.menu(for: event) ?? NSMenu()
+            if let depo = textStorage, konum < depo.length,
+               let sinirlar = depo.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String] {
+                if !(selectedRange().length > 0 && NSLocationInRange(konum, selectedRange())) {
+                    setSelectedRange(NSRange(location: konum, length: 0))
+                }
+                menu.insertItem(kodDilOgesi(sinirlar), at: 0)
+            }
         }
         hizalamaOgeleriniEkle(menu)
         return gorunumBaglamMenusunuEkle(menu, hedef: window as? NotPenceresi)

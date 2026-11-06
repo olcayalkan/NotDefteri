@@ -241,6 +241,19 @@ package func kodBloguOrtalanmis(_ sinirlar: [String: String], ortali: Bool) -> [
     return yeni
 }
 
+/// Dil, bilgi satırının ortalama işareti olmayan ilk sözcüğüdür; diğer sözcükler korunur.
+package func kodBloguDilli(_ sinirlar: [String: String], dil: String) -> [String: String] {
+    var yeni = sinirlar
+    let acilis = sinirlar["acilis"] ?? "```\n"
+    let son = acilis.hasSuffix("\r\n") ? "\r\n" : acilis.hasSuffix("\n") ? "\n" : ""
+    let cit = String(acilis.prefix { $0 == "`" })
+    var bilgi = acilis.dropFirst(cit.count).dropLast(son.count).split(whereSeparator: { $0.isWhitespace }).map(String.init)
+    if let sira = bilgi.firstIndex(where: { $0 != kOrtaliKodIsareti }) { bilgi.remove(at: sira) }
+    if !dil.isEmpty { bilgi.insert(dil, at: 0) }
+    yeni["acilis"] = cit + bilgi.joined(separator: " ") + son
+    return yeni
+}
+
 package func kodBloguGovdesi(_ metin: NSAttributedString) -> String {
     var sonuc = ""
     let ns = NSString(string: metin.string)

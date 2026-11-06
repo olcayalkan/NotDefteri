@@ -25,10 +25,16 @@ extension NotMetinGorunumu {
               let kare = guvenliKare(karakter: aralik) else { return nil }
         let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
         let girinti = anahtar == kKodBloguAnahtari ? 0 : CGFloat(blok?.seviye ?? 0) * 24
+        // Belge sonundaki kutunun karesi, görünmez son satırı da içerir; kutunun altında boşluk kalıyordu.
+        var alt = kare.maxY
+        if NSMaxRange(aralik) == depo.length, let son = layoutManager?.extraLineFragmentRect, !son.isEmpty {
+            let stil = depo.attribute(.paragraphStyle, at: depo.length - 1, effectiveRange: nil) as? NSParagraphStyle
+            alt = min(alt, son.minY - (stil?.paragraphSpacing ?? 0))
+        }
         return NSRect(x: textContainerOrigin.x + kapsayici.lineFragmentPadding + girinti,
                       y: textContainerOrigin.y + kare.minY - kKutuIcBoslugu,
                       width: max(0, kapsayici.size.width - kapsayici.lineFragmentPadding * 2 - girinti),
-                      height: kare.height + kKutuIcBoslugu * 2)
+                      height: alt - kare.minY + kKutuIcBoslugu * 2)
     }
 
     func cerceveliBloklariCiz(_ kirliAlan: NSRect, anahtar: NSAttributedString.Key) {

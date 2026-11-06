@@ -47,6 +47,8 @@ and this project adheres to
 
 ### Fixed
 
+- A box at the end of the document no longer has about 27 pt of empty space under its text, and empty lines inside a code block keep their full height (macOS).
+- Code blocks: right-click **Dil** changes the language, and so the syntax colors, after the block is created (macOS).
 - Faster copy and paste on macOS: copying a large selection no longer builds Markdown up front, pasting a large block no longer computes its appearance repeatedly, the first paste from a browser no longer waits for the HTML importer to load, and an unreachable remote image blocks a paste for 1.5 seconds instead of 3 (past that limit the paste falls back to plain text).
 - Code blocks: an image added inside a block goes below it instead of splitting it, so the saved Markdown stays valid and the Copy strip keeps working (macOS).
 - Boxes stacked directly on top of each other no longer leave a gap between their frames, and a callout typed with its Markdown shortcut gets an empty line below it (macOS).
