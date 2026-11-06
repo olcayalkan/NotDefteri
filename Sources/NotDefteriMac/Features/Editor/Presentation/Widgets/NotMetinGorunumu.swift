@@ -13,7 +13,28 @@ import NotDefteriCekirdek
 let kNotPanoTipi = NSPasteboard.PasteboardType("tr.notdefteri.icerik")
 
 /// HTML içe aktarıcı uzak görselleri ana thread'de indirir; bu süreden sonra vazgeçilir.
-private let kHtmlIceAktarmaSuresi: TimeInterval = 3
+// ponytail: bu süreyi aşan sayfada görsel ve biçim düşer, metin kalır; görsel kaybı şikâyeti
+// gelirse uzak görseller içe aktarmadan ayrılıp arka planda indirilmeli.
+private let kHtmlIceAktarmaSuresi: TimeInterval = 1
+
+/// HTML içe aktarıcının ilk çalışması WebKit'i yükler (~500 ms). Açılıştan sonra boşta bir kez
+/// çalıştırılır ki bu bekleme ilk yapıştırmaya denk gelmesin.
+func htmlIceAktariciniIsit() {
+    _ = try? NSAttributedString(data: Data("<p></p>".utf8),
+                                options: [.documentType: NSAttributedString.DocumentType.html,
+                                          .characterEncoding: String.Encoding.utf8.rawValue],
+                                documentAttributes: nil)
+}
+
+/// Not biçimindeki kopyayı panoya söz olarak verir; yalnızca okunurken üretilir.
+private final class NotPanoSahibi: NSObject, NSPasteboardTypeOwner {
+    let uret: () -> [String: Any]?
+    init(uret: @escaping () -> [String: Any]?) { self.uret = uret }
+    func pasteboard(_ sender: NSPasteboard, provideDataForType type: NSPasteboard.PasteboardType) {
+        if let bilgi = uret() { sender.setPropertyList(bilgi, forType: type) }
+    }
+}
+
 /// AppKit HTML pano türünü eski adıyla da verebiliyor.
 private let kEskiHtmlPanoTuru = NSPasteboard.PasteboardType("Apple HTML pasteboard type")
 
@@ -67,6 +88,7 @@ final class NotMetinGorunumu: NSTextView {
     /// Yalnızca NSTextView'in kullanıcı yazımı (shouldChangeText → didChangeText) kayıt üretir;
     /// doğrudan depo düzenlemesi, blok dönüşümü ve undo/redo imleci kendisi belirler.
     var kullaniciYazimi = false
+    private var kopyaSahibi: NotPanoSahibi?
     private weak var izlenenKodDeposu: NSTextStorage?
     private weak var izlenenKaydirmaIcerigi: NSClipView?
     let kodAraclari = KodBloguAraclari()
@@ -838,7 +860,16 @@ final class NotMetinGorunumu: NSTextView {
 
     override func copy(_ sender: Any?) {
         super.copy(sender)
-        secimiPanoyaEkle()
+        // Markdown üretimi büyük seçimde asıl yüktür ve başka uygulamaya yapıştırmada hiç gerekmez.
+        // Seçim şimdi saklanır; panodan istenince çevrilir (sonraki düzenlemeler kopyayı etkilemez).
+        guard let depo = textStorage, selectedRange().length > 0, NSMaxRange(selectedRange()) <= depo.length else { return }
+        let parca = depo.attributedSubstring(from: selectedRange())
+        let sahip = NotPanoSahibi { [weak self] in
+            guard let self, let markdown = self.markdownaCevir(parca) else { return nil }
+            return self.panoBilgisi(markdown)
+        }
+        kopyaSahibi = sahip
+        NSPasteboard.general.addTypes([kNotPanoTipi], owner: sahip)
     }
 
     override func cut(_ sender: Any?) {
@@ -851,14 +882,15 @@ final class NotMetinGorunumu: NSTextView {
         panoyaYaz(markdown)
     }
 
-    /// Seçimi, notun kendi Markdown biçimiyle panoya ekler (RTFD'ye ek olarak).
-    private func secimiPanoyaEkle() { panoyaYaz(secimiMarkdownaCevir()) }
-
     private func secimiMarkdownaCevir() -> String? {
         guard let metinDeposu = textStorage else { return nil }
         let aralik = selectedRange()
         guard aralik.length > 0, NSMaxRange(aralik) <= metinDeposu.length else { return nil }
-        let parca = NSMutableAttributedString(attributedString: metinDeposu.attributedSubstring(from: aralik))
+        return markdownaCevir(metinDeposu.attributedSubstring(from: aralik))
+    }
+
+    private func markdownaCevir(_ secim: NSAttributedString) -> String? {
+        let parca = NSMutableAttributedString(attributedString: secim)
         if parca.string.contains(where: \.isNewline) {
             uyariDevaminiBasaCevir(parca)
         } else {
@@ -893,11 +925,15 @@ final class NotMetinGorunumu: NSTextView {
 
     private func panoyaYaz(_ markdown: String?) {
         guard let markdown else { return }
-        var bilgi: [String: Any] = ["markdown": markdown]
-        if let taban = sayfaTabanKlasoru?() { bilgi["taban"] = taban.path }
         let pano = NSPasteboard.general
         pano.addTypes([kNotPanoTipi], owner: nil)
-        pano.setPropertyList(bilgi, forType: kNotPanoTipi)
+        pano.setPropertyList(panoBilgisi(markdown), forType: kNotPanoTipi)
+    }
+
+    private func panoBilgisi(_ markdown: String) -> [String: Any] {
+        var bilgi: [String: Any] = ["markdown": markdown]
+        if let taban = sayfaTabanKlasoru?() { bilgi["taban"] = taban.path }
+        return bilgi
     }
 
     /// Panoda kendi tipimiz varsa görselleri bu sayfaya kopyalanmış içeriği döner.

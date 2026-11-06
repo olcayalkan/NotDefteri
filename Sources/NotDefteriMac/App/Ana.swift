@@ -17,6 +17,7 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.pencere = p
         p.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { htmlIceAktariciniIsit() }
         let copKutusu = p.kenarPaneli.copKutusu
         DispatchQueue.global(qos: .utility).async {
             let hatalar = copKutusu.temizle(eskiOlanlar: true)

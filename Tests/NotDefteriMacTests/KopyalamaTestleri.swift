@@ -29,6 +29,27 @@ final class KopyalamaTestleri: XCTestCase {
         return url
     }
 
+    // MARK: Gecikmeli pano
+
+    /// Not biçimi panodan okununca üretilir ama kopyalandığı andaki seçimi taşır: sonraki düzenleme
+    /// ya da seçim değişikliği kopyayı değiştirmez.
+    func testKopyaSonrakiDuzenlemedenEtkilenmez() throws {
+        _ = NSApplication.shared
+        let e = NotMetinGorunumu(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        e.isRichText = true; e.isEditable = true
+        e.textStorage?.delegate = e
+        e.textStorage?.setAttributedString(MacBelgeAdaptoru.markdownuAc("**kalın** metin\nikinci\n"))
+        let pano = NSPasteboard.general
+        let eski = pano.string(forType: .string)
+        defer { pano.clearContents(); if let eski { pano.setString(eski, forType: .string) } }
+        e.setSelectedRange(NSRange(location: 0, length: (e.string as NSString).range(of: "ikinci").location))
+        e.copy(nil)
+        e.setSelectedRange(NSRange(location: 0, length: 0))
+        e.insertText("değişti ", replacementRange: NSRange(location: 0, length: 0))
+        let bilgi = try XCTUnwrap(pano.propertyList(forType: kNotPanoTipi) as? [String: Any])
+        XCTAssertEqual(bilgi["markdown"] as? String, "**kalın** metin\n")
+    }
+
     // MARK: Dosya kopyalama
 
     func testKaynakDosyaYerindeKalir() throws {
