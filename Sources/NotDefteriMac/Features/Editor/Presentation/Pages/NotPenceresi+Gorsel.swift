@@ -49,7 +49,8 @@ extension NotPenceresi {
     /// kopyasına sahip olur — sayfalar taşınınca bağlar kopmaz.
     func kopyalananIcerigiHazirla(markdown: String, kaynakTaban: URL?) -> NSAttributedString? {
         let taban = kaynakTaban ?? notlarKlasoru()
-        let icerik = NSMutableAttributedString(attributedString: MacBelgeAdaptoru.markdownuAc(markdown, taban: taban))
+        let icerik = NSMutableAttributedString(attributedString: MacBelgeAdaptoru.yapistirmaBelgesi(
+            markdowndenAttributedStringUret(markdown, taban: taban), taban: taban))
         guard icerik.length > 0 else { return nil }
 
         // Kopyalar önce toplanır, sonra uygulanır. Anlamsal görsel yalnızca yol değiştirir;

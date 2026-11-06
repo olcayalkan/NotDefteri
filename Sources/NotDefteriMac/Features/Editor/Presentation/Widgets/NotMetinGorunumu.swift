@@ -15,10 +15,10 @@ let kNotPanoTipi = NSPasteboard.PasteboardType("tr.notdefteri.icerik")
 /// HTML içe aktarıcı uzak görselleri ana thread'de indirir; bu süreden sonra vazgeçilir.
 // ponytail: bu süreyi aşan sayfada görsel ve biçim düşer, metin kalır; görsel kaybı şikâyeti
 // gelirse uzak görseller içe aktarmadan ayrılıp arka planda indirilmeli.
-private let kHtmlIceAktarmaSuresi: TimeInterval = 1
+private let kHtmlIceAktarmaSuresi: TimeInterval = 1.5
 
-/// HTML içe aktarıcının ilk çalışması WebKit'i yükler (~500 ms). Açılıştan sonra boşta bir kez
-/// çalıştırılır ki bu bekleme ilk yapıştırmaya denk gelmesin.
+/// HTML içe aktarıcının ilk çalışması WebKit'i yükler (~500 ms). Kullanıcı uygulamadan ilk
+/// ayrıldığında bir kez çalıştırılır: dışarıdan kopyalamadan önce biter ve yazarken takılma olmaz.
 func htmlIceAktariciniIsit() {
     _ = try? NSAttributedString(data: Data("<p></p>".utf8),
                                 options: [.documentType: NSAttributedString.DocumentType.html,
@@ -588,7 +588,7 @@ final class NotMetinGorunumu: NSTextView {
         defer { cevreGorunumuUygulaniyor = false }
         let secim = selectedRanges
         depo.beginEditing()
-        belgeAdaptoru.gorunumuUygula(depo, aralik: sinirli.length > 0 ? sinirli : depo.mutableString.paragraphRange(for: NSRange(location: min(sinirli.location, depo.length - 1), length: 0)))
+        belgeAdaptoru.cevreyiUygula(depo, aralik: sinirli.length > 0 ? sinirli : depo.mutableString.paragraphRange(for: NSRange(location: min(sinirli.location, depo.length - 1), length: 0)))
         depo.endEditing()
         if selectedRanges != secim { selectedRanges = secim }
     }
@@ -788,7 +788,7 @@ final class NotMetinGorunumu: NSTextView {
     private func disPanoIcerigi(_ pano: NSPasteboard) -> NSAttributedString? {
         guard let metin = pano.string(forType: .string).map(sekmeliMetniTabloyaCevir), !metin.isEmpty else { return nil }
         let taban = sayfaTabanKlasoru?() ?? notlarKlasoru()
-        let icerik = MacBelgeAdaptoru.belgeyiAc(disMetniNotBicimineCevir(metin, taban: taban), taban: taban)
+        let icerik = MacBelgeAdaptoru.yapistirmaBelgesi(disMetniNotBicimineCevir(metin, taban: taban), taban: taban)
         return icerik.length > 0 ? icerik : nil
     }
 

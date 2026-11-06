@@ -50,6 +50,29 @@ final class KopyalamaTestleri: XCTestCase {
         XCTAssertEqual(bilgi["markdown"] as? String, "**kalın** metin\n")
     }
 
+    /// Ön görünüm hesabı atlansa da yapıştırılan metin görünümünü alır; kutusuz yapıştırmada
+    /// yalnızca kenarlar yeniden hesaplansa da alttaki kutunun boşluğu yazıya göre güncellenir.
+    func testYapistirilanMetinGorunumAlirKomsuKutuGuncellenir() throws {
+        _ = NSApplication.shared
+        let e = NotMetinGorunumu(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        e.isRichText = true; e.isEditable = true
+        e.textStorage?.delegate = e
+        e.sayfaYukleniyor = true
+        e.textStorage?.setAttributedString(MacBelgeAdaptoru.markdownuAc("\n> [!💡 mavi] kutu\n"))
+        e.sayfaYukleniyor = false
+        let ilkStil = e.textStorage?.attribute(.paragraphStyle, at: (e.string as NSString).range(of: "kutu").location, effectiveRange: nil) as? NSParagraphStyle
+        XCTAssertEqual(ilkStil?.paragraphSpacingBefore, kKutuAltBoslugu, "üstünde boş satır var")
+        e.setSelectedRange(NSRange(location: 0, length: 0))
+        let taban = URL(fileURLWithPath: NSTemporaryDirectory())
+        e.icerigiEkle(MacBelgeAdaptoru.yapistirmaBelgesi(markdowndenAttributedStringUret("ilk\n**kalın**", taban: taban), taban: taban))
+        let ns = e.string as NSString
+        let depo = try XCTUnwrap(e.textStorage)
+        let font = depo.attribute(.font, at: ns.range(of: "kalın").location, effectiveRange: nil) as? NSFont
+        XCTAssertEqual(font?.fontDescriptor.symbolicTraits.contains(.bold), true)
+        let stil = depo.attribute(.paragraphStyle, at: ns.range(of: "kutu").location, effectiveRange: nil) as? NSParagraphStyle
+        XCTAssertEqual(stil?.paragraphSpacingBefore, kKutuDisBoslugu, "üstündeki boş satır yazıyla doldu")
+    }
+
     // MARK: Dosya kopyalama
 
     func testKaynakDosyaYerindeKalir() throws {

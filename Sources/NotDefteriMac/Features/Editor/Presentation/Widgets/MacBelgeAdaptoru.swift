@@ -144,6 +144,13 @@ final class MacBelgeAdaptoru {
         belgeyiAc(markdowndenAttributedStringUret(markdown, taban: taban), taban: taban, olcek: olcek)
     }
 
+    /// Yapıştırılacak içerik: editöre girince görünüm zaten kurulur, önceden hesaplamak büyük
+    /// yapıştırmada süreyi uzatıyordu. Görselli içerik `belgeyiAc`'tan geçer; okunamayan görselin
+    /// metne dönmesi ve kaynak kanoniği orada.
+    static func yapistirmaBelgesi(_ anlamsal: NSAttributedString, taban: URL) -> NSAttributedString {
+        gorselSayisi(anlamsal) > 0 ? belgeyiAc(anlamsal, taban: taban) : tablolariHucrele(anlamsal)
+    }
+
     static func belgeyiAc(_ anlamsal: NSAttributedString, taban: URL, olcek: CGFloat = 1) -> NSAttributedString {
         // Aşağıdaki satır aralıkları anlamsal belgede de kullanılır; tablo önce hücrelenir.
         let anlamsal = tablolariHucrele(anlamsal)
@@ -305,6 +312,22 @@ final class MacBelgeAdaptoru {
             for anahtar in sil { depo.removeAttribute(anahtar, range: alt) }
         }
         gorselleriEsle(depo, aralik: aralik)
+    }
+
+    /// Düzenleme bitince çevre boşlukları. Kutusuz aralığın içi komşuya bağlı değildir ve
+    /// willProcessEditing'de yazılmıştır; büyük yapıştırmada yalnızca kenar paragraflar kalır.
+    func cevreyiUygula(_ depo: NSMutableAttributedString, aralik: NSRange) {
+        var kutulu = false
+        for anahtar in Self.kutuAnahtarlari where !kutulu {
+            depo.enumerateAttribute(anahtar, in: aralik) { deger, _, dur in
+                if deger != nil { kutulu = true; dur.pointee = true }
+            }
+        }
+        guard !kutulu, aralik.length > 0 else { gorunumuUygula(depo, aralik: aralik); return }
+        let ilk = depo.mutableString.paragraphRange(for: NSRange(location: aralik.location, length: 0))
+        let son = depo.mutableString.paragraphRange(for: NSRange(location: NSMaxRange(aralik) - 1, length: 0))
+        gorunumuUygula(depo, aralik: ilk)
+        if son != ilk { gorunumuUygula(depo, aralik: son) }
     }
 
     private static let kutuAnahtarlari = [kKodBloguAnahtari, kUyariKutusuAnahtari]

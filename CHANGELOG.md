@@ -47,7 +47,7 @@ and this project adheres to
 
 ### Fixed
 
-- Faster copy and paste on macOS: copying a large selection no longer builds Markdown up front, the first paste from a browser no longer waits for the HTML importer to load, and an unreachable remote image blocks a paste for 1 second instead of 3 (past that limit the paste falls back to plain text).
+- Faster copy and paste on macOS: copying a large selection no longer builds Markdown up front, pasting a large block no longer computes its appearance repeatedly, the first paste from a browser no longer waits for the HTML importer to load, and an unreachable remote image blocks a paste for 1.5 seconds instead of 3 (past that limit the paste falls back to plain text).
 - Code blocks: an image added inside a block goes below it instead of splitting it, so the saved Markdown stays valid and the Copy strip keeps working (macOS).
 - Boxes stacked directly on top of each other no longer leave a gap between their frames, and a callout typed with its Markdown shortcut gets an empty line below it (macOS).
 - Code blocks: pressing Enter three times on the last line no longer jumps out of the block to the content below; Enter always stays in the code, and **Ctrl+Enter** leaves it (macOS and Linux).

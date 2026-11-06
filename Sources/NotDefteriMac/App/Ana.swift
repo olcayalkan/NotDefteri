@@ -6,6 +6,14 @@ import NotDefteriCekirdek
 final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var pencere: NotPenceresi?
 
+    private var htmlIsitildi = false
+
+    func applicationDidResignActive(_ notification: Notification) {
+        guard !htmlIsitildi else { return }
+        htmlIsitildi = true
+        htmlIceAktariciniIsit()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         // Panel not ağacını okumadan önce boş, ilk kurulum kökünü rehberle doldur.
@@ -17,7 +25,6 @@ final class UygulamaDelegesi: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.pencere = p
         p.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { htmlIceAktariciniIsit() }
         let copKutusu = p.kenarPaneli.copKutusu
         DispatchQueue.global(qos: .utility).async {
             let hatalar = copKutusu.temizle(eskiOlanlar: true)
