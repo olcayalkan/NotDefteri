@@ -180,25 +180,35 @@ final class BlokMenusu: NSView {
 }
 
 extension NotMetinGorunumu {
-    func slashKisayolunuUygula() -> Bool {
-        guard isEditable, !hasMarkedText(), selectedRange().length == 0, !blokMenusu.dilSecimi,
-              let depo = textStorage else { return false }
-        let imlec = selectedRange().location
+    /// İmlecin solundaki komut. Uyarı kutusunda metin kod gibi yazılır: `/opt/x` gibi yollar menü
+    /// açmasın diye tek `/` düz yazıdır, komut `//komut` ile çağrılır. Kod bloğunda komut yoktur.
+    func slashKomutu(imlec: Int) -> (aralik: NSRange, sorgu: String)? {
+        guard let depo = textStorage else { return nil }
         let ns = depo.mutableString
         let paragraf = ns.paragraphRange(for: NSRange(location: imlec, length: 0))
         let slash = ns.range(of: "/", options: .backwards,
-                             range: NSRange(location: paragraf.location, length: imlec - paragraf.location))
-        guard slash.location != NSNotFound,
-              slash.location == paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location) ||
-              (slash.location > paragraf.location && ns.rangeOfCharacter(from: .whitespaces, range: NSRange(location: slash.location - 1, length: 1)).location != NSNotFound),
-              depo.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
-              depo.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else { return false }
-        let sorgu = ns.substring(with: NSRange(location: slash.location + 1, length: imlec - slash.location - 1))
-        guard let komut = [BlokMenusu.Komut.kod, .uyari, .uyariKirmizi, .uyariYesil, .tablo].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
-        let aralik = NSRange(location: slash.location, length: imlec - slash.location)
+                             range: NSRange(location: paragraf.location, length: imlec - paragraf.location)).location
+        guard slash != NSNotFound,
+              depo.attribute(kKodBloguAnahtari, at: slash, effectiveRange: nil) == nil,
+              depo.attribute(kSatirIciKodAnahtari, at: slash, effectiveRange: nil) == nil else { return nil }
+        let isaretSonu = paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location)
+        var bas = slash
+        if blok(paragraf)?.tur == .uyari {
+            guard slash > isaretSonu, ns.character(at: slash - 1) == 47 else { return nil }
+            bas = slash - 1
+        }
+        guard bas == isaretSonu || (bas > paragraf.location && ns.rangeOfCharacter(
+            from: .whitespaces, range: NSRange(location: bas - 1, length: 1)).location != NSNotFound) else { return nil }
+        return (NSRange(location: bas, length: imlec - bas), ns.substring(with: NSRange(location: slash + 1, length: imlec - slash - 1)))
+    }
+
+    func slashKisayolunuUygula() -> Bool {
+        guard isEditable, !hasMarkedText(), selectedRange().length == 0, !blokMenusu.dilSecimi,
+              let (aralik, sorgu) = slashKomutu(imlec: selectedRange().location),
+              let komut = [BlokMenusu.Komut.kod, .uyari, .uyariKirmizi, .uyariYesil, .tablo].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
         blokMenusu.gizle()
         slashAraligi = nil
-        kapatilanSlashKonumu = slash.location
+        kapatilanSlashKonumu = aralik.location
         if komut == .kod { kodBlogunuEkle(dil: "", komutAraligi: aralik) }
         else { (window as? NotPenceresi)?.blokMenusuKomutunuCalistir(komut, aralik: aralik) }
         return true
@@ -223,27 +233,17 @@ extension NotMetinGorunumu {
     }
 
     func blokMenusunuGuncelle() {
-        guard let depo = textStorage, let pencere = window, pencere.isKeyWindow,
+        guard textStorage != nil, let pencere = window, pencere.isKeyWindow,
               pencere.firstResponder === self, selectedRange().length == 0, !hasMarkedText() else {
             blokMenusu.gizle(); slashAraligi = nil; return
         }
         if blokMenusu.dilSecimi { return }
         let imlec = selectedRange().location
-        let ns = depo.mutableString
-        let paragraf = ns.paragraphRange(for: NSRange(location: imlec, length: 0))
-        let kapsam = NSRange(location: paragraf.location, length: imlec - paragraf.location)
-        let slash = ns.range(of: "/", options: .backwards, range: kapsam)
-        guard slash.location != NSNotFound, slash.location != kapatilanSlashKonumu,
-              slash.location == paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location) || ns.rangeOfCharacter(from: .whitespaces, range: NSRange(location: slash.location - 1, length: 1)).location != NSNotFound,
-              depo.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
-              depo.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else {
+        guard let (aralik, sorgu) = slashKomutu(imlec: imlec), aralik.location != kapatilanSlashKonumu,
+              sorgu.rangeOfCharacter(from: .whitespacesAndNewlines) == nil, blokMenusu.filtrele(sorgu) else {
             blokMenusu.gizle(); slashAraligi = nil; return
         }
-        let sorgu = ns.substring(with: NSRange(location: slash.location + 1, length: imlec - slash.location - 1))
-        guard sorgu.rangeOfCharacter(from: .whitespacesAndNewlines) == nil, blokMenusu.filtrele(sorgu) else {
-            blokMenusu.gizle(); slashAraligi = nil; return
-        }
-        slashAraligi = NSRange(location: slash.location, length: imlec - slash.location)
+        slashAraligi = aralik
         blokMenusu.secildi = { [weak self] komut in
             guard let self, let aralik = self.slashAraligi else { return }
             self.blokMenusu.gizle()

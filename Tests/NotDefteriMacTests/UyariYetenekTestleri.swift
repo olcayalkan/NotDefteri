@@ -60,6 +60,30 @@ final class UyariYetenekTestleri: XCTestCase {
         }
     }
 
+    /// Kutuda tek `/` düz yazıdır (yollar menü açmaz); komut `//komut` ile çağrılır. Kutu dışı değişmez.
+    func testKutudaKomutCiftEgikCizgiyle() throws {
+        for renk in renkler {
+            for (yazi, aralik, sorgu) in [("/opt", nil, nil), ("/opt/x", nil, nil), ("http://x", nil, nil), ("///kod", nil, nil),
+                                          ("//", 2, ""), ("//kod", 5, "kod"), ("bak //kod", 5, "kod")] as [(String, Int?, String?)] {
+                let e = editor("> [!💡 \(renk)] a\n")
+                imleciKoy(e, sonuna: "a")
+                e.deleteBackward(nil)
+                e.insertText(yazi, replacementRange: e.selectedRange())
+                let komut = e.slashKomutu(imlec: e.selectedRange().location)
+                XCTAssertEqual(komut?.aralik.length, aralik, "\(renk) \(yazi)")
+                XCTAssertEqual(komut?.sorgu, sorgu, "\(renk) \(yazi)")
+            }
+        }
+        let d = editor("düz\n")
+        d.setSelectedRange(NSRange(location: 3, length: 0))
+        d.insertText(" /kod", replacementRange: d.selectedRange())
+        XCTAssertEqual(d.slashKomutu(imlec: d.selectedRange().location)?.sorgu, "kod")
+        let k = editor("```\nx\n```\n")
+        k.setSelectedRange(NSRange(location: NSMaxRange((k.string as NSString).range(of: "x")), length: 0))
+        k.insertText(" //kod", replacementRange: k.selectedRange())
+        XCTAssertNil(k.slashKomutu(imlec: k.selectedRange().location))
+    }
+
     /// Görsel kutuyu parçalamaz, kod bloğundaki gibi altına gider.
     func testGorselKutuyuParcalamaz() {
         for renk in renkler {
