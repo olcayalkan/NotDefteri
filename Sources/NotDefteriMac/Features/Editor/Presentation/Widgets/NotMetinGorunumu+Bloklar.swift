@@ -155,6 +155,7 @@ extension NotMetinGorunumu {
         blokBiciminiUygula(blok, metne: yeni, aralik: NSRange(location: 0, length: yeni.length))
         if blok.tur != .ayirici { yazim.merge(blok.oznitelikler) { _, yeni in yeni } }
         yeni.insert(isaret, at: 0)
+        if blok.tur == .uyari { kutuAltinaBosSatirEkle(yeni, paragraf: tamamlanmisParagraf) }
         blokDuzenle(tamamlanmisParagraf, yeni: yeni,
                     secim: NSRange(location: paragraf.location + isaret.length + (tamamlayici == "\n" ? 1 : 0), length: 0),
                     yazim: yazim, numarala: cozum?.blok.listeMi == true)
@@ -375,6 +376,8 @@ extension NotMetinGorunumu {
         scrollRangeToVisible(selectedRange())
         return true
     }
+
+    func kutudanCik() -> Bool { kutuAltindakiBosSatiraGec() || bloktaYeniSatir(koddanCik: true) }
 
     func menuBlogunuUygula(_ blok: MetinBlogu?, kod: Bool = false, komutAraligi: NSRange) {
         guard let depo = textStorage else { return }

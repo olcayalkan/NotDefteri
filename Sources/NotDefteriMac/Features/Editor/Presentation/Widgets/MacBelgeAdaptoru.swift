@@ -258,9 +258,7 @@ final class MacBelgeAdaptoru {
             var istenen = gorunum(o)
             if let kenar = Self.kutuKenari(depo, o, alt) {
                 let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
-                // Üstte boş satır ya da başka kutu varsa ayrımı o verir; boşluk ikiye katlanmasın.
-                let ust = Self.oncekiSatirBosVeyaKutu(depo, alt.location) ? kKutuAltBoslugu : kKutuDisBoslugu
-                if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, ust) }
+                if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, Self.kutuUstBoslugu(depo, alt.location)) }
                 if kenar.alt { stil.paragraphSpacing = max(stil.paragraphSpacing, kKutuAltBoslugu) }
                 istenen[.paragraphStyle] = stil
             } else if let yukseklik = Self.ayracSatiri(depo, alt.location) ? kAyracSatiriYuksekligi
@@ -342,17 +340,19 @@ final class MacBelgeAdaptoru {
         ns.substring(with: paragraf).trimmingCharacters(in: .newlines).isEmpty
     }
 
-    private static func oncekiSatirBosVeyaKutu(_ depo: NSAttributedString, _ konum: Int) -> Bool {
+    /// Üstte boş satır ya da başka kutu varsa ayrımı o verir; boşluk ikiye katlanmasın.
+    private static func kutuUstBoslugu(_ depo: NSAttributedString, _ konum: Int) -> CGFloat {
         let ns = depo.string as NSString
         let paragraf = ns.paragraphRange(for: NSRange(location: konum, length: 0))
-        guard paragraf.location > 0 else { return false }
+        guard paragraf.location > 0 else { return kKutuDisBoslugu }
+        if kutudaMi(depo, paragraf.location - 1) { return kKutuBitisikUstBoslugu }
         var onceki = ns.paragraphRange(for: NSRange(location: paragraf.location - 1, length: 0))
         // Ayraç satırı görünmez; kutu bitişik yazılmış gibi ondan önceki satıra bakılır.
         if ayracSatiri(depo, onceki.location), onceki.location > 0 {
             onceki = ns.paragraphRange(for: NSRange(location: onceki.location - 1, length: 0))
-            return kutudaMi(depo, onceki.location)
+            return kutudaMi(depo, onceki.location) ? kKutuAltBoslugu : kKutuDisBoslugu
         }
-        return bosSatirMi(ns, onceki) || kutudaMi(depo, onceki.location)
+        return bosSatirMi(ns, onceki) || kutudaMi(depo, onceki.location) ? kKutuAltBoslugu : kKutuDisBoslugu
     }
 
     private static func blokTuru(_ depo: NSAttributedString, _ konum: Int) -> MetinBlogu.Tur? {

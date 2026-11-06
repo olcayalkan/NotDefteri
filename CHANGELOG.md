@@ -47,6 +47,8 @@ and this project adheres to
 
 ### Fixed
 
+- Code blocks: an image added inside a block goes below it instead of splitting it, so the saved Markdown stays valid and the Copy strip keeps working (macOS).
+- Boxes stacked directly on top of each other no longer leave a gap between their frames, and a callout typed with its Markdown shortcut gets an empty line below it (macOS).
 - Code blocks: pressing Enter three times on the last line no longer jumps out of the block to the content below; Enter always stays in the code, and **Ctrl+Enter** leaves it (macOS and Linux).
 - macOS: the block handle (⋮⋮) fell inside code blocks and callouts; it now sits left of the frame, aligned with the first line. While dragging, the moved block is outlined in blue, a translucent copy follows the pointer, and the drop position is shown as a thick line with a ring at its start, midway between the visible edges of two blocks (with a background-colored halo so it does not blend into box borders).
 - macOS: the space around boxes updates immediately when a neighboring line changes; the spacing seen while editing does not change after reopening the app. A blank line saved between an adjacent quote and callout is drawn at almost zero height on open (it used to appear as a full line first).

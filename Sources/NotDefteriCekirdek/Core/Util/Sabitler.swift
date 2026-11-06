@@ -47,6 +47,10 @@ package let kKutuDisBoslugu: CGFloat = (kTabanPunto * 0.6).rounded() + kKutuIcBo
 /// değmesin diye iç boşluktan küçük olamaz.
 package let kKutuAltBoslugu: CGFloat = kKutuIcBoslugu + 2
 
+/// macOS'ta doğrudan başka bir kutunun altındaki kutunun üst boşluğu. Üstteki kutunun alt boşluğuyla
+/// toplanır; toplam iki çerçevenin taşmasına eşit olunca kutular arada boşluk kalmadan bitişir.
+package let kKutuBitisikUstBoslugu: CGFloat = kKutuIcBoslugu * 2 - kKutuAltBoslugu
+
 /// macOS'ta iki kutu arasındaki tek boş satırın yüksekliği. Satır kalır (tıklanıp yazılabilir,
 /// kayıtta boş satır), yalnızca kutular arası boşluğu tam satır kadar açmaz.
 package let kKutularArasiBosSatirYuksekligi: CGFloat = 6

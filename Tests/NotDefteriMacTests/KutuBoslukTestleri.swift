@@ -49,7 +49,7 @@ final class KutuBoslukTestleri: XCTestCase {
     func testIkiKutuArasiBoslukAz() {
         let e = editor("> [!💡 mavi] bir\n\n> [!💡 sarı] iki\n> [!💡 yeşil] üç\n")
         XCTAssertEqual(stil(e, "iki")?.paragraphSpacingBefore, kKutuAltBoslugu, "üstte boş satır varsa ek boşluk yok")
-        XCTAssertEqual(stil(e, "üç")?.paragraphSpacingBefore, kKutuAltBoslugu, "bitişik kutuda ek boşluk yok")
+        XCTAssertEqual(stil(e, "üç")?.paragraphSpacingBefore, kKutuBitisikUstBoslugu, "bitişik kutuda ek boşluk yok")
         let ns = e.string as NSString
         let bos = ns.paragraphRange(for: NSRange(location: NSMaxRange(ns.paragraphRange(for: NSRange(location: 0, length: 0))), length: 0))
         let bosStil = e.textStorage?.attribute(.paragraphStyle, at: bos.location, effectiveRange: nil) as? NSParagraphStyle

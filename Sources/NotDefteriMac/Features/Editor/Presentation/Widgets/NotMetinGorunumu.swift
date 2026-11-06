@@ -161,7 +161,7 @@ final class NotMetinGorunumu: NSTextView {
     override func keyDown(with event: NSEvent) {
         if isEditable, !hasMarkedText(), [36, 76].contains(event.keyCode),
            event.modifierFlags.intersection([.command, .control, .option, .shift]) == .control,
-           kutuAltindakiBosSatiraGec() || bloktaYeniSatir(koddanCik: true) { return }
+           kutudanCik() { return }
         if blokTasimaKisayolunuUygula(event) { return }
         if window?.firstResponder === self, katlamaKisayolunuUygula(event) { return }
         secimCubugu.gizle()
@@ -667,7 +667,12 @@ final class NotMetinGorunumu: NSTextView {
             // Kodda pano işaretlemesi yorumlanmaz; hedef bloğun kimliği korunur. Notun kendi
             // kopyasında liste/kutu işaretleri ("•\t") görünen yazının parçası değildir, koda girmez.
             guard var metin = kopyalananIcerik(pboard).map({ kodBloguGovdesi($0).replacingOccurrences(of: "\u{FFFC}", with: "") })
-                    ?? pboard.string(forType: .string) else { NSSound.beep(); return true }
+                    ?? pboard.string(forType: .string) else {
+                // Panoda yalnızca görsel varsa diğer görsel yollarıyla aynı: kutunun altına eklenir.
+                guard let gorsel = panodanGorsel(pboard) else { NSSound.beep(); return true }
+                gorseliYapistir(gorsel)
+                return true
+            }
             // Satır sonuna yapıştırılan tam satırın satır sonu, imleçten sonrakiyle çakışıp kodda
             // boş (hayalet) satır bırakıyordu.
             let ns = string as NSString
@@ -698,11 +703,7 @@ final class NotMetinGorunumu: NSTextView {
             return true
         }
         if let gorsel = panodanGorsel(pboard) {
-            guard let ek = gorselEklenecek?(gorsel, bulunanBolumBasligi()) else {
-                gorselYapistirmaHatasiniBildir()
-                return true
-            }
-            ekiEkle(ek)
+            gorseliYapistir(gorsel)
             return true
         }
         // Başka bir uygulamadan gelen içerik: notun kendi yazım biçimine uydurulur.
@@ -711,6 +712,10 @@ final class NotMetinGorunumu: NSTextView {
             return true
         }
         return varsayilanOkuma(pboard, tur: type)
+    }
+
+    private func gorseliYapistir(_ gorsel: NSImage) {
+        if let ek = gorselEklenecek?(gorsel, bulunanBolumBasligi()) { ekiEkle(ek) } else { gorselYapistirmaHatasiniBildir() }
     }
 
     /// HTML süre sınırına takıldıysa (bkz. `panodanZenginMetin`) AppKit onu süresiz yeniden
@@ -1028,6 +1033,13 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     func ekiEkle(_ ek: ResimEki) {
+        blokYaziminiGuncelle()
+        // Markdown kod çiti görsel taşıyamaz (içine yazılan `![]()` yeniden açılınca düz metindir).
+        // Araya girince kutu parçalanıyor, kayıt bozuluyordu; görsel kutunun altına gider.
+        if typingAttributes[kKodBloguAnahtari] != nil {
+            setSelectedRange(NSRange(location: selectedRange().location, length: 0))
+            guard kutudanCik() else { return }
+        }
         let aralik = selectedRange()
         let ns = (textStorage?.string ?? "") as NSString
 
