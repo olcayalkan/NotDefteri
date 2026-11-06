@@ -188,8 +188,7 @@ extension NotMetinGorunumu {
         let aracta = !kodAraclari.isHidden && kodAraclari.frame.contains(nokta)
         let konum = min(aracta ? kodAraclari.aralik.location : characterIndexForInsertion(at: nokta), depo.length - 1)
         var aralik = NSRange()
-        guard let bilgi = depo.attribute(kKodBloguAnahtari, at: konum, longestEffectiveRange: &aralik,
-                                         in: NSRange(location: 0, length: depo.length)) as? [String: String] else {
+        guard let kutu = kopyalanacakKutu(konum, aralik: &aralik) else {
             kodAraclari.isHidden = true; return
         }
         guard !katlama.gizliMi(konum), !katlama.gizliMi(aralik.location) else {
@@ -201,13 +200,13 @@ extension NotMetinGorunumu {
         guard aracta || satir.contains(nokta) else { kodAraclari.isHidden = true; return }
         // Konum çizilen çerçeveden türetilir: ikisi aynı geometriyi paylaşır, araç kutudan
         // kopamaz. Şerit üst kenarın ortasına oturur, kod satırını örtmez.
-        guard let cerceve = blokCerceveKaresi(aralik, anahtar: kKodBloguAnahtari) else {
+        guard let cerceve = blokCerceveKaresi(aralik, anahtar: kutu.anahtar) else {
             kodAraclari.isHidden = true; return
         }
-        if kodAraclari.kimlik != bilgi["kimlik"] { kodAraclari.sifirla() }
-        kodAraclari.kimlik = bilgi["kimlik"]
+        if kodAraclari.kimlik != kutu.kimlik { kodAraclari.sifirla() }
+        kodAraclari.kimlik = kutu.kimlik
         kodAraclari.aralik = aralik
-        kodAraclari.etiket.stringValue = kodBloguDilEtiketi(bilgi)
+        kodAraclari.etiket.stringValue = kutu.dil
         kodAraclari.etiket.textColor = kMetinRenk.withAlphaComponent(0.55)
         kodAraclari.layer?.backgroundColor = aktifTema.arkaplan.cgColor
         // yerlesimiKur sağ kenarı korur: önce sağ kenar çerçevenin 10 pt içine konur.
@@ -218,11 +217,23 @@ extension NotMetinGorunumu {
         kodAraclari.isHidden = false
     }
 
+    /// Kopyala şeridi kod bloğu ve uyarı kutusunda aynı çalışır; yalnızca kimlik ve etiket farklı okunur.
+    private func kopyalanacakKutu(_ konum: Int, aralik: inout NSRange) -> (anahtar: NSAttributedString.Key, kimlik: String?, dil: String)? {
+        guard let depo = textStorage else { return nil }
+        let tumu = NSRange(location: 0, length: depo.length)
+        if let kod = depo.attribute(kKodBloguAnahtari, at: konum, longestEffectiveRange: &aralik, in: tumu) as? [String: String] {
+            return (kKodBloguAnahtari, kod["kimlik"], kodBloguDilEtiketi(kod))
+        }
+        guard let kimlik = depo.attribute(kUyariKutusuAnahtari, at: konum, longestEffectiveRange: &aralik, in: tumu) as? String else { return nil }
+        return (kUyariKutusuAnahtari, kimlik, "")
+    }
+
     func kodBlogunuKopyala() {
+        var aralik = NSRange()
         guard let depo = textStorage, kodAraclari.aralik.length > 0,
               kodAraclari.aralik.location < depo.length, NSMaxRange(kodAraclari.aralik) <= depo.length,
-              let bilgi = depo.attribute(kKodBloguAnahtari, at: kodAraclari.aralik.location, effectiveRange: nil) as? [String: String],
-              bilgi["kimlik"] == kodAraclari.kimlik else { return }
+              let kutu = kopyalanacakKutu(kodAraclari.aralik.location, aralik: &aralik),
+              kutu.kimlik == kodAraclari.kimlik else { return }
         let metin = kodBloguGovdesi(depo.attributedSubstring(from: kodAraclari.aralik))
         NSPasteboard.general.clearContents()
         if NSPasteboard.general.setString(metin, forType: .string) { kodAraclari.kopyalandi() }

@@ -596,22 +596,23 @@ final class NotMetinGorunumu: NSTextView {
     override func menu(for event: NSEvent) -> NSMenu? {
         let nokta = convert(event.locationInWindow, from: nil)
         let konum = characterIndexForInsertion(at: nokta)
-        let menu: NSMenu
-        if let depo = textStorage, konum < depo.length,
-           MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur == .uyari {
-            // Seçimin içine sağ tıklanırsa seçim korunur; hizalama seçili satırlara uygulanır.
-            if !(selectedRange().length > 0 && NSLocationInRange(konum, selectedRange())) {
-                setSelectedRange(NSRange(location: konum, length: 0))
-            }
-            menu = uyariRenkMenusu()
-        } else {
-            menu = super.menu(for: event) ?? NSMenu()
-            if let depo = textStorage, konum < depo.length,
-               let sinirlar = depo.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String] {
+        // Kutunun öğesi sistem menüsüne eklenir: kes/kopyala/yapıştır her yerde aynı kalır.
+        let menu = super.menu(for: event) ?? NSMenu()
+        if let depo = textStorage, konum < depo.length {
+            let sinirlar = depo.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String]
+            let uyari = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur == .uyari
+            if sinirlar != nil || uyari {
+                // Seçimin içine sağ tıklanırsa seçim korunur; hizalama seçili satırlara uygulanır.
                 if !(selectedRange().length > 0 && NSLocationInRange(konum, selectedRange())) {
                     setSelectedRange(NSRange(location: konum, length: 0))
                 }
-                menu.insertItem(kodDilOgesi(sinirlar), at: 0)
+                if let sinirlar {
+                    menu.insertItem(kodDilOgesi(sinirlar), at: 0)
+                } else {
+                    let renk = NSMenuItem(title: "Renk", action: nil, keyEquivalent: "")
+                    renk.submenu = uyariRenkMenusu()
+                    menu.insertItem(renk, at: 0)
+                }
             }
         }
         hizalamaOgeleriniEkle(menu)
@@ -1079,7 +1080,8 @@ final class NotMetinGorunumu: NSTextView {
         blokYaziminiGuncelle()
         // Markdown kod çiti görsel taşıyamaz (içine yazılan `![]()` yeniden açılınca düz metindir).
         // Araya girince kutu parçalanıyor, kayıt bozuluyordu; görsel kutunun altına gider.
-        if typingAttributes[kKodBloguAnahtari] != nil {
+        // Uyarı kutusu aynı yolu izler: işaretsiz görsel satırı onu da ikiye bölüyordu.
+        if typingAttributes[kKodBloguAnahtari] != nil || blok(paragrafAraligi())?.tur == .uyari {
             setSelectedRange(NSRange(location: selectedRange().location, length: 0))
             guard kutudanCik() else { return }
         }
