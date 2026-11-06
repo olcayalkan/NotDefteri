@@ -260,6 +260,7 @@ final class MacBelgeAdaptoru {
         if cevresiyle {
             aralik = Self.komsularaGenislet(depo, Self.kutularaGenislet(depo, Self.komsularaGenislet(depo, aralik)))
         }
+        let ns = depo.mutableString // `depo.string` köprülerken belgeyi kopyalar.
         var islemler: [(NSRange, [NSAttributedString.Key: Any], [NSAttributedString.Key])] = []
         func isle(_ o: [NSAttributedString.Key: Any], _ alt: NSRange) {
             var istenen = gorunum(o)
@@ -268,7 +269,8 @@ final class MacBelgeAdaptoru {
                 if kenar.ust { stil.paragraphSpacingBefore = max(stil.paragraphSpacingBefore, Self.kutuUstBoslugu(depo, alt.location)) }
                 if kenar.alt { stil.paragraphSpacing = max(stil.paragraphSpacing, kKutuAltBoslugu) }
                 istenen[.paragraphStyle] = stil
-            } else if let yukseklik = Self.ayracSatiri(depo, alt.location) ? kAyracSatiriYuksekligi
+            } else if Self.satirSonuMu(ns.character(at: alt.location)), // Boş satır aramaları her parçada koşmasın.
+                      let yukseklik = Self.ayracSatiri(depo, alt.location) ? kAyracSatiriYuksekligi
                         : Self.kutularArasiBosSatir(depo, alt.location) ? kKutularArasiBosSatirYuksekligi : nil {
                 let stil = ((istenen[.paragraphStyle] as? NSParagraphStyle) ?? .default).mutableCopy() as! NSMutableParagraphStyle
                 stil.minimumLineHeight = yukseklik
@@ -295,7 +297,6 @@ final class MacBelgeAdaptoru {
             }
             if !ekle.isEmpty || !sil.isEmpty { islemler.append((alt, ekle, sil)) }
         }
-        let ns = depo.string as NSString
         depo.enumerateAttributes(in: aralik) { o, alt, _ in
             // Kod gövdesi çok satırlı tek parçadır; kenar boşluğu yalnızca ilk/son paragrafa
             // gitsin diye kutu içindeki parça paragraf sınırlarında bölünür.
@@ -357,6 +358,11 @@ final class MacBelgeAdaptoru {
 
     private static func kutudaMi(_ depo: NSAttributedString, _ konum: Int) -> Bool {
         konum >= 0 && konum < depo.length && kutuAnahtarlari.contains { depo.attribute($0, at: konum, effectiveRange: nil) != nil }
+    }
+
+    /// `bosSatirMi`'nin saydığı karakterler (`CharacterSet.newlines`).
+    private static func satirSonuMu(_ k: unichar) -> Bool {
+        (10...13).contains(k) || k == 0x85 || k == 0x2028 || k == 0x2029
     }
 
     private static func bosSatirMi(_ ns: NSString, _ paragraf: NSRange) -> Bool {
