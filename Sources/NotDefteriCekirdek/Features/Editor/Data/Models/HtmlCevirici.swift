@@ -82,7 +82,7 @@ package func htmlUret(markdown: String, baslik: String, taban: URL) throws -> St
             case .alinti: govde += "<blockquote \(girinti)>\(icerik)</blockquote>"
             case .ayirici: govde += "<hr>"
             case .uyari:
-                let renk = ["gri": "128,128,128", "mavi": "40,120,220", "sarı": "230,180,20", "kırmızı": "220,60,60", "yeşil": "40,160,80"][blok.renk] ?? "128,128,128"
+                let renk = uyariRengi(blok.renk).html
                 govde += "<div class=uyari style=\"--renk:\(renk);margin-left:\(blok.seviye * 24)px\">\(blok.devam ? "" : htmlKacir(blok.emoji) + " ")\(icerik)\(blok.uyariKimligi.isEmpty ? "</div>" : "")"
                 if !blok.uyariKimligi.isEmpty { acikUyari = blok.uyariKimligi }
             }

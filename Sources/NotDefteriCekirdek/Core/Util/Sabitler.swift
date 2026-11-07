@@ -59,11 +59,32 @@ package let kKutularArasiBosSatirYuksekligi: CGFloat = 6
 /// düzenlerken bitişik görünen ikili, yeniden açılınca da bitişik görünür.
 package let kAyracSatiriYuksekligi: CGFloat = 1
 
-/// Uyarı kutusu renkleri (0–1 RGB). Doygun sistem renkleri yerine kağıtta göz yormayan
-/// koyu tonlar; koyulaşan tema zemininde açık tonlar seçilmiyordu.
-package let kUyariRenkleri: [String: (r: Double, g: Double, b: Double)] = [
-    "gri": (0.42, 0.42, 0.44), "mavi": (0.24, 0.40, 0.62), "sarı": (0.62, 0.47, 0.10),
-    "kırmızı": (0.64, 0.26, 0.24), "yeşil": (0.24, 0.48, 0.31)]
+/// Uyarı kutusunun bir rengi. Menüler, `/` kısayolları, çizim ve dışa aktarım yalnızca bu
+/// tabloyu okur: her renk aynı yeteneklere sahiptir, renge özel kod yazılmaz.
+package struct UyariRengi {
+    /// Kayıttaki ad (`> [!💡 mavi]`).
+    package let ad: String
+    /// Ekran rengi (0–1 RGB). Doygun sistem renkleri yerine kağıtta göz yormayan koyu tonlar;
+    /// koyulaşan tema zemininde açık tonlar seçilmiyordu.
+    package let ekran: (r: Double, g: Double, b: Double)
+    /// HTML dışa aktarımındaki `r,g,b`; beyaz sayfada okunacak kadar doygun.
+    package let html: String
+    /// `/` ile yazılıp Enter'la uygulanan kısayollar.
+    package let kisayollar: [String]
+}
+
+/// Sıra menülerdeki sıradır.
+package let kUyariRenkTanimlari: [UyariRengi] = [
+    UyariRengi(ad: "gri", ekran: (0.42, 0.42, 0.44), html: "128,128,128", kisayollar: ["gri", "gray"]),
+    UyariRengi(ad: "mavi", ekran: (0.24, 0.40, 0.62), html: "40,120,220", kisayollar: ["mavi", "blue"]),
+    UyariRengi(ad: "sarı", ekran: (0.62, 0.47, 0.10), html: "230,180,20", kisayollar: ["sari", "yellow"]),
+    UyariRengi(ad: "kırmızı", ekran: (0.64, 0.26, 0.24), html: "220,60,60", kisayollar: ["kirmizi", "red"]),
+    UyariRengi(ad: "yeşil", ekran: (0.24, 0.48, 0.31), html: "40,160,80", kisayollar: ["yesil", "green", "info"])]
+
+/// Ad ile arama; tanınmayan renk griye düşer.
+package func uyariRengi(_ ad: String) -> UyariRengi {
+    kUyariRenkTanimlari.first { $0.ad == ad } ?? kUyariRenkTanimlari[0]
+}
 
 /// Kod kutusu içi metin rengiyle hafifçe doldurulur. Uyarı kutusu kendi rengiyle daha
 /// belirgin doldurulur, çizgisi de koyu tutulur; böylece koyu kağıtta da renk okunur.

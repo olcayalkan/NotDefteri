@@ -46,11 +46,17 @@ final class BlokMenusu: NSView {
     enum Komut: Int, CaseIterable {
         case baslik1, baslik2, baslik3, madde, numarali, yapilacak, alinti, kod, ayirici, sayfa, gorsel, tablo
         case uyari, uyariGri, uyariMavi, uyariSari, uyariKirmizi, uyariYesil
+        /// Renkli uyarı komutları `kUyariRenkTanimlari` sırasındadır; ad ve kısayol oradan okunur.
+        var uyariRengi: UyariRengi? {
+            rawValue >= Self.uyariGri.rawValue ? kUyariRenkTanimlari[rawValue - Self.uyariGri.rawValue] : nil
+        }
         var ad: String {
-            ["Başlık 1", "Başlık 2", "Başlık 3", "Madde listesi", "Numaralı liste", "Yapılacak", "Alıntı", "Kod bloğu", "Ayırıcı", "Alt sayfa", "Görsel",
-             "Tablo", "Uyarı kutusu", "Uyarı: Gri", "Uyarı: Mavi", "Uyarı: Sarı", "Uyarı: Kırmızı", "Uyarı: Yeşil"][rawValue]
+            if let renk = uyariRengi { return "Uyarı: " + renk.ad.capitalized(with: Locale(identifier: "tr_TR")) }
+            return ["Başlık 1", "Başlık 2", "Başlık 3", "Madde listesi", "Numaralı liste", "Yapılacak", "Alıntı", "Kod bloğu", "Ayırıcı",
+                    "Alt sayfa", "Görsel", "Tablo", "Uyarı kutusu"][rawValue]
         }
         var kisayollar: [String] {
+            if let renk = uyariRengi { return renk.kisayollar }
             switch self {
             case .baslik1: return ["1", "b1"]
             case .baslik2: return ["2", "b2"]
@@ -59,8 +65,6 @@ final class BlokMenusu: NSView {
             case .tablo: return ["table", "tablo"]
             case .kod: return ["code", "kod"]
             case .uyari: return ["att", "uyari"]
-            case .uyariKirmizi: return ["red"]
-            case .uyariYesil: return ["info"]
             default: return []
             }
         }
@@ -205,7 +209,8 @@ extension NotMetinGorunumu {
     func slashKisayolunuUygula() -> Bool {
         guard isEditable, !hasMarkedText(), selectedRange().length == 0, !blokMenusu.dilSecimi,
               let (aralik, sorgu) = slashKomutu(imlec: selectedRange().location),
-              let komut = [BlokMenusu.Komut.kod, .uyari, .uyariKirmizi, .uyariYesil, .tablo].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
+              let komut = BlokMenusu.Komut.allCases.first(where: {
+                  ($0 == .kod || $0 == .tablo || $0 == .uyari || $0.uyariRengi != nil) && $0.kisayollar.contains(sorgu) }) else { return false }
         blokMenusu.gizle()
         slashAraligi = nil
         kapatilanSlashKonumu = aralik.location

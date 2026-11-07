@@ -5,7 +5,20 @@ import AppKit
 
 /// Her uyarı rengi aynı yeteneklere sahiptir ve kod bloğuyla ortak yetenekler uyarıda da çalışır.
 final class UyariYetenekTestleri: XCTestCase {
-    private let renkler = ["gri", "mavi", "sarı", "kırmızı", "yeşil"]
+    private let renkler = kUyariRenkTanimlari.map(\.ad)
+
+    /// Her renk menüde, `/` kısayolunda ve sağ tık listesinde aynı tablodan gelir; hiçbiri eksik kalmaz.
+    func testHerRenkTekTablodanKomutVeKisayolAlir() {
+        let komutlar = BlokMenusu.Komut.allCases.compactMap(\.uyariRengi).map(\.ad)
+        XCTAssertEqual(komutlar, renkler)
+        for renk in kUyariRenkTanimlari {
+            XCTAssertFalse(renk.kisayollar.isEmpty, renk.ad)
+            for kisayol in renk.kisayollar {
+                let komut = BlokMenusu.Komut.allCases.first { $0.kisayollar.contains(kisayol) }
+                XCTAssertEqual(komut?.uyariRengi?.ad, renk.ad, kisayol)
+            }
+        }
+    }
 
     private func editor(_ md: String) -> NotMetinGorunumu {
         _ = NSApplication.shared

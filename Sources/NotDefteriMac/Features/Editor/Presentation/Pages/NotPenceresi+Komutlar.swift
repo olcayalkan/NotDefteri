@@ -52,8 +52,7 @@ extension NotPenceresi {
         makeFirstResponder(metinGorunumu)
         switch komut {
         case .uyari, .uyariGri, .uyariMavi, .uyariSari, .uyariKirmizi, .uyariYesil:
-            let renk = [BlokMenusu.Komut.uyariGri: "gri", .uyariMavi: "mavi", .uyariSari: "sarı",
-                        .uyariKirmizi: "kırmızı", .uyariYesil: "yeşil"][komut] ?? "sarı"
+            let renk = komut.uyariRengi?.ad ?? MetinBlogu(tur: .uyari).renk
             if metinGorunumu.blok(metinGorunumu.paragrafAraligi())?.tur == .uyari {
                 metinGorunumu.undoManager?.beginUndoGrouping()
                 metinGorunumu.blokDuzenle(aralik, yeni: NSAttributedString(),

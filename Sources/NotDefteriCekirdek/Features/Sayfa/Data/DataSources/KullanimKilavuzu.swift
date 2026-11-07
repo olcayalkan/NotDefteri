@@ -71,7 +71,7 @@ Satır başında aşağıdaki yazımları kullanabilirsiniz:
 | Üç ters tırnak | Kod bloğu |
 | `/` | Blok menüsü |
 
-`/` ile açılan menüden başlık, liste, yapılacak, alıntı, kod bloğu, uyarı kutusu, ayırıcı, alt sayfa, görsel veya tablo seçebilirsiniz. Hızlı seçim için `/1`, `/2`, `/3`, `/0`, `/kod`, `/uyari`, `/sayfa` ve `/tablo` yazabilirsiniz. Uyarı kutusunda `/` düz yazıdır; menü `//` ile açılır, örneğin `//mavi`.
+`/` ile açılan menüden başlık, liste, yapılacak, alıntı, kod bloğu, uyarı kutusu, ayırıcı, alt sayfa, görsel veya tablo seçebilirsiniz. Hızlı seçim için `/1`, `/2`, `/3`, `/0`, `/kod`, `/uyari`, `/sayfa` ve `/tablo` yazabilirsiniz. Renkli uyarı için `/gri`, `/mavi`, `/sari`, `/kirmizi`, `/yesil` (ya da `/info`). Uyarı kutusunda `/` düz yazıdır; menü `//` ile açılır, örneğin `//mavi`.
 
 ### Tablolar
 

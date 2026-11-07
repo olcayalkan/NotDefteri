@@ -48,6 +48,7 @@ and this project adheres to
 ### Fixed
 
 - A box at the end of the document no longer has about 27 pt of empty space under its text, and empty lines inside a code block keep their full height (macOS).
+- Callout colors come from one table: every color has a `/` shortcut (`/gri`, `/mavi`, `/sari`, `/kirmizi`, `/yesil` or `/info`, English names too) and the same menu, drawing and HTML export path; previously only red and info had shortcuts.
 - Callouts: a single `/` is plain text so paths like `/opt/x` no longer open the command menu; use `//command` for block commands inside a callout (macOS).
 - Callouts of every color now match code blocks: the Copy strip appears on hover, an added image goes below the box instead of splitting it, and the right-click menu keeps cut, copy and paste next to **Renk** (macOS).
 - Code blocks: right-click **Dil** changes the language, and so the syntax colors, after the block is created (macOS).

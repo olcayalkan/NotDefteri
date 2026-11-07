@@ -67,7 +67,7 @@ extension NotMetinGorunumu {
             if !eksik.isEmpty, !kirpma.contains(eksik) { setNeedsDisplay(eksik) }
             guard anahtar != kKodBloguAnahtari else { blokCercevesiniCiz(kare, renk: kMetinRenk, cizgi: 0.7); continue }
             let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
-            let r = kUyariRenkleri[blok?.renk ?? ""] ?? kUyariRenkleri["gri"]!
+            let r = uyariRengi(blok?.renk ?? "").ekran
             blokCercevesiniCiz(kare, renk: NSColor(srgbRed: r.r, green: r.g, blue: r.b, alpha: 1), cizgi: kUyariCizgiOpakligi,
                                dolgu: kUyariDolguOpakligi)
         }
@@ -203,7 +203,7 @@ extension NotMetinGorunumu {
     func uyariRenkMenusu() -> NSMenu {
         let menu = NSMenu(title: "Uyarı kutusu")
         let mevcut = blok(paragrafAraligi())?.renk
-        for renk in ["gri", "mavi", "sarı", "kırmızı", "yeşil"] {
+        for renk in kUyariRenkTanimlari.map(\.ad) {
             let oge = menu.addItem(withTitle: renk.capitalized(with: Locale(identifier: "tr_TR")),
                                    action: #selector(uyariRenginiSec(_:)), keyEquivalent: "")
             oge.target = self

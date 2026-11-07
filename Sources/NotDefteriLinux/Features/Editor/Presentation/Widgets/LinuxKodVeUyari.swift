@@ -143,7 +143,7 @@ private final class KodVeUyariAraclari {
     /// Düzenlemeden sonra birkaç kare boyunca çerçeve yeniden ölçülür ki tahmini konumda kalmasın.
     private var dengeKaresi = 0
     private var duzenlemeSonrasiGizli = false
-    private static let renkler = ["gri", "mavi", "sarı", "kırmızı", "yeşil"]
+    private static let renkler = kUyariRenkTanimlari.map(\.ad)
 
     init(pencere: LinuxPencere, editor: LinuxEditor) {
         self.editor = editor
@@ -694,7 +694,7 @@ private final class KodVeUyariAraclari {
                 let kod = anahtar == kKodBloguAnahtari
                 let uyari = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: alt.location, effectiveRange: nil))
                 let ton = LinuxTema.koyuMu ? 1.0 : 0.0
-                let r = kod ? (r: ton, g: ton, b: ton) : kUyariRenkleri[uyari?.renk ?? ""] ?? kUyariRenkleri["gri"]!
+                let r = kod ? (r: ton, g: ton, b: ton) : uyariRengi(uyari?.renk ?? "").ekran
                 let renk = GdkRGBA(red: Float(r.r), green: Float(r.g), blue: Float(r.b), alpha: Float(kod ? 0.3 : kUyariCizgiOpakligi))
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
                 let x = gtk_text_view_get_left_margin(gorunum) + seviye
