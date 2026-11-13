@@ -342,6 +342,12 @@ final class NotMetinGorunumu: NSTextView {
 
     override func insertTab(_ sender: Any?) {
         if kodKalibiniAc() { return }
+        // Satır başındaki "-" ardından Tab, boşlukla aynı: madde (•) olur.
+        if !hasMarkedText(), selectedRange().length == 0, let depo = textStorage {
+            let bas = paragrafAraligi().location
+            if selectedRange().location == bas + 1, depo.mutableString.character(at: bas) == 45,
+               blokKisayolunuUygula(" ") { return }
+        }
         if hasMarkedText() || !blokGirintisiniDegistir(1) { super.insertTab(sender) }
     }
 

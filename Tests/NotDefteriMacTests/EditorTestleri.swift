@@ -54,6 +54,23 @@ final class EditorTestleri: XCTestCase {
         XCTAssertTrue(editor.string.hasPrefix("•\t"), "görünümde madde işareti olmalı")
     }
 
+    /// "-" ardından Tab da madde açar; kodda ve satır ortasında Tab olağan kalır.
+    func testTireTabMaddeOlur() {
+        yaz("-")
+        editor.insertTab(nil)
+        yaz("elma")
+        XCTAssertEqual(kaydedilen, "- elma")
+        XCTAssertTrue(editor.string.hasPrefix("•\t"))
+        ac("a-")
+        editor.insertTab(nil)
+        XCTAssertEqual(kaydedilen, "a-\t")
+        ac("```\nx\n```\n")
+        editor.setSelectedRange(NSRange(location: NSMaxRange((editor.string as NSString).range(of: "x")), length: 0))
+        yaz("\n-")
+        editor.insertTab(nil)
+        XCTAssertEqual(kaydedilen, "```\nx\n-\t\n```\n")
+    }
+
     func testNumaraliListeKisayolu() {
         yaz("1. bir")
         XCTAssertEqual(kaydedilen, "1. bir")

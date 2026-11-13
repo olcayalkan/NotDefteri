@@ -63,7 +63,7 @@ Satır başında aşağıdaki yazımları kullanabilirsiniz:
 | Yazım | Sonuç |
 |---|---|
 | `# `, `## `, `### ` | Başlık 1, 2, 3 |
-| `- ` | Madde listesi |
+| `- ` ya da `-` + Tab | Madde listesi |
 | `1. ` | Numaralı liste |
 | `- [ ] ` veya `[] ` | Yapılacak maddesi |
 | `> ` | Alıntı |

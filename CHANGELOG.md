@@ -15,6 +15,7 @@ and this project adheres to
 - macOS: deleting across a box border no longer merges the outside line into the box; an empty line next to the box is removed, otherwise the cursor moves to the box edge.
 - macOS: a part copied from inside a code block or callout pastes as plain text instead of a new shaded box; copied whole lines go to a new line. Pasting such a part is faster.
 - macOS: dragging an image edge stretches the image in that direction again; hold ⌥ Option to crop from that side.
+- macOS: typing `-` and pressing Tab at the start of a line starts a bullet (•), like `- `.
 
 ### Added
 
