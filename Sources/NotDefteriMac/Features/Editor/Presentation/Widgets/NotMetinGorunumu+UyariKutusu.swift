@@ -178,7 +178,9 @@ extension NotMetinGorunumu {
     /// (küçük yazılı) boş satırlar kalıyordu. Gelen işaretler atılır; her yeni satır bu
     /// kutunun devam işaretini alır. Tam satır içerik satır ortasına gelirse yeni satırdan başlar.
     func kutuyaKat(_ icerik: NSMutableAttributedString, kutu: MetinBlogu, satirBasinda: Bool, ardindanSatirSonu: Bool) {
-        let tamSatir = icerik.length > 0 && icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil
+        // Satır sonuyla biten düz parça da tam satırdır (kutu içinden kopyalanan satırlar işaretsiz gelir).
+        let tamSatir = icerik.length > 0 && (icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil
+            || icerik.string.hasSuffix("\n"))
         var silinecek: [NSRange] = []
         icerik.enumerateAttributes(in: NSRange(location: 0, length: icerik.length)) { o, alt, _ in
             if o[kBlokIsaretiAnahtari] as? Bool == true || o[kBosKodSatiriAnahtari] as? Bool == true { silinecek.append(alt) }

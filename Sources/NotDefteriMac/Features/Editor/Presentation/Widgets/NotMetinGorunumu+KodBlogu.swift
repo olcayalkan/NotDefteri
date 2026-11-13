@@ -236,7 +236,10 @@ extension NotMetinGorunumu {
               kutu.kimlik == kodAraclari.kimlik else { return }
         let metin = kodBloguGovdesi(depo.attributedSubstring(from: kodAraclari.aralik))
         NSPasteboard.general.clearContents()
-        if NSPasteboard.general.setString(metin, forType: .string) { kodAraclari.kopyalandi() }
+        guard NSPasteboard.general.setString(metin, forType: .string) else { return }
+        // Nota yapıştırılınca olduğu gibi gelsin; düz metin Markdown sayılıp `#`, `*` biçime dönüyordu.
+        panoyaYaz(["markdown": metin, "duz": metin])
+        kodAraclari.kopyalandi()
     }
 
     /// Sağ tık menüsü: kutu oluştuktan sonra da dil (dolayısıyla sözdizimi renkleri) değişebilsin.

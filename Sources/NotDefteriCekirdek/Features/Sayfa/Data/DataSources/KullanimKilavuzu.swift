@@ -93,10 +93,11 @@ Başlıklar sağdaki **İçindekiler** panelinde görünür. Bir başlığa tık
 
 - `- [ ]` görevleri Ana Sayfa'da bir araya gelir; kutuya tıklayınca tamamlanır.
 - Görseli sürükleyip bırakın veya yapıştırın. İlgili sayfanın `Görseller/` klasörüne kaydedilir.
+- Görselin kenarını çekmek onu o yönde uzatır ya da daraltır; köşeler oranı koruyarak büyütür. Kenardan kırpmak için çekerken **⌥ Option**'ı basılı tutun.
 - Kod bloğu eklerken **Otomatik** seçeneği; anahtar kelime, metin, yorum, sayı, tür, fonksiyon ve operatörleri renklendirir. Daha kesin sonuç için `swift`, `python` veya `json` gibi bir dil de seçebilirsiniz.
 - Kod bloğunda `(`, `[`, `{`, `"` ve `'` kapanışıyla birlikte eklenir; kapanışı yazınca üstünden geçilir, boş eşi geri silmek ikisini birden siler.
 - Kod bloğunda satıra yalnızca `try`, `if`, `else`, `for`, `while`, `switch`, `func` veya `class` yazıp **Tab**'a basınca bloğun diline uygun kalıp açılır (ör. Swift'te `do { } catch { }`, Python'da `try: … except`).
-- Uyarı kutusunu blok menüsünden ekleyin; sağ tıklayarak rengini değiştirin. Kod bloğu gibi, boş satırda Enter kutunun içinde kalır; kutudan **Ctrl+Enter** ile çıkılır.
+- Uyarı kutusunu blok menüsünden ekleyin; sağ tıklayarak rengini değiştirin. Kod bloğu gibi, art arda Enter kutunun içinde kalır; kutudan **Ctrl+Enter** ile ya da kutunun altındaki satıra inerek çıkılır. Kutunun içinden kopyalanan parça düz yazı olarak yapışır.
 
 ## Geçmiş, silme ve dışa aktarma
 

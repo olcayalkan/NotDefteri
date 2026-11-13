@@ -356,14 +356,21 @@ final class NotMetinGorunumu: NSTextView {
             super.deleteBackward(sender)
             return
         }
-        if cerceveliSecimiSil() || blokDevamindaGeriSil() || uyariBasindaSil() || kodBloguBasindaSil() || satirBasindaBicimiKaldir() { return }
+        if cerceveliSecimiSil() || blokDevamindaGeriSil() || uyariBasindaSil() || kodBloguBasindaSil() || satirBasindaBicimiKaldir()
+            || kutuSinirindaSil(ileri: false) { return }
         super.deleteBackward(sender)
     }
 
     override func deleteForward(_ sender: Any?) {
-        if !hasMarkedText(), cerceveliSecimiSil() { return }
+        if !hasMarkedText(), cerceveliSecimiSil() || kutuSinirindaSil(ileri: true) { return }
         super.deleteForward(sender)
     }
+
+    // Kelime/satır silme kısayolları da satır başında/sonunda komşu satır sonunu siler.
+    override func deleteWordBackward(_ sender: Any?) { if !kutuSinirindaSil(ileri: false) { super.deleteWordBackward(sender) } }
+    override func deleteToBeginningOfLine(_ sender: Any?) { if !kutuSinirindaSil(ileri: false) { super.deleteToBeginningOfLine(sender) } }
+    override func deleteWordForward(_ sender: Any?) { if !kutuSinirindaSil(ileri: true) { super.deleteWordForward(sender) } }
+    override func deleteToEndOfParagraph(_ sender: Any?) { if !kutuSinirindaSil(ileri: true) { super.deleteToEndOfParagraph(sender) } }
 
     override func delete(_ sender: Any?) {
         if !hasMarkedText(), cerceveliSecimiSil() { return }
@@ -705,9 +712,16 @@ final class NotMetinGorunumu: NSTextView {
             }
             // Satır sonuna yapıştırılan tam satırın satır sonu, imleçten sonrakiyle çakışıp kodda
             // boş (hayalet) satır bırakıyordu.
+            // Satır ortasında/sonunda tam satır kopyası satırı bölmez, alt satıra girer (kutudaki gibi).
             let ns = string as NSString
             if metin.last?.isNewline == true, NSMaxRange(selectedRange()) < ns.length,
-               ns.character(at: NSMaxRange(selectedRange())) == 10 { metin.removeLast() }
+               ns.character(at: NSMaxRange(selectedRange())) == 10 {
+                metin.removeLast()
+                let bas = selectedRange().location
+                if bas > 0, ns.character(at: bas - 1) != 10,
+                   bas > blokIsaretiUzunlugu(textStorage!, konum: ns.paragraphRange(for: NSRange(location: bas, length: 0)).location)
+                       + ns.paragraphRange(for: NSRange(location: bas, length: 0)).location { metin = "\n" + metin }
+            }
             icerigiEkle(NSAttributedString(string: metin, attributes: typingAttributes))
             return true
         }
@@ -872,56 +886,70 @@ final class NotMetinGorunumu: NSTextView {
         // Seçim şimdi saklanır; panodan istenince çevrilir (sonraki düzenlemeler kopyayı etkilemez).
         guard let depo = textStorage, selectedRange().length > 0, NSMaxRange(selectedRange()) <= depo.length else { return }
         let parca = depo.attributedSubstring(from: selectedRange())
-        let sahip = NotPanoSahibi { [weak self] in
-            guard let self, let markdown = self.markdownaCevir(parca) else { return nil }
-            return self.panoBilgisi(markdown)
-        }
+        let kutuIci = secimKutuIcindeMi()
+        let sahip = NotPanoSahibi { [weak self] in self?.panoBilgisi(parca, kutuIci: kutuIci) }
         kopyaSahibi = sahip
         NSPasteboard.general.addTypes([kNotPanoTipi], owner: sahip)
     }
 
     override func cut(_ sender: Any?) {
         // Seçim silinmeden önce okunmalı.
-        let markdown = secimiMarkdownaCevir()
+        let bilgi = secimPanoBilgisi()
         super.copy(sender)
         // Silmede kutu yazı kalsın diye korunur; kesilen kutunun yerinde ise boş kutu kalmamalı.
-        if tumKutuSeciliMi() { seciliAraligiDogrudanSil(); panoyaYaz(markdown); return }
+        if tumKutuSeciliMi() { seciliAraligiDogrudanSil(); panoyaYaz(bilgi); return }
         if !cerceveliSecimiSil() { super.cut(sender) }
-        panoyaYaz(markdown)
+        panoyaYaz(bilgi)
     }
 
-    private func secimiMarkdownaCevir() -> String? {
+    private func secimPanoBilgisi() -> [String: Any]? {
         guard let metinDeposu = textStorage else { return nil }
         let aralik = selectedRange()
         guard aralik.length > 0, NSMaxRange(aralik) <= metinDeposu.length else { return nil }
-        return markdownaCevir(metinDeposu.attributedSubstring(from: aralik))
+        return panoBilgisi(metinDeposu.attributedSubstring(from: aralik), kutuIci: secimKutuIcindeMi())
     }
 
-    private func markdownaCevir(_ secim: NSAttributedString) -> String? {
+    /// Seçim tek bir kod/uyarı kutusunun içinde kalıyor ama kutunun tamamı değil mi?
+    private func secimKutuIcindeMi() -> Bool {
+        let secim = selectedRange()
+        guard let depo = textStorage, secim.length > 0, NSMaxRange(secim) <= depo.length,
+              depo.attribute(kKodBloguAnahtari, at: secim.location, effectiveRange: nil) != nil ||
+              depo.attribute(kUyariKutusuAnahtari, at: secim.location, effectiveRange: nil) != nil else { return false }
+        var blok = NSRange()
+        _ = depo.attribute(kBlokKimligiAnahtari, at: secim.location, longestEffectiveRange: &blok,
+                           in: NSRange(location: 0, length: depo.length))
+        return NSMaxRange(secim) <= NSMaxRange(blok) && secim != blok
+    }
+
+    /// Kutunun içinden alınan parça kutusunu taşımaz: boş bir yere yapıştırılınca yine taralı
+    /// kutu (ya da satır içi kod) olarak geliyordu. Kod parçası `duz` olarak, olduğu gibi taşınır;
+    /// Markdown'a çevrilirse içindeki `**`, `|` gibi işaretler yapıştırılınca biçime dönerdi.
+    /// Kutunun tamamı ya da sınırını aşan seçim kutusuyla birlikte kopyalanır.
+    private func panoBilgisi(_ secim: NSAttributedString, kutuIci: Bool) -> [String: Any]? {
         let parca = NSMutableAttributedString(attributedString: secim)
-        if parca.string.contains(where: \.isNewline) {
-            uyariDevaminiBasaCevir(parca)
-        } else {
+        var bilgi: [String: Any] = [:]
+        if kutuIci, parca.attribute(kKodBloguAnahtari, at: 0, effectiveRange: nil) != nil {
+            bilgi["duz"] = kodBloguGovdesi(parca)
+        } else if kutuIci || !parca.string.contains(where: \.isNewline) {
             satirIcineIndir(parca)
+        } else {
+            uyariDevaminiBasaCevir(parca)
         }
-        let markdown = markdownMetniUret(parca)
-        return markdown.isEmpty ? nil : markdown
+        let markdown = bilgi["duz"] as? String ?? markdownMetniUret(parca)
+        guard !markdown.isEmpty else { return nil }
+        bilgi["markdown"] = markdown
+        if let taban = sayfaTabanKlasoru?() { bilgi["taban"] = taban.path }
+        return bilgi
     }
 
-    /// Tek satırdan alınan parça bloğunu taşımaz: kutudan, koddan ya da başlıktan seçilen bir
-    /// kelime yapıştırıldığı satırı bölüp yeni blok açıyordu. Kod parçası satır içi kod olur;
-    /// düz metne dönerse içindeki `**` gibi işaretler yapıştırılınca biçime çevrilirdi.
+    /// Parça bloğunu taşımaz: kutudan ya da başlıktan seçilen bir kelime yapıştırıldığı satırı
+    /// bölüp yeni blok açıyordu.
     private func satirIcineIndir(_ parca: NSMutableAttributedString) {
         let tum = NSRange(location: 0, length: parca.length)
         var isaretler: [NSRange] = []
         parca.enumerateAttribute(kBlokIsaretiAnahtari, in: tum, options: []) { deger, aralik, _ in
             if deger != nil { isaretler.append(aralik) }
         }
-        var kodlar: [NSRange] = []
-        parca.enumerateAttribute(kKodBloguAnahtari, in: tum, options: []) { deger, aralik, _ in
-            if deger != nil { kodlar.append(aralik) }
-        }
-        for aralik in kodlar { parca.addAttribute(kSatirIciKodAnahtari, value: true, range: aralik) }
         for anahtar in [kMetinBloguAnahtari, kUyariKutusuAnahtari, kBlokKimligiAnahtari, kParagrafGeometrisiAnahtari,
                         kKodBloguAnahtari, kKodBloguDiliAnahtari, kMarkdownKaynakAnahtari, kBosKodSatiriAnahtari,
                         kBaslikSeviyesiAnahtari, kOrtaliAnahtari, kTabloHucresiAnahtari, kTabloSatiriAnahtari, kTabloGorselAnahtari,
@@ -931,23 +959,18 @@ final class NotMetinGorunumu: NSTextView {
         for aralik in isaretler.reversed() { parca.deleteCharacters(in: aralik) }
     }
 
-    private func panoyaYaz(_ markdown: String?) {
-        guard let markdown else { return }
+    func panoyaYaz(_ bilgi: [String: Any]?) {
+        guard let bilgi else { return }
         let pano = NSPasteboard.general
         pano.addTypes([kNotPanoTipi], owner: nil)
-        pano.setPropertyList(panoBilgisi(markdown), forType: kNotPanoTipi)
-    }
-
-    private func panoBilgisi(_ markdown: String) -> [String: Any] {
-        var bilgi: [String: Any] = ["markdown": markdown]
-        if let taban = sayfaTabanKlasoru?() { bilgi["taban"] = taban.path }
-        return bilgi
+        pano.setPropertyList(bilgi, forType: kNotPanoTipi)
     }
 
     /// Panoda kendi tipimiz varsa görselleri bu sayfaya kopyalanmış içeriği döner.
     private func kopyalananIcerik(_ pano: NSPasteboard) -> NSAttributedString? {
         guard let bilgi = pano.propertyList(forType: kNotPanoTipi) as? [String: Any],
               let markdown = bilgi["markdown"] as? String else { return nil }
+        if let duz = bilgi["duz"] as? String { return NSAttributedString(string: duz) }
         let taban = (bilgi["taban"] as? String).map { URL(fileURLWithPath: $0) }
         return icerikEklenecek?(markdown, taban)
     }

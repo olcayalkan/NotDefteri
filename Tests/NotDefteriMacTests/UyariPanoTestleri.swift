@@ -52,10 +52,10 @@ final class UyariPanoTestleri: XCTestCase {
                        "\(kutu)önce\n\(kutu)sonra\n")
     }
 
-    /// Kutunun ortasından alınan satırlar düz alıntıya değil, kutuya dönüşür.
-    func testKutuOrtasindanKopyalananSatirKutuOlur() {
+    /// Kutunun ortasından alınan satır kod bloğundaki gibi düz yazı olur; boş yerde kutu doğmaz.
+    func testKutuOrtasindanKopyalananSatirDuzYaziOlur() {
         XCTAssertEqual(kopyalaYapistir("önce\n\(kutu)sonra\n", kopya: (2, 2), hedef: 0, satirSonu: false),
-                       "> [!💡 mavi] iki\nönce\n\(kutu)sonra\n")
+                       "iki\nönce\n\(kutu)sonra\n")
     }
 
     /// Kutunun içine yapıştırılan kutu satırı ikinci kutu doğurmaz; aynı kutunun satırı olur.

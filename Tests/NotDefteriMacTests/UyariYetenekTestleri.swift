@@ -57,14 +57,15 @@ final class UyariYetenekTestleri: XCTestCase {
         }
     }
 
-    func testIkiEnterKutudanCikarCtrlEnterHerYerden() {
+    /// Kod bloğu gibi: art arda Enter kutuda kalır, çıkış Ctrl+Enter ya da kutunun altına inmekle.
+    func testArdisikEnterKutudaKalirCtrlEnterHerYerden() {
         for renk in renkler {
             let e = editor("> [!💡 \(renk)] bir\nalt\n")
             imleciKoy(e, sonuna: "bir")
-            e.insertNewline(nil)
+            for _ in 0..<3 { e.insertNewline(nil) }
             XCTAssertEqual(e.blok(e.paragrafAraligi())?.tur, .uyari, renk)
-            e.insertNewline(nil)
-            XCTAssertNil(e.blok(e.paragrafAraligi()), renk)
+            e.insertText("x", replacementRange: e.selectedRange())
+            XCTAssertEqual(md(e), "> [!💡 \(renk)] bir\n> \n> \n> x\nalt\n", renk)
             XCTAssertEqual(kutular(e).count, 1, renk)
             let c = editor("> [!💡 \(renk)] bir\n> iki\n\nalt\n")
             imleciKoy(c, sonuna: "bir")

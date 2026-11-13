@@ -707,6 +707,9 @@ package func markdownMetniUret(_ metin: NSAttributedString) -> String {
         // Karşılaştırma kayıt/kopyalamada yapılır; özgün paragrafın yazılışı korunur.
         if ayniKaynak, let kaynak, kaynak.kanonik == kanonik { sonuc += kaynak.metin }
         else { sonuc += kanonik }
+        // Dosya sonundaki çit satır sonsuz saklanır; ardına yazı gelince çit kendi satırında
+        // kapanmazsa ("```yazı") yeniden açılışta belgenin kalanı koda dönüşüyordu.
+        if kodBlogu, NSMaxRange(aralik) < metin.length, !sonuc.hasSuffix("\n") { sonuc += "\n" }
         oncekiBlok = blok
         konum = NSMaxRange(aralik)
     }
