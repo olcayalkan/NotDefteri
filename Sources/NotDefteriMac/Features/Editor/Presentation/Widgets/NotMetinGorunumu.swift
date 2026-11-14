@@ -17,6 +17,13 @@ let kNotPanoTipi = NSPasteboard.PasteboardType("tr.notdefteri.icerik")
 // gelirse uzak görseller içe aktarmadan ayrılıp arka planda indirilmeli.
 private let kHtmlIceAktarmaSuresi: TimeInterval = 1.5
 
+/// İçe aktarıcının ağdan indireceği kaynak (uzak görsel, stil dosyası) var mı.
+func htmlUzakKaynakIceriyor(_ veri: Data) -> Bool {
+    String(decoding: veri, as: UTF8.self).range(
+        of: #"(src\s*=\s*["']?\s*(https?:)?//)|(<link\b)|(url\(\s*["']?\s*(https?:)?//)"#,
+        options: [.regularExpression, .caseInsensitive]) != nil
+}
+
 /// HTML içe aktarıcının ilk çalışması WebKit'i yükler (~500 ms). Kullanıcı uygulamadan ilk
 /// ayrıldığında bir kez çalıştırılır: dışarıdan kopyalamadan önce biter ve yazarken takılma olmaz.
 func htmlIceAktariciniIsit() {
@@ -832,13 +839,15 @@ final class NotMetinGorunumu: NSTextView {
            let icerik = NSAttributedString(rtf: veri, documentAttributes: nil) { return icerik }
         // HTML içe aktarıcı uzak <img> adreslerini ana thread'de indirir; erişilemeyen bir
         // adres yapıştırmayı ~60 sn kilitliyordu. Süre dolunca nil döner ve düz metne düşülür.
-        if let veri = pano.data(forType: .html),
-           let icerik = try? NSAttributedString(
-               data: veri,
-               options: [.documentType: NSAttributedString.DocumentType.html,
-                         .characterEncoding: String.Encoding.utf8.rawValue,
-                         .timeout: kHtmlIceAktarmaSuresi],
-               documentAttributes: nil) { return icerik }
+        // Süre yalnızca uzak kaynak varken uygulanır: içe aktarıcının ilk açılışı yavaş makinede
+        // süreyi aşıyor, uzak kaynaksız tablo da düz metne düşüyordu.
+        if let veri = pano.data(forType: .html) {
+            var secenekler: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                .documentType: NSAttributedString.DocumentType.html,
+                .characterEncoding: String.Encoding.utf8.rawValue]
+            if htmlUzakKaynakIceriyor(veri) { secenekler[.timeout] = kHtmlIceAktarmaSuresi }
+            if let icerik = try? NSAttributedString(data: veri, options: secenekler, documentAttributes: nil) { return icerik }
+        }
         return nil
     }
 

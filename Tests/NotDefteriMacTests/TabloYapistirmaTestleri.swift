@@ -142,6 +142,17 @@ final class TabloYapistirmaTestleri: XCTestCase {
         XCTAssertEqual(markdownMetniUret(markdowndenAttributedStringUret(sonuc)), sonuc, "yeniden açılınca aynen kaydolur")
     }
 
+    /// Süre sınırı yalnızca ağdan kaynak indirilecekse uygulanır; uzak kaynaksız tablo yavaş
+    /// makinede de düz metne düşmez.
+    func testSureSiniriYalnizcaUzakKaynakta() {
+        for (html, uzak) in [("<table><tr><td>a</td></tr></table>", false), ("<a href=\"https://x.com\">b</a>", false),
+                             ("<img src=\"https://x.com/a.png\">", true), ("<img src='//x.com/a.png'>", true),
+                             ("<link rel=stylesheet href=\"https://x.com/a.css\">", true),
+                             ("<div style=\"background:url(https://x.com/a.png)\">", true)] {
+            XCTAssertEqual(htmlUzakKaynakIceriyor(Data(html.utf8)), uzak, html)
+        }
+    }
+
     /// Tek satırlık ya da tek sütunlu "tablo" (düzen için kullanılan) metin olarak kalır.
     func testTabloSayilmayanIcerikMetinKalir() throws {
         let parcalar = MacBelgeAdaptoru.tablolaraBol(try zengin("<table><tr><td>yalnız</td><td>satır</td></tr></table>"))
