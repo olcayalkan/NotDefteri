@@ -12,6 +12,7 @@ and this project adheres to
 
 - Code blocks and callouts share one box rule (macOS and Linux): blank lines in the middle stay in the box, the third Enter on the last line leaves it and drops the trailing blank lines; Ctrl+Enter leaves from anywhere.
 - macOS: a code block or callout at the very top of a page no longer has its top border cut off.
+- macOS: after scrolling with the wheel, the block drag handle follows the block under the pointer instead of staying on the previous one.
 - macOS: text typed on the empty line below a box at the end of the page no longer joins the code block, and a page ending in a code fence keeps the text after it out of the code when reopened.
 - macOS: deleting across a box border no longer merges the outside line into the box; an empty line next to the box is removed, otherwise the cursor moves to the box edge.
 - macOS: a part copied from inside a code block or callout pastes as plain text instead of a new shaded box; copied whole lines go to a new line. Pasting such a part is faster.

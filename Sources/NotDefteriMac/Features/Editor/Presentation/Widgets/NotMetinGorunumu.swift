@@ -553,6 +553,11 @@ final class NotMetinGorunumu: NSTextView {
         if nokta.flatMap({ resimHucresi(noktada: $0) }) == nil {
             resimTutamaclariniGuncelle(nil)
         }
+        // Tekerle kaydırınca fare yerinde kalır ama altındaki blok değişir; tutamaç eski blokta
+        // kalıyordu. Sürüklerken (tuş basılı, otomatik kaydırma) tutamaç gizli kalır.
+        if NSEvent.pressedMouseButtons == 0, uzerindekiResimHucresi == nil {
+            blokTutamaciniGuncelle(noktada: nokta)
+        }
     }
 
     override func drawBackground(in rect: NSRect) {
