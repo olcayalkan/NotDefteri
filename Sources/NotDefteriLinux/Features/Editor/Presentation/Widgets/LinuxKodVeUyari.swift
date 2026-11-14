@@ -686,7 +686,7 @@ private final class KodVeUyariAraclari {
         let tumu = NSRange(location: 0, length: belge.length)
         let kapsam = NSIntersectionRange(aralik, tumu)
         let icEn = alan.width - gtk_text_view_get_left_margin(gorunum) - gtk_text_view_get_right_margin(gorunum)
-        for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari] {
+        for anahtar in kKutuAnahtarlari {
             belge.enumerateAttribute(anahtar, in: kapsam) { deger, alt, _ in
                 guard deger != nil, !gizliMi(GtkKoprusu.iter(editor.tampon, utf16: alt.location)) else { return }
                 var blok = NSRange()

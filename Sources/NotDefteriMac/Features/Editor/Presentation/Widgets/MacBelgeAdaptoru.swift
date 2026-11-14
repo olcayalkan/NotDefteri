@@ -300,7 +300,7 @@ final class MacBelgeAdaptoru {
         depo.enumerateAttributes(in: aralik) { o, alt, _ in
             // Kod gövdesi çok satırlı tek parçadır; kenar boşluğu yalnızca ilk/son paragrafa
             // gitsin diye kutu içindeki parça paragraf sınırlarında bölünür.
-            guard Self.kutuAnahtarlari.contains(where: { o[$0] != nil }) else { isle(o, alt); return }
+            guard kKutuAnahtarlari.contains(where: { o[$0] != nil }) else { isle(o, alt); return }
             var bas = alt.location
             while bas < NSMaxRange(alt) {
                 let paragraf = NSIntersectionRange(ns.paragraphRange(for: NSRange(location: bas, length: 0)), alt)
@@ -319,7 +319,7 @@ final class MacBelgeAdaptoru {
     /// willProcessEditing'de yazılmıştır; büyük yapıştırmada yalnızca kenar paragraflar kalır.
     func cevreyiUygula(_ depo: NSMutableAttributedString, aralik: NSRange) {
         var kutulu = false
-        for anahtar in Self.kutuAnahtarlari where !kutulu {
+        for anahtar in kKutuAnahtarlari where !kutulu {
             depo.enumerateAttribute(anahtar, in: aralik) { deger, _, dur in
                 if deger != nil { kutulu = true; dur.pointee = true }
             }
@@ -331,14 +331,13 @@ final class MacBelgeAdaptoru {
         if son != ilk { gorunumuUygula(depo, aralik: son) }
     }
 
-    private static let kutuAnahtarlari = [kKodBloguAnahtari, kUyariKutusuAnahtari]
 
     private static func kutularaGenislet(_ depo: NSAttributedString, _ aralik: NSRange) -> NSRange {
         let tumu = NSRange(location: 0, length: depo.length)
         var sonuc = aralik
         // İçerdeki kutular zaten kapsanır; yalnızca uçlardan taşan kutular eklenir.
         for konum in [aralik.location, max(aralik.location, NSMaxRange(aralik) - 1)] where konum < depo.length {
-            for anahtar in kutuAnahtarlari {
+            for anahtar in kKutuAnahtarlari {
                 var blok = NSRange()
                 if depo.attribute(anahtar, at: konum, longestEffectiveRange: &blok, in: tumu) != nil {
                     sonuc = NSUnionRange(sonuc, blok)
@@ -357,7 +356,7 @@ final class MacBelgeAdaptoru {
     }
 
     private static func kutudaMi(_ depo: NSAttributedString, _ konum: Int) -> Bool {
-        konum >= 0 && konum < depo.length && kutuAnahtarlari.contains { depo.attribute($0, at: konum, effectiveRange: nil) != nil }
+        konum >= 0 && konum < depo.length && kKutuAnahtarlari.contains { depo.attribute($0, at: konum, effectiveRange: nil) != nil }
     }
 
     /// `bosSatirMi`'nin saydığı karakterler (`CharacterSet.newlines`).
@@ -414,7 +413,7 @@ final class MacBelgeAdaptoru {
     /// Parça kutunun ilk paragrafındaysa üst, son paragrafındaysa alt kenardadır.
     private static func kutuKenari(_ depo: NSAttributedString, _ o: [NSAttributedString.Key: Any],
                                    _ alt: NSRange) -> (ust: Bool, alt: Bool)? {
-        guard let anahtar = kutuAnahtarlari.first(where: { o[$0] != nil }) else { return nil }
+        guard let anahtar = kKutuAnahtarlari.first(where: { o[$0] != nil }) else { return nil }
         let ns = depo.string as NSString
         var blok = NSRange()
         _ = depo.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok,

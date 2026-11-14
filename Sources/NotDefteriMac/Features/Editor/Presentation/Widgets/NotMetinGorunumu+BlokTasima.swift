@@ -21,7 +21,7 @@ extension NotMetinGorunumu {
                          ns.paragraphRange(for: NSRange(location: max(aralik.location, NSMaxRange(aralik) - 1), length: 0)))
         }
         var bolunmez = NSRange()
-        for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari]
+        for anahtar in kKutuAnahtarlari
         where depo.attribute(anahtar, at: paragraf.location, longestEffectiveRange: &bolunmez, in: tumu) != nil {
             return paragraflari(bolunmez)
         }
@@ -136,7 +136,7 @@ extension NotMetinGorunumu {
     func blokGorselKaresi(_ birim: NSRange) -> NSRect? {
         guard let depo = textStorage, let kapsayici = textContainer, birim.length > 0,
               NSMaxRange(birim) <= depo.length else { return nil }
-        for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari]
+        for anahtar in kKutuAnahtarlari
         where depo.attribute(anahtar, at: birim.location, effectiveRange: nil) != nil {
             return blokCerceveKaresi(birim, anahtar: anahtar)
         }
@@ -158,7 +158,7 @@ extension NotMetinGorunumu {
               let gorsel = blokGorselKaresi(birim), let ilk = blokIlkSatirKaresi(birim) else { return nil }
         let boyut = BlokTutamaci.boyut
         let metinSolu = textContainerOrigin.x + kapsayici.lineFragmentPadding
-        let kutu = [kKodBloguAnahtari, kUyariKutusuAnahtari].contains { depo.attribute($0, at: birim.location, effectiveRange: nil) != nil }
+        let kutu = kKutuAnahtarlari.contains { depo.attribute($0, at: birim.location, effectiveRange: nil) != nil }
         let x: CGFloat
         if kutu {
             x = gorsel.minX - boyut.width - 4

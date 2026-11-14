@@ -88,7 +88,7 @@ extension NotMetinGorunumu {
         let bas = max(0, aralik.location - 1)
         let son = min(depo.length, NSMaxRange(aralik) + 1)
         guard son > bas else { return }
-        for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari] {
+        for anahtar in kKutuAnahtarlari {
             for blok in cerceveliBlokAraliklari(NSRange(location: bas, length: son - bas), anahtar: anahtar) {
                 if let kare = blokCerceveKaresi(blok, anahtar: anahtar) { setNeedsDisplay(kare.insetBy(dx: -1, dy: -1)) }
             }

@@ -97,7 +97,7 @@ Başlıklar sağdaki **İçindekiler** panelinde görünür. Bir başlığa tık
 - Kod bloğu eklerken **Otomatik** seçeneği; anahtar kelime, metin, yorum, sayı, tür, fonksiyon ve operatörleri renklendirir. Daha kesin sonuç için `swift`, `python` veya `json` gibi bir dil de seçebilirsiniz.
 - Kod bloğunda `(`, `[`, `{`, `"` ve `'` kapanışıyla birlikte eklenir; kapanışı yazınca üstünden geçilir, boş eşi geri silmek ikisini birden siler.
 - Kod bloğunda satıra yalnızca `try`, `if`, `else`, `for`, `while`, `switch`, `func` veya `class` yazıp **Tab**'a basınca bloğun diline uygun kalıp açılır (ör. Swift'te `do { } catch { }`, Python'da `try: … except`).
-- Uyarı kutusunu blok menüsünden ekleyin; sağ tıklayarak rengini değiştirin. Kod bloğu gibi, art arda Enter kutunun içinde kalır; kutudan **Ctrl+Enter** ile ya da kutunun altındaki satıra inerek çıkılır. Kutunun içinden kopyalanan parça düz yazı olarak yapışır.
+- Uyarı kutusunu blok menüsünden ekleyin; sağ tıklayarak rengini değiştirin. Kod bloğu ile aynı kural: son satırda üçüncü Enter kutudan çıkar (sondaki boş satırlar atılır), ortadaki boş satırlar kutuda kalır; **Ctrl+Enter** her yerden çıkar. Kutunun içinden kopyalanan parça düz yazı olarak yapışır.
 
 ## Geçmiş, silme ve dışa aktarma
 

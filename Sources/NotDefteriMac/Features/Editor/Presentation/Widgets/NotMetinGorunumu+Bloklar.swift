@@ -346,7 +346,7 @@ extension NotMetinGorunumu {
         if NSMaxRange(paragraf) < ns.length {
             let alt = ns.paragraphRange(for: NSRange(location: NSMaxRange(paragraf), length: 0))
             let bos = ns.substring(with: alt).trimmingCharacters(in: .newlines).isEmpty
-            let yapili = [kKodBloguAnahtari, kUyariKutusuAnahtari, kMetinBloguAnahtari].contains {
+            let yapili = (kKutuAnahtarlari + [kMetinBloguAnahtari]).contains {
                 depo.attribute($0, at: alt.location, effectiveRange: nil) != nil
             }
             if bos && !yapili { return }
@@ -371,7 +371,7 @@ extension NotMetinGorunumu {
               depo.attribute(kUyariKutusuAnahtari, at: konum, longestEffectiveRange: &kutu, in: tumu) != nil else { return false }
         let alt = NSMaxRange(kutu)
         guard alt < depo.length, (depo.string as NSString).character(at: alt) == 10,
-              ![kKodBloguAnahtari, kUyariKutusuAnahtari, kMetinBloguAnahtari, kBaslikSeviyesiAnahtari].contains(where: {
+              !(kKutuAnahtarlari + [kMetinBloguAnahtari, kBaslikSeviyesiAnahtari]).contains(where: {
                   depo.attribute($0, at: alt, effectiveRange: nil) != nil }) else { return false }
         setSelectedRange(NSRange(location: alt, length: 0))
         typingAttributes = duzYazim
@@ -392,8 +392,7 @@ extension NotMetinGorunumu {
         guard sinir >= 0, sinir < ns.length, ns.character(at: sinir) == 10 else { return false }
         func kutu(_ konum: Int) -> NSObject? {
             guard konum < ns.length else { return nil }
-            return (depo.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil)
-                ?? depo.attribute(kUyariKutusuAnahtari, at: konum, effectiveRange: nil)) as? NSObject
+            return kKutuAnahtarlari.lazy.compactMap { depo.attribute($0, at: konum, effectiveRange: nil) as? NSObject }.first
         }
         func bosDuz(_ konum: Int) -> Bool {
             guard konum < ns.length else { return true }

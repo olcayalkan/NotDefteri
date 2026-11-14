@@ -88,10 +88,9 @@ extension NotMetinGorunumu {
     /// Kalıp, bloğun mevcut girintisine uyar; girintisiz blokta Tab tuşunun eklediği sekme kullanılır.
     private func kodGirintiBirimi(_ konum: Int) -> String {
         guard let depo = textStorage else { return "\t" }
-        var blok = NSRange()
         let bakilan = min(konum, depo.length - 1)
-        let anahtar = depo.attribute(kKodBloguAnahtari, at: bakilan, effectiveRange: nil) != nil ? kKodBloguAnahtari : kUyariKutusuAnahtari
-        _ = depo.attribute(anahtar, at: bakilan, longestEffectiveRange: &blok, in: NSRange(location: 0, length: depo.length))
+        guard let kutu = kutuyuBul(depo, konum: bakilan) else { return "\t" }
+        let blok = kutu.aralik(depo, konum: bakilan)
         for tamSatir in (depo.string as NSString).substring(with: blok).components(separatedBy: "\n") {
             // Satır başındaki görünmez blok işareti girintiden sayılmaz.
             let satir = tamSatir.drop { $0 == "\u{200B}" }

@@ -85,6 +85,24 @@ final class KutuSinirTestleri: XCTestCase {
         }
     }
 
+    /// İki kutu aynı kural: son satırdan üçüncü Enter çıkar (belge sonunda da), ortadaki boş satırlar kalır.
+    func testUcuncuEnterHerKutudanCikar() {
+        for kutu in kutular {
+            for alt in ["", "alt\n"] {
+                let e = editor("ust\n\(kutu)\n\(alt)")
+                e.setSelectedRange(NSRange(location: NSMaxRange(konum(e, "iki")), length: 0))
+                for _ in 0..<3 { e.insertNewline(nil) }
+                yaz(e, "dis")
+                XCTAssertEqual(md(e), "ust\n\(kutu)\ndis\n\(alt)", kutu)
+            }
+            let o = editor("ust\n\(kutu)\n")
+            o.setSelectedRange(NSRange(location: NSMaxRange(konum(o, "bir")), length: 0))
+            for _ in 0..<3 { o.insertNewline(nil) }
+            XCTAssertNotNil(kKutuAnahtarlari.first { o.textStorage!.attribute($0, at: o.selectedRange().location, effectiveRange: nil) != nil },
+                            "ortadaki boş satırlar kutuda kalır: \(kutu)")
+        }
+    }
+
     /// Kutunun üstündeki satırın sonundan ileri silme kutunun ilk satırını dışarı çekmez.
     func testKutuUstundenIleriSilme() {
         for kutu in kutular {
