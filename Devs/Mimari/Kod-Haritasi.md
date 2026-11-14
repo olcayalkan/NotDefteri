@@ -27,6 +27,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|---|
 | `YapistirmaBicimlendirme.swift` | 159 | **Dış içeriği nota uydurma** — `disIcerigiNotBicimineCevir()` (RTF/HTML biçimini notun diline indirger), `disMetniNotBicimineCevir()`, `yapistirmaMetniniSadelestir()` |
 | `MetinBlogu.swift` | 230 | Blok türü (iç liste girintisi sekme/boşluk, `girintiDuzeyi()`), uyarı kutusu başlığı/kimliği, girinti, kaynak öneki, paragraf öznitelikleri ve yerel liste numaralama |
+| `Kutu.swift` | 87 | Kod bloğu ve uyarı kutusunun ortak `Kutu` protokolü: sınır (`aralik`), `disariCik`, üçüncü Enter (`sonBosSatirlardanCik`); `KodKutusu` yalnızca `kapat` (çiti kapatma) override eder, `kKutuAnahtarlari`, `kutuyuBul` |
 | `HtmlCevirici.swift` | 109 | Dışa aktarımda mevcut Markdown okuyucusundan kaçırılmış HTML, izinli href, gömülü PNG ve açık/koyu inline CSS üretimi |
 | `MarkdownCevirici.swift` | 847 | **Çift yönlü çevirici**: başlık/bloklar, satır içi biçimler, bağlantı/kod/wikilink, paragraf kaynak yazılışı; `sayfaMarkdownunuUret()` üstbilgiyle kaydeder; font yardımcıları; satır parçaları tek seferde birleşir (Linux'ta append karesel), bağ algılayıcı ön elemesi `bagIcerebilir()` |
 | `SayfaBaglantilari.swift` | 322 | Sayfa hedefi indeksi, Türkçe bulanık arama, ortak son açılanlar/açılma tarihleri ve değişim geri çağrısı, olmayan yolları düşürme, bağlantı çözümleme ve yeniden yazma; `kodBloguKapanisi()` düzenli ifade yerine satır taraması (kopya yok) |
@@ -49,10 +50,10 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 | Dosya | Satır | İçerik |
 |---|---|---|
 | `AnaSayfa.swift` | 496 | Selamlama/tarih ve selamla sağ kenar arasında (ortanın 20 pt sağında) canlı saat (`SelamSatiri`, elle yerleşim), yatay son açılan/favori kartları, ilk 20 gruplu yapılacak ve hızlı eylemler; tema renkleri |
-| `ResimEki.swift` | 225 | `ResimEki`, `ResimEkiHucresi` — sürüklenerek boyutlandırma |
+| `ResimEki.swift` | 380 | `ResimEki`, `ResimEkiHucresi` — kenar o yönde çekiştirir, köşe oranlı büyütür, ⌥ ile kenar kırpar (`ResimTutamaci.surukle`) |
 | `BaslikCubugu.swift` | 195 | Özel pencere kontrolleri, tıklanabilir ata sayfa yolu; sayfa adı/yolu düğmelere eşit uzak alanda pencerenin ortasında |
 | `SayfaSecenekAlani.swift` | 41 | Editörün sol üstünde yalnızca düğme kadar (`genislik` 52 pt) alan; hover'da "•••" sayfa seçenekleri (Küçük yazı, dışa aktar, geçmiş) |
-| `NotMetinGorunumu+Bloklar.swift` | 404 | Blok kısayolları, Enter/Tab/Backspace, kutu/çizim; menü aynı paragraf/undo yolunu kullanır |
+| `NotMetinGorunumu+Bloklar.swift` | 490 | Blok kısayolları, Enter/Tab/Backspace, kutu/çizim; menü aynı paragraf/undo yolunu kullanır; `kutuSinirindaSil(ileri:)` kod/uyarı kutusunu dış satırla birleştirmez (geri/ileri, kelime ve satır silme) |
 | `NotMetinGorunumu+Sayfa.swift` | 62 | Artımlı kelime sayımı, kaynak puntoyu koruyan küçük yazı ölçeği |
 | `NotMetinGorunumu+SayfaBaglantilari.swift` | 284 | İmleç dışındaki bağın `[[ ]]` işaretlerini glif düzeyinde gizleme, ilk `[` emoji boşluğu (`etkinSayfaBagi`, `bagIsaretleri()`, `boundingBoxForControlGlyphAt`, katlamayla aynı glif temsilcisi); Değişen paragrafta bağlantı işaretleme, geçici renk, [[ tamamlayıcı, tıklama ve undo ile yeniden yazma |
 | `CopKutusuPaneli.swift` | 146 | Çöp popover’ı: önbellekte ad arama, sayfa/klasör simgesi ve göreli tarih, geri yükleme, kalıcı silme/boşaltma onayı |
@@ -128,7 +129,7 @@ Bağımlılık yönü: `Uygulama → Pencere → KenarPanel → Gorunum → Ceki
 |---|---|
 | Editör | `EditorTestleri` 16 — editör `NotPenceresi` gibi kurulur, klavyeden yazılmış gibi sürülür |
 | Görünüm adaptörü | `BelgeAdaptoruTestleri` 9, `FontTestleri` 3, `IcindekilerTestleri` 9 |
-| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 8 (web/RTF/sekmeli tablo yerel tabloya yapışır, seçilip silinebilir), `TabloHucreDuzenlemeTestleri` 5 (hücrede yazma, silme, Enter, `/tablo`, çift satır gölgesi), `BicimKisayoluTestleri` 8 (`/red`, `/info`, ⌘O ortala, kutu/liste/kod ortalama, sağ tık), `KutuBoslukTestleri` 6 (kutu çevresi boşluğu, açınca aynı görünüm), `BlokTasimaTestleri` 14 (kutu tutamacı konumu, kutular arası bırakma çizgisi, sürükleme görselleri, ⌘⇧↑/↓, sürükleme hedefi, bölünmez bloklar, liste numarası, geri alma, tutamaç), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme), `BlokParcasiKopyalamaTestleri` 10 (kod/kutu/alıntı/başlıktan tek satırlık parça satır içi yapışır) |
+| Yapıştırma ve kopyalama | `YapistirmaTestleri` 12, `KopyalamaTestleri` 6, `YapistirmaDonmaTestleri` 2, `UyariPanoTestleri` 8 (uyarı kutusu kopyala/kes/yapıştır), `TabloYapistirmaTestleri` 8 (web/RTF/sekmeli tablo yerel tabloya yapışır, seçilip silinebilir), `TabloHucreDuzenlemeTestleri` 5 (hücrede yazma, silme, Enter, `/tablo`, çift satır gölgesi), `BicimKisayoluTestleri` 8 (`/red`, `/info`, ⌘O ortala, kutu/liste/kod ortalama, sağ tık), `KutuBoslukTestleri` 6 (kutu çevresi boşluğu, açınca aynı görünüm), `BlokTasimaTestleri` 14 (kutu tutamacı konumu, kutular arası bırakma çizgisi, sürükleme görselleri, ⌘⇧↑/↓, sürükleme hedefi, bölünmez bloklar, liste numarası, geri alma, tutamaç), `KodBloguUstuSilmeTestleri` 11 (kod bloğunun üstündeki yazıyı silme), `BlokParcasiKopyalamaTestleri` 11 (kod/kutu içinden alınan parça düz yazı, kod parçası Markdown'a çevrilmeden `duz` pano alanıyla yapışır), `KutuSinirTestleri` 8 (kutu altına/belge sonuna yazma, sınırda silme, üçüncü Enter ile çıkış, belge başındaki kutunun üst kenarı; kod ve uyarı aynı) |
 | Taşıma ve adlandırma | `YenidenAdlandirmaTestleri` 15, `TasimaTestleri` 12, `GorselBagiTestleri` 5 |
 | Arayüz bileşenleri | `ArayuzBilesenleriTestleri` 13 — tema, "/" blok menüsü, ⌘P bulucu |
 

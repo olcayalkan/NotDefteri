@@ -8,6 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- Code blocks and callouts share one box rule (macOS and Linux): blank lines in the middle stay in the box, the third Enter on the last line leaves it and drops the trailing blank lines; Ctrl+Enter leaves from anywhere.
+- macOS: a code block or callout at the very top of a page no longer has its top border cut off.
+- macOS: after scrolling with the wheel, the block drag handle follows the block under the pointer instead of staying on the previous one.
+- macOS: the first web table pasted after launch no longer falls back to plain text on a slow machine; the paste time limit applies only when remote images or styles must be downloaded.
+- macOS: text typed on the empty line below a box at the end of the page no longer joins the code block, and a page ending in a code fence keeps the text after it out of the code when reopened.
+- macOS: deleting across a box border no longer merges the outside line into the box; an empty line next to the box is removed, otherwise the cursor moves to the box edge.
+- macOS: a part copied from inside a code block or callout pastes as plain text instead of a new shaded box; copied whole lines go to a new line. Pasting such a part is faster.
+- macOS: dragging an image edge stretches the image in that direction again; hold ⌥ Option to crop from that side.
+- macOS: typing `-` and pressing Tab at the start of a line starts a bullet (•), like `- `.
+
 ### Added
 
 - Image cropping: dragging an image edge crops that side (left edge crops the left, top edge crops the top); dragging back restores the cropped part. Corners still resize proportionally. The crop is saved in Markdown as `{WxH kirp=x,y,w,h}` and shown on macOS, Linux and in HTML export.
@@ -47,6 +59,14 @@ and this project adheres to
 
 ### Fixed
 
+- A box at the end of the document no longer has about 27 pt of empty space under its text, and empty lines inside a code block keep their full height (macOS).
+- Callout colors come from one table: every color has a `/` shortcut (`/gri`, `/mavi`, `/sari`, `/kirmizi`, `/yesil` or `/info`, English names too) and the same menu, drawing and HTML export path; previously only red and info had shortcuts.
+- Callouts: a single `/` is plain text so paths like `/opt/x` no longer open the command menu; use `//command` for block commands inside a callout (macOS).
+- Callouts of every color now match code blocks: the Copy strip appears on hover, an added image goes below the box instead of splitting it, and the right-click menu keeps cut, copy and paste next to **Renk** (macOS).
+- Code blocks: right-click **Dil** changes the language, and so the syntax colors, after the block is created (macOS).
+- Faster copy and paste on macOS: copying a large selection no longer builds Markdown up front, pasting a large block no longer computes its appearance repeatedly, the first paste from a browser no longer waits for the HTML importer to load, and an unreachable remote image blocks a paste for 1.5 seconds instead of 3 (past that limit the paste falls back to plain text).
+- Code blocks: an image added inside a block goes below it instead of splitting it, so the saved Markdown stays valid and the Copy strip keeps working (macOS).
+- Boxes stacked directly on top of each other no longer leave a gap between their frames, and a callout typed with its Markdown shortcut gets an empty line below it (macOS).
 - Code blocks: pressing Enter three times on the last line no longer jumps out of the block to the content below; Enter always stays in the code, and **Ctrl+Enter** leaves it (macOS and Linux).
 - macOS: the block handle (⋮⋮) fell inside code blocks and callouts; it now sits left of the frame, aligned with the first line. While dragging, the moved block is outlined in blue, a translucent copy follows the pointer, and the drop position is shown as a thick line with a ring at its start, midway between the visible edges of two blocks (with a background-colored halo so it does not blend into box borders).
 - macOS: the space around boxes updates immediately when a neighboring line changes; the spacing seen while editing does not change after reopening the app. A blank line saved between an adjacent quote and callout is drawn at almost zero height on open (it used to appear as a full line first).

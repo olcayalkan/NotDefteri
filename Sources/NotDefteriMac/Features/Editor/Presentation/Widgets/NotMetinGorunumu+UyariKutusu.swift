@@ -20,15 +20,32 @@ extension NotMetinGorunumu {
         return sonuc
     }
 
+    /// TextKit belgenin ilk satırına üst paragraf boşluğu vermez; belge kutuyla başlayınca kutunun üst
+    /// kenarı metin alanının dışına taşıp kesiliyordu. Kutu ilk satırda da kendi boşluğunu alır;
+    /// diğer paragraflar paragraf stilindeki değeri aynen kullanır.
+    func layoutManager(_ layoutManager: NSLayoutManager, paragraphSpacingBeforeGlyphAt glyphIndex: Int,
+                       withProposedLineFragmentRect rect: NSRect) -> CGFloat {
+        guard let depo = textStorage, depo.length > 0 else { return 0 }
+        let konum = min(layoutManager.characterIndexForGlyph(at: glyphIndex), depo.length - 1)
+        if rect.minY <= 0, !kKutuAnahtarlari.contains(where: { depo.attribute($0, at: konum, effectiveRange: nil) != nil }) { return 0 }
+        return (depo.attribute(.paragraphStyle, at: konum, effectiveRange: nil) as? NSParagraphStyle)?.paragraphSpacingBefore ?? 0
+    }
+
     func blokCerceveKaresi(_ aralik: NSRange, anahtar: NSAttributedString.Key) -> NSRect? {
         guard let depo = textStorage, let kapsayici = textContainer,
               let kare = guvenliKare(karakter: aralik) else { return nil }
         let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
         let girinti = anahtar == kKodBloguAnahtari ? 0 : CGFloat(blok?.seviye ?? 0) * 24
+        // Belge sonundaki kutunun karesi, görünmez son satırı da içerir; kutunun altında boşluk kalıyordu.
+        var alt = kare.maxY
+        if NSMaxRange(aralik) == depo.length, let son = layoutManager?.extraLineFragmentRect, !son.isEmpty {
+            let stil = depo.attribute(.paragraphStyle, at: depo.length - 1, effectiveRange: nil) as? NSParagraphStyle
+            alt = min(alt, son.minY - (stil?.paragraphSpacing ?? 0))
+        }
         return NSRect(x: textContainerOrigin.x + kapsayici.lineFragmentPadding + girinti,
                       y: textContainerOrigin.y + kare.minY - kKutuIcBoslugu,
                       width: max(0, kapsayici.size.width - kapsayici.lineFragmentPadding * 2 - girinti),
-                      height: kare.height + kKutuIcBoslugu * 2)
+                      height: alt - kare.minY + kKutuIcBoslugu * 2)
     }
 
     func cerceveliBloklariCiz(_ kirliAlan: NSRect, anahtar: NSAttributedString.Key) {
@@ -61,7 +78,7 @@ extension NotMetinGorunumu {
             if !eksik.isEmpty, !kirpma.contains(eksik) { setNeedsDisplay(eksik) }
             guard anahtar != kKodBloguAnahtari else { blokCercevesiniCiz(kare, renk: kMetinRenk, cizgi: 0.7); continue }
             let blok = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: aralik.location, effectiveRange: nil))
-            let r = kUyariRenkleri[blok?.renk ?? ""] ?? kUyariRenkleri["gri"]!
+            let r = uyariRengi(blok?.renk ?? "").ekran
             blokCercevesiniCiz(kare, renk: NSColor(srgbRed: r.r, green: r.g, blue: r.b, alpha: 1), cizgi: kUyariCizgiOpakligi,
                                dolgu: kUyariDolguOpakligi)
         }
@@ -82,7 +99,7 @@ extension NotMetinGorunumu {
         let bas = max(0, aralik.location - 1)
         let son = min(depo.length, NSMaxRange(aralik) + 1)
         guard son > bas else { return }
-        for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari] {
+        for anahtar in kKutuAnahtarlari {
             for blok in cerceveliBlokAraliklari(NSRange(location: bas, length: son - bas), anahtar: anahtar) {
                 if let kare = blokCerceveKaresi(blok, anahtar: anahtar) { setNeedsDisplay(kare.insetBy(dx: -1, dy: -1)) }
             }
@@ -172,7 +189,9 @@ extension NotMetinGorunumu {
     /// (küçük yazılı) boş satırlar kalıyordu. Gelen işaretler atılır; her yeni satır bu
     /// kutunun devam işaretini alır. Tam satır içerik satır ortasına gelirse yeni satırdan başlar.
     func kutuyaKat(_ icerik: NSMutableAttributedString, kutu: MetinBlogu, satirBasinda: Bool, ardindanSatirSonu: Bool) {
-        let tamSatir = icerik.length > 0 && icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil
+        // Satır sonuyla biten düz parça da tam satırdır (kutu içinden kopyalanan satırlar işaretsiz gelir).
+        let tamSatir = icerik.length > 0 && (icerik.attribute(kBlokIsaretiAnahtari, at: 0, effectiveRange: nil) != nil
+            || icerik.string.hasSuffix("\n"))
         var silinecek: [NSRange] = []
         icerik.enumerateAttributes(in: NSRange(location: 0, length: icerik.length)) { o, alt, _ in
             if o[kBlokIsaretiAnahtari] as? Bool == true || o[kBosKodSatiriAnahtari] as? Bool == true { silinecek.append(alt) }
@@ -197,7 +216,7 @@ extension NotMetinGorunumu {
     func uyariRenkMenusu() -> NSMenu {
         let menu = NSMenu(title: "Uyarı kutusu")
         let mevcut = blok(paragrafAraligi())?.renk
-        for renk in ["gri", "mavi", "sarı", "kırmızı", "yeşil"] {
+        for renk in kUyariRenkTanimlari.map(\.ad) {
             let oge = menu.addItem(withTitle: renk.capitalized(with: Locale(identifier: "tr_TR")),
                                    action: #selector(uyariRenginiSec(_:)), keyEquivalent: "")
             oge.target = self

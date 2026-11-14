@@ -212,7 +212,7 @@ final class LinuxBelgeAdaptoru {
         }
         belge.enumerateAttributes(in: kapsam) { o, alt, _ in
             // Kod gövdesi çok satırlı tek parçadır; kenar yalnızca ilk/son paragrafa gitsin diye bölünür.
-            guard Self.kutuAnahtarlari.contains(where: { o[$0] != nil }) else { uygula(o, alt); return }
+            guard kKutuAnahtarlari.contains(where: { o[$0] != nil }) else { uygula(o, alt); return }
             var bas = alt.location
             while bas < NSMaxRange(alt) {
                 let paragraf = NSIntersectionRange(ns.paragraphRange(for: NSRange(location: bas, length: 0)), alt)
@@ -222,7 +222,6 @@ final class LinuxBelgeAdaptoru {
         }
     }
 
-    private static let kutuAnahtarlari = [kKodBloguAnahtari, kUyariKutusuAnahtari]
     static let kutuUstEtiketi = "kutu-ust", kutuAltEtiketi = "kutu-alt"
     /// Kutunun üstünde/altında bırakılan görünüm boşluğu (macOS kKutuDisBoslugu); çerçeve bunu dışarıda bırakır.
     static let kutuBoslugu = Int32(kKutuDisBoslugu)
@@ -231,7 +230,7 @@ final class LinuxBelgeAdaptoru {
         let tumu = NSRange(location: 0, length: belge.length)
         var sonuc = kapsam
         for konum in [kapsam.location, max(kapsam.location, NSMaxRange(kapsam) - 1)] where konum < belge.length {
-            for anahtar in Self.kutuAnahtarlari {
+            for anahtar in kKutuAnahtarlari {
                 var blok = NSRange()
                 if belge.attribute(anahtar, at: konum, longestEffectiveRange: &blok, in: tumu) != nil {
                     sonuc = NSUnionRange(sonuc, blok)
@@ -243,7 +242,7 @@ final class LinuxBelgeAdaptoru {
 
     /// Parça kutunun ilk paragrafındaysa üst, son paragrafındaysa alt kenardadır.
     private func kutuKenari(_ o: Oznitelikler, _ alt: NSRange) -> (ust: Bool, alt: Bool)? {
-        guard let anahtar = Self.kutuAnahtarlari.first(where: { o[$0] != nil }) else { return nil }
+        guard let anahtar = kKutuAnahtarlari.first(where: { o[$0] != nil }) else { return nil }
         let ns = belge.mutableString
         var blok = NSRange()
         _ = belge.attribute(anahtar, at: alt.location, longestEffectiveRange: &blok, in: NSRange(location: 0, length: belge.length))

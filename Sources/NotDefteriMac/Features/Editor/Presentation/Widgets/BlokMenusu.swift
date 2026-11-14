@@ -46,11 +46,17 @@ final class BlokMenusu: NSView {
     enum Komut: Int, CaseIterable {
         case baslik1, baslik2, baslik3, madde, numarali, yapilacak, alinti, kod, ayirici, sayfa, gorsel, tablo
         case uyari, uyariGri, uyariMavi, uyariSari, uyariKirmizi, uyariYesil
+        /// Renkli uyarı komutları `kUyariRenkTanimlari` sırasındadır; ad ve kısayol oradan okunur.
+        var uyariRengi: UyariRengi? {
+            rawValue >= Self.uyariGri.rawValue ? kUyariRenkTanimlari[rawValue - Self.uyariGri.rawValue] : nil
+        }
         var ad: String {
-            ["Başlık 1", "Başlık 2", "Başlık 3", "Madde listesi", "Numaralı liste", "Yapılacak", "Alıntı", "Kod bloğu", "Ayırıcı", "Alt sayfa", "Görsel",
-             "Tablo", "Uyarı kutusu", "Uyarı: Gri", "Uyarı: Mavi", "Uyarı: Sarı", "Uyarı: Kırmızı", "Uyarı: Yeşil"][rawValue]
+            if let renk = uyariRengi { return "Uyarı: " + renk.ad.capitalized(with: Locale(identifier: "tr_TR")) }
+            return ["Başlık 1", "Başlık 2", "Başlık 3", "Madde listesi", "Numaralı liste", "Yapılacak", "Alıntı", "Kod bloğu", "Ayırıcı",
+                    "Alt sayfa", "Görsel", "Tablo", "Uyarı kutusu"][rawValue]
         }
         var kisayollar: [String] {
+            if let renk = uyariRengi { return renk.kisayollar }
             switch self {
             case .baslik1: return ["1", "b1"]
             case .baslik2: return ["2", "b2"]
@@ -59,8 +65,6 @@ final class BlokMenusu: NSView {
             case .tablo: return ["table", "tablo"]
             case .kod: return ["code", "kod"]
             case .uyari: return ["att", "uyari"]
-            case .uyariKirmizi: return ["red"]
-            case .uyariYesil: return ["info"]
             default: return []
             }
         }
@@ -72,7 +76,7 @@ final class BlokMenusu: NSView {
     private var dilSorgusu = ""
     private var dilEslesmeleri: [String] = []
     private let dilBasligi = NSTextField(labelWithString: "")
-    private let diller = ["", "swift", "go", "python", "javascript", "typescript", "bash", "json", "sql", "html", "css"]
+    static let diller = ["", "swift", "go", "python", "javascript", "typescript", "bash", "json", "sql", "html", "css"]
     private var eslesmeler = Komut.allCases
     private var secili = 0
     private var dugmeler: [NSButton] = []
@@ -132,7 +136,7 @@ final class BlokMenusu: NSView {
 
     private func dilleriFiltrele() {
         let sorgu = dilSorgusu.lowercased()
-        dilEslesmeleri = diller.filter {
+        dilEslesmeleri = Self.diller.filter {
             sorgu.isEmpty || $0.contains(sorgu) || dilAdiniNormallestir(sorgu) == $0
         }
         secili = 0
@@ -180,25 +184,36 @@ final class BlokMenusu: NSView {
 }
 
 extension NotMetinGorunumu {
-    func slashKisayolunuUygula() -> Bool {
-        guard isEditable, !hasMarkedText(), selectedRange().length == 0, !blokMenusu.dilSecimi,
-              let depo = textStorage else { return false }
-        let imlec = selectedRange().location
+    /// İmlecin solundaki komut. Uyarı kutusunda metin kod gibi yazılır: `/opt/x` gibi yollar menü
+    /// açmasın diye tek `/` düz yazıdır, komut `//komut` ile çağrılır. Kod bloğunda komut yoktur.
+    func slashKomutu(imlec: Int) -> (aralik: NSRange, sorgu: String)? {
+        guard let depo = textStorage else { return nil }
         let ns = depo.mutableString
         let paragraf = ns.paragraphRange(for: NSRange(location: imlec, length: 0))
         let slash = ns.range(of: "/", options: .backwards,
-                             range: NSRange(location: paragraf.location, length: imlec - paragraf.location))
-        guard slash.location != NSNotFound,
-              slash.location == paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location) ||
-              (slash.location > paragraf.location && ns.rangeOfCharacter(from: .whitespaces, range: NSRange(location: slash.location - 1, length: 1)).location != NSNotFound),
-              depo.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
-              depo.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else { return false }
-        let sorgu = ns.substring(with: NSRange(location: slash.location + 1, length: imlec - slash.location - 1))
-        guard let komut = [BlokMenusu.Komut.kod, .uyari, .uyariKirmizi, .uyariYesil, .tablo].first(where: { $0.kisayollar.contains(sorgu) }) else { return false }
-        let aralik = NSRange(location: slash.location, length: imlec - slash.location)
+                             range: NSRange(location: paragraf.location, length: imlec - paragraf.location)).location
+        guard slash != NSNotFound,
+              depo.attribute(kKodBloguAnahtari, at: slash, effectiveRange: nil) == nil,
+              depo.attribute(kSatirIciKodAnahtari, at: slash, effectiveRange: nil) == nil else { return nil }
+        let isaretSonu = paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location)
+        var bas = slash
+        if blok(paragraf)?.tur == .uyari {
+            guard slash > isaretSonu, ns.character(at: slash - 1) == 47 else { return nil }
+            bas = slash - 1
+        }
+        guard bas == isaretSonu || (bas > paragraf.location && ns.rangeOfCharacter(
+            from: .whitespaces, range: NSRange(location: bas - 1, length: 1)).location != NSNotFound) else { return nil }
+        return (NSRange(location: bas, length: imlec - bas), ns.substring(with: NSRange(location: slash + 1, length: imlec - slash - 1)))
+    }
+
+    func slashKisayolunuUygula() -> Bool {
+        guard isEditable, !hasMarkedText(), selectedRange().length == 0, !blokMenusu.dilSecimi,
+              let (aralik, sorgu) = slashKomutu(imlec: selectedRange().location),
+              let komut = BlokMenusu.Komut.allCases.first(where: {
+                  ($0 == .kod || $0 == .tablo || $0 == .uyari || $0.uyariRengi != nil) && $0.kisayollar.contains(sorgu) }) else { return false }
         blokMenusu.gizle()
         slashAraligi = nil
-        kapatilanSlashKonumu = slash.location
+        kapatilanSlashKonumu = aralik.location
         if komut == .kod { kodBlogunuEkle(dil: "", komutAraligi: aralik) }
         else { (window as? NotPenceresi)?.blokMenusuKomutunuCalistir(komut, aralik: aralik) }
         return true
@@ -223,27 +238,17 @@ extension NotMetinGorunumu {
     }
 
     func blokMenusunuGuncelle() {
-        guard let depo = textStorage, let pencere = window, pencere.isKeyWindow,
+        guard textStorage != nil, let pencere = window, pencere.isKeyWindow,
               pencere.firstResponder === self, selectedRange().length == 0, !hasMarkedText() else {
             blokMenusu.gizle(); slashAraligi = nil; return
         }
         if blokMenusu.dilSecimi { return }
         let imlec = selectedRange().location
-        let ns = depo.mutableString
-        let paragraf = ns.paragraphRange(for: NSRange(location: imlec, length: 0))
-        let kapsam = NSRange(location: paragraf.location, length: imlec - paragraf.location)
-        let slash = ns.range(of: "/", options: .backwards, range: kapsam)
-        guard slash.location != NSNotFound, slash.location != kapatilanSlashKonumu,
-              slash.location == paragraf.location + blokIsaretiUzunlugu(depo, konum: paragraf.location) || ns.rangeOfCharacter(from: .whitespaces, range: NSRange(location: slash.location - 1, length: 1)).location != NSNotFound,
-              depo.attribute(kKodBloguAnahtari, at: slash.location, effectiveRange: nil) == nil,
-              depo.attribute(kSatirIciKodAnahtari, at: slash.location, effectiveRange: nil) == nil else {
+        guard let (aralik, sorgu) = slashKomutu(imlec: imlec), aralik.location != kapatilanSlashKonumu,
+              sorgu.rangeOfCharacter(from: .whitespacesAndNewlines) == nil, blokMenusu.filtrele(sorgu) else {
             blokMenusu.gizle(); slashAraligi = nil; return
         }
-        let sorgu = ns.substring(with: NSRange(location: slash.location + 1, length: imlec - slash.location - 1))
-        guard sorgu.rangeOfCharacter(from: .whitespacesAndNewlines) == nil, blokMenusu.filtrele(sorgu) else {
-            blokMenusu.gizle(); slashAraligi = nil; return
-        }
-        slashAraligi = NSRange(location: slash.location, length: imlec - slash.location)
+        slashAraligi = aralik
         blokMenusu.secildi = { [weak self] komut in
             guard let self, let aralik = self.slashAraligi else { return }
             self.blokMenusu.gizle()

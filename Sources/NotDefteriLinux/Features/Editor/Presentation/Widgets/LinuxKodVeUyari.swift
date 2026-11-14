@@ -143,7 +143,7 @@ private final class KodVeUyariAraclari {
     /// Düzenlemeden sonra birkaç kare boyunca çerçeve yeniden ölçülür ki tahmini konumda kalmasın.
     private var dengeKaresi = 0
     private var duzenlemeSonrasiGizli = false
-    private static let renkler = ["gri", "mavi", "sarı", "kırmızı", "yeşil"]
+    private static let renkler = kUyariRenkTanimlari.map(\.ad)
 
     init(pencere: LinuxPencere, editor: LinuxEditor) {
         self.editor = editor
@@ -686,7 +686,7 @@ private final class KodVeUyariAraclari {
         let tumu = NSRange(location: 0, length: belge.length)
         let kapsam = NSIntersectionRange(aralik, tumu)
         let icEn = alan.width - gtk_text_view_get_left_margin(gorunum) - gtk_text_view_get_right_margin(gorunum)
-        for anahtar in [kKodBloguAnahtari, kUyariKutusuAnahtari] {
+        for anahtar in kKutuAnahtarlari {
             belge.enumerateAttribute(anahtar, in: kapsam) { deger, alt, _ in
                 guard deger != nil, !gizliMi(GtkKoprusu.iter(editor.tampon, utf16: alt.location)) else { return }
                 var blok = NSRange()
@@ -694,7 +694,7 @@ private final class KodVeUyariAraclari {
                 let kod = anahtar == kKodBloguAnahtari
                 let uyari = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: alt.location, effectiveRange: nil))
                 let ton = LinuxTema.koyuMu ? 1.0 : 0.0
-                let r = kod ? (r: ton, g: ton, b: ton) : kUyariRenkleri[uyari?.renk ?? ""] ?? kUyariRenkleri["gri"]!
+                let r = kod ? (r: ton, g: ton, b: ton) : uyariRengi(uyari?.renk ?? "").ekran
                 let renk = GdkRGBA(red: Float(r.r), green: Float(r.g), blue: Float(r.b), alpha: Float(kod ? 0.3 : kUyariCizgiOpakligi))
                 let seviye = Int32(kod ? 0 : (uyari?.seviye ?? 0) * 24)
                 let x = gtk_text_view_get_left_margin(gorunum) + seviye

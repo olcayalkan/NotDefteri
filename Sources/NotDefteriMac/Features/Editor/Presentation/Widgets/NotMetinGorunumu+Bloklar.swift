@@ -46,7 +46,9 @@ extension NotMetinGorunumu {
             oznitelikler.merge(kodBloguOznitelikleri(kod)) { _, yeni in yeni }
             oznitelikler.removeValue(forKey: kKalinAnahtari)
             oznitelikler.removeValue(forKey: kItalikAnahtari)
-        } else if aralik.location < depo.length, oznitelikler[kKodBloguAnahtari] != nil {
+        } else if oznitelikler[kKodBloguAnahtari] != nil {
+            // Belge sonu da dahil: kutunun altındaki boş satır kutunun dışındadır; yazım son
+            // karakterden (kutunun satır sonu) kod devralınca yazı çerçevenin dışında koda giriyordu.
             for anahtar in [kKodBloguAnahtari, kKodBloguDiliAnahtari, kBlokKimligiAnahtari] + kFontAnlamAnahtarlari {
                 oznitelikler.removeValue(forKey: anahtar)
             }
@@ -155,6 +157,7 @@ extension NotMetinGorunumu {
         blokBiciminiUygula(blok, metne: yeni, aralik: NSRange(location: 0, length: yeni.length))
         if blok.tur != .ayirici { yazim.merge(blok.oznitelikler) { _, yeni in yeni } }
         yeni.insert(isaret, at: 0)
+        if blok.tur == .uyari { kutuAltinaBosSatirEkle(yeni, paragraf: tamamlanmisParagraf) }
         blokDuzenle(tamamlanmisParagraf, yeni: yeni,
                     secim: NSRange(location: paragraf.location + isaret.length + (tamamlayici == "\n" ? 1 : 0), length: 0),
                     yazim: yazim, numarala: cozum?.blok.listeMi == true)
@@ -343,7 +346,7 @@ extension NotMetinGorunumu {
         if NSMaxRange(paragraf) < ns.length {
             let alt = ns.paragraphRange(for: NSRange(location: NSMaxRange(paragraf), length: 0))
             let bos = ns.substring(with: alt).trimmingCharacters(in: .newlines).isEmpty
-            let yapili = [kKodBloguAnahtari, kUyariKutusuAnahtari, kMetinBloguAnahtari].contains {
+            let yapili = (kKutuAnahtarlari + [kMetinBloguAnahtari]).contains {
                 depo.attribute($0, at: alt.location, effectiveRange: nil) != nil
             }
             if bos && !yapili { return }
@@ -368,11 +371,49 @@ extension NotMetinGorunumu {
               depo.attribute(kUyariKutusuAnahtari, at: konum, longestEffectiveRange: &kutu, in: tumu) != nil else { return false }
         let alt = NSMaxRange(kutu)
         guard alt < depo.length, (depo.string as NSString).character(at: alt) == 10,
-              ![kKodBloguAnahtari, kUyariKutusuAnahtari, kMetinBloguAnahtari, kBaslikSeviyesiAnahtari].contains(where: {
+              !(kKutuAnahtarlari + [kMetinBloguAnahtari, kBaslikSeviyesiAnahtari]).contains(where: {
                   depo.attribute($0, at: alt, effectiveRange: nil) != nil }) else { return false }
         setSelectedRange(NSRange(location: alt, length: 0))
         typingAttributes = duzYazim
         scrollRangeToVisible(selectedRange())
+        return true
+    }
+
+    func kutudanCik() -> Bool { kutuAltindakiBosSatiraGec() || bloktaYeniSatir(koddanCik: true) }
+
+    /// Kutu (kod/uyarı) ile dışındaki satır silmeyle birleşmez. Birleşen satırın yarısı kutu,
+    /// yarısı düz kalıyor; dışarıdaki yazı çerçevenin içinde görünüp kayıtta dışarıda kalıyordu.
+    /// Sınırdaki boş düz satır silinir; dolu satırda geri silme imleci kutunun sonuna taşır,
+    /// ileri silme bir şey yapmaz. `ileri`: silinecek satır sonu imlecin sağında mı?
+    func kutuSinirindaSil(ileri: Bool) -> Bool {
+        guard isEditable, !hasMarkedText(), selectedRange().length == 0, let depo = textStorage else { return false }
+        let ns = depo.mutableString
+        let sinir = selectedRange().location - (ileri ? 0 : 1), altBas = sinir + 1
+        guard sinir >= 0, sinir < ns.length, ns.character(at: sinir) == 10 else { return false }
+        func kutu(_ konum: Int) -> NSObject? {
+            guard konum < ns.length else { return nil }
+            return kKutuAnahtarlari.lazy.compactMap { depo.attribute($0, at: konum, effectiveRange: nil) as? NSObject }.first
+        }
+        func bosDuz(_ konum: Int) -> Bool {
+            guard konum < ns.length else { return true }
+            return ns.character(at: konum) == 10 && kutu(konum) == nil
+                && depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil) == nil
+                && depo.attribute(kBaslikSeviyesiAnahtari, at: konum, effectiveRange: nil) == nil
+        }
+        let ust = kutu(sinir), alt = kutu(altBas)
+        guard ust != alt else { return false }
+        guard ust != nil else {
+            // Kutunun üstündeki düz satır: boşsa olağan silme satırı kaldırır, kutu bütün kalır.
+            let ustBas = ns.paragraphRange(for: NSRange(location: sinir, length: 0)).location
+            return !(ileri && ustBas == sinir && bosDuz(sinir))
+        }
+        if alt == nil, altBas < ns.length, bosDuz(altBas) {
+            blokDuzenle(NSRange(location: altBas, length: 1), yeni: NSAttributedString(),
+                        secim: NSRange(location: sinir, length: 0), yazim: typingAttributes)
+        } else if !ileri {
+            setSelectedRange(NSRange(location: sinir, length: 0))
+        }
+        blokYaziminiGuncelle()
         return true
     }
 

@@ -33,15 +33,22 @@ final class BlokParcasiKopyalamaTestleri: XCTestCase {
     private let kod = "önce\n```swift\nlet a = 1\nlet b = 2\n```\nsonra\n"
     private let kutu = "önce\n> [!💡 mavi] bir iki\n> üç dört\nsonra\n"
 
-    func testKoddanParcaSatirIciKodOlur() {
+    /// Kutunun içinden alınan parça boş yere taralı (kod) olarak değil düz yazı olarak yapışır.
+    func testKoddanParcaDuzYaziOlur() {
         XCTAssertEqual(kopyalaYapistir(kod, secim: "a = 1", hedef: "sonra"),
-                       "önce\n```swift\nlet a = 1\nlet b = 2\n```\nsonra`a = 1`\n")
+                       "önce\n```swift\nlet a = 1\nlet b = 2\n```\nsonraa = 1\n")
     }
 
-    /// Kod parçası düz metne dönseydi `**` yapıştırılınca kalına çevrilirdi.
+    /// Kod parçası Markdown sayılmaz: `**` yapıştırılınca kalına çevrilmez, yazıldığı gibi kalır.
     func testKoddanParcaIsaretleriBicimeCevrilmez() {
-        XCTAssertEqual(kopyalaYapistir("önce\n```\na **b** c\n```\nsonra\n", secim: "**b**", hedef: "sonra"),
-                       "önce\n```\na **b** c\n```\nsonra`**b**`\n")
+        let e = editor("önce\n```\na **b** c\n```\nsonra\n")
+        e.setSelectedRange((e.string as NSString).range(of: "**b**"))
+        NSPasteboard.general.clearContents()
+        e.copy(nil)
+        e.setSelectedRange(NSRange(location: NSMaxRange((e.string as NSString).range(of: "sonra")), length: 0))
+        e.paste(nil)
+        XCTAssertTrue(e.string.contains("sonra**b**"))
+        XCTAssertNil(e.textStorage!.attribute(kKalinAnahtari, at: (e.string as NSString).range(of: "sonra").location + 7, effectiveRange: nil))
     }
 
     func testKoddanParcaKodIcineDuzYapisir() {
@@ -79,17 +86,25 @@ final class BlokParcasiKopyalamaTestleri: XCTestCase {
                        "önce\n> [!💡 mavi] bir **kalın** iki\nsonrar **kal**\n")
     }
 
-    /// Birden çok satır seçilince blok taşınır.
-    func testCokSatirliSecimBloguTasir() {
+    /// Kutunun içinden çok satır seçilince de satırlar düz yazı olur; kutu kod bloğuyla aynı.
+    func testKutuIcindenCokSatirDuzYapisir() {
         XCTAssertEqual(kopyalaYapistir(kutu, secim: "iki\n\u{200B}üç", hedef: "sonra"),
-                       "önce\n> [!💡 mavi] bir iki\n> üç dört\nsonra\n> [!💡 mavi] iki\n> üç\n")
+                       "önce\n> [!💡 mavi] bir iki\n> üç dört\nsonraiki\nüç\n")
+        XCTAssertEqual(kopyalaYapistir(kod, secim: "let a = 1\nlet b", hedef: "sonra"),
+                       "önce\n```swift\nlet a = 1\nlet b = 2\n```\nsonralet a = 1\nlet b\n")
     }
 
-    /// Satır sonuna yapıştırılan kod bloğunun altında boş satır kalmaz.
-    func testKodBloguSatirSonunaBosSatirsizYapisir() {
-        XCTAssertEqual(kopyalaYapistir(kod, secim: "let a = 1\n", hedef: "sonra"),
-                       "önce\n```swift\nlet a = 1\nlet b = 2\n```\nsonra\n```swift\nlet a = 1\n```\n")
-        XCTAssertEqual(kopyalaYapistir(kod, secim: "let a = 1\nlet b", hedef: "sonra"),
-                       "önce\n```swift\nlet a = 1\nlet b = 2\n```\nsonra\n```swift\nlet a = 1\nlet b\n```\n")
+    /// Kutunun tamamı seçilince kutusuyla taşınır; satır sonuna yapışınca altında boş satır kalmaz.
+    func testTumKodBloguSatirSonunaBosSatirsizYapisir() {
+        let e = editor(kod)
+        let ns = e.string as NSString
+        let bas = ns.range(of: "let a").location - 1
+        e.setSelectedRange(NSRange(location: bas, length: NSMaxRange(ns.range(of: "b = 2")) + 1 - bas))
+        NSPasteboard.general.clearContents()
+        e.copy(nil)
+        e.setSelectedRange(NSRange(location: NSMaxRange((e.string as NSString).range(of: "sonra")), length: 0))
+        e.paste(nil)
+        XCTAssertEqual(markdownMetniUret(e.textStorage!),
+                       "önce\n```swift\nlet a = 1\nlet b = 2\n```\nsonra\n```swift\nlet a = 1\nlet b = 2\n```\n")
     }
 }

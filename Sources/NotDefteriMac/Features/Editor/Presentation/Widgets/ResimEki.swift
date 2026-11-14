@@ -13,8 +13,9 @@ func resimBoyutuGecerliMi(_ boyut: NSSize) -> Bool {
         && boyut.width <= kEnBuyukResimBoyutu && boyut.height <= kEnBuyukResimBoyutu
 }
 
-/// Görselin tutulduğu yer: kenarlar o taraftan kırpar (sol kenar solu, üst kenar üstü keser;
-/// geri çekmek kırpılanı açar), köşeler oranı koruyarak bütün görseli büyütür. `yatay`: -1 sol, 1 sağ; `dikey`: -1 üst, 1 alt
+/// Görselin tutulduğu yer: kenarlar görseli o yönde çekiştirir (sol/sağ eni, üst/alt boyu uzatır ya da
+/// sıkıştırır; görselin tamamı görünür kalır), köşeler oranı koruyarak bütün görseli büyütür.
+/// Kenar yalnızca ⌥ basılıyken o taraftan kırpar. `yatay`: -1 sol, 1 sağ; `dikey`: -1 üst, 1 alt
 /// (metin görünümü ters çevrili, y aşağı doğru artar).
 struct ResimTutamaci: Equatable {
     let yatay: CGFloat
@@ -56,6 +57,13 @@ struct ResimTutamaci: Equatable {
         return NSCursor(image: resim, hotSpot: NSPoint(x: boyut.width / 2, y: boyut.height / 2))
     }
 
+    /// Sürüklemenin sonucu. Kenar eskiden her zaman kırpıyordu; görseli çekiştirmek isteyen
+    /// kullanıcı içeriğini kaybediyordu. Kırpma artık bilerek (⌥) istenir.
+    func surukle(baslangic: NSSize, kirpma: GorselKirpma, fark: NSPoint, kirparak: Bool, enAz: NSSize, enFazla: NSSize) -> (NSSize, GorselKirpma) {
+        guard kirparak, !koseMi else { return (yeniBoyut(baslangic: baslangic, fark: fark, enAz: enAz, enFazla: enFazla), kirpma) }
+        return kirp(baslangic: baslangic, kirpma: kirpma, fark: fark, enAz: enAz, enFazla: enFazla)
+    }
+
     /// Kenardan kırpma: tutulan kenar hareket eder, karşı kenar ve ölçek yerinde kalır.
     /// Kırpılmış kısım geri açılabilir; görselin dışına taşılmaz.
     func kirp(baslangic: NSSize, kirpma k: GorselKirpma, fark: NSPoint, enAz: NSSize, enFazla: NSSize) -> (NSSize, GorselKirpma) {
@@ -80,7 +88,7 @@ struct ResimTutamaci: Equatable {
         return (boyut, sonuc)
     }
 
-    /// Köşeden: başlangıç boyutuna, farenin başlangıçtan kayması (`fark`) uygulanır.
+    /// Başlangıç boyutuna, farenin başlangıçtan kayması (`fark`) uygulanır.
     func yeniBoyut(baslangic: NSSize, fark: NSPoint, enAz: NSSize, enFazla: NSSize) -> NSSize {
         func sinirla(_ deger: CGFloat, _ alt: CGFloat, _ ust: CGFloat) -> CGFloat { min(max(deger, alt), max(alt, ust)) }
         let dx = fark.x * yatay, dy = fark.y * dikey
@@ -280,10 +288,9 @@ final class ResimEkiHucresi: NSTextAttachmentCell {
             let fark = NSPoint(x: nokta.x - baslangicNoktasi.x, y: nokta.y - baslangicNoktasi.y)
             let (yeniBoyut, yeniKirpma): (NSSize, GorselKirpma)
             if fark == .zero { (yeniBoyut, yeniKirpma) = (baslangicBoyutu, baslangicKirpmasi) }
-            else if tutulan.koseMi {
-                (yeniBoyut, yeniKirpma) = (tutulan.yeniBoyut(baslangic: baslangicCercevesi, fark: fark, enAz: enAz, enFazla: enFazla), baslangicKirpmasi)
-            } else {
-                (yeniBoyut, yeniKirpma) = tutulan.kirp(baslangic: baslangicCercevesi, kirpma: baslangicKirpmasi, fark: fark, enAz: enAz, enFazla: enFazla)
+            else {
+                (yeniBoyut, yeniKirpma) = tutulan.surukle(baslangic: baslangicCercevesi, kirpma: baslangicKirpmasi, fark: fark,
+                    kirparak: olay.modifierFlags.contains(.option), enAz: enAz, enFazla: enFazla)
             }
             guard resimBoyutuGecerliMi(yeniBoyut), yeniKirpma.gecerliMi,
                   yeniBoyut != gosterimBoyutu || yeniKirpma != kirpma else { continue }

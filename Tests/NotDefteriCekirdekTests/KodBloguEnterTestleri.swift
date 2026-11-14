@@ -23,22 +23,22 @@ final class KodBloguEnterTestleri: XCTestCase {
         XCTAssertEqual(markdownMetniUret(belge), "```swift\nilk\n\n\norta\nson\n```\n")
     }
 
-    /// Kodun son satırında art arda Enter kodda kalır; imleç kodun altındaki içeriğe atlamaz.
-    /// Koddan yalnızca Ctrl+Enter ile çıkılır.
-    func testSonSatirdaArdisikEnterKoddanCikmaz() throws {
-        for (kaynak, beklenen) in [("```swift\nilk\n```\n", "```swift\nilk\n\n\n\nyeni\n```\n"),
-                                   ("```swift\nilk\n```\nalt\n", "```swift\nilk\n\n\n\nyeni\n```\nalt\n"),
-                                   ("```swift\nilk\n```\n\nalt\n", "```swift\nilk\n\n\n\nyeni\n```\n\nalt\n")] {
+    /// Kodun son satırında iki Enter kodda kalır, üçüncüsü boş satırları atıp kodun altına çıkar;
+    /// alttaki boş düz satır varsa o kullanılır.
+    func testSonSatirdaUcuncuEnterKoddanCikar() throws {
+        for (kaynak, beklenen) in [("```swift\nilk\n```\n", "```swift\nilk\n```\nyeni\n"),
+                                   ("```swift\nilk\n```\nalt\n", "```swift\nilk\n```\nyeni\nalt\n"),
+                                   ("```swift\nilk\n```\n\nalt\n", "```swift\nilk\n```\nyeni\nalt\n")] {
             let belge = NSMutableAttributedString(attributedString: markdowndenAttributedStringUret(kaynak))
             var imlec = (belge.string as NSString).range(of: "ilk").upperBound
             var yazim: [NSAttributedString.Key: Any] = [:]
-            for _ in 0..<4 {
+            for i in 0..<3 {
                 let degisim = try XCTUnwrap(yapiEnterKurali(belge, imlec: NSRange(location: imlec, length: 0)))
                 imlec = uygula(degisim, belge: belge)
                 yazim = degisim.yazim
-                XCTAssertNotNil(belge.attribute(kKodBloguAnahtari, at: imlec, effectiveRange: nil), kaynak)
-                XCTAssertNotNil(degisim.yazim[kKodBloguAnahtari], kaynak)
+                XCTAssertEqual(degisim.yazim[kKodBloguAnahtari] != nil, i < 2, kaynak)
             }
+            XCTAssertNil(belge.attribute(kKodBloguAnahtari, at: imlec, effectiveRange: nil), kaynak)
             belge.insert(NSAttributedString(string: "yeni", attributes: yazim), at: imlec)
             XCTAssertEqual(markdownMetniUret(belge), beklenen)
         }
@@ -141,8 +141,8 @@ final class KodBloguEnterTestleri: XCTestCase {
         XCTAssertEqual(markdownMetniUret(belge), "> [!💡 sarı] \n> \n\n")
     }
 
-    /// Uyarı kutusunun son satırında iki Enter kutudan çıkar; ortadaki boş satır kutuda kalır.
-    func testUyariSonSatirdaIkinciEnterKutudanCikar() throws {
+    /// Uyarı kutusunun son satırında da art arda Enter kutuda kalır (kod bloğuyla aynı).
+    func testUyariSonSatirdaArdisikEnterKutudaKalir() throws {
         let belge = NSMutableAttributedString(attributedString: markdowndenAttributedStringUret("> [!💡 mavi] bir\n> \n> iki\n"))
         let ns = belge.string as NSString
         let orta = NSMaxRange(ns.paragraphRange(for: ns.range(of: "bir"))) + 1
@@ -154,8 +154,8 @@ final class KodBloguEnterTestleri: XCTestCase {
         XCTAssertNotNil(belge.attribute(kUyariKutusuAnahtari, at: bos, effectiveRange: nil))
         let ikinci = try XCTUnwrap(yapiEnterKurali(belge, imlec: NSRange(location: bos, length: 0)))
         let hedef = uygula(ikinci, belge: belge)
-        XCTAssertNil(belge.attribute(kUyariKutusuAnahtari, at: hedef, effectiveRange: nil))
-        belge.insert(NSAttributedString(string: "disarida", attributes: ikinci.yazim), at: hedef)
-        XCTAssertEqual(markdownMetniUret(belge), "> [!💡 mavi] bir\n> \n> iki\ndisarida\n")
+        XCTAssertNotNil(belge.attribute(kUyariKutusuAnahtari, at: hedef, effectiveRange: nil))
+        belge.insert(NSAttributedString(string: "icerde", attributes: ikinci.yazim), at: hedef)
+        XCTAssertEqual(markdownMetniUret(belge), "> [!💡 mavi] bir\n> \n> iki\n> \n> icerde\n")
     }
 }

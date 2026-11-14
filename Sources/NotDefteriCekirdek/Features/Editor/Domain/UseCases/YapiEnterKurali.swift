@@ -17,24 +17,12 @@ package func yapiEnterKurali(_ belge: NSAttributedString, imlec: NSRange, koddan
     let konum = min(paragraf.location, belge.length - 1)
     let kod = belge.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String]
     let blok = MetinBlogu(oznitelik: belge.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))
+    let kutu = kutuyuBul(belge, konum: konum)
     if koddanCik {
         // Açık çıkış (Ctrl+Enter) her konumdan kutunun altına gider; gövdeyi ve boş satırları korur.
-        // Kod bloğu ve uyarı kutusu aynı yolu kullanır.
-        guard imlec.length == 0, kod != nil || blok?.tur == .uyari else { return nil }
-        var tam = NSRange()
-        _ = belge.attribute(kod != nil ? kKodBloguAnahtari : kUyariKutusuAnahtari, at: konum,
-                            longestEffectiveRange: &tam, in: NSRange(location: 0, length: belge.length))
-        let yeni = NSMutableAttributedString(attributedString: belge.attributedSubstring(from: tam))
-        if let kod { kodKapanisiniTamamla(yeni, kod: kod) }
-        if !yeni.string.hasSuffix("\n") {
-            // Kutuyu kapatan satır sonu görünmez işaretin parçası değildir.
-            var kutu = yeni.attributes(at: yeni.length - 1, effectiveRange: nil)
-            kutu[kBlokIsaretiAnahtari] = nil
-            yeni.append(NSAttributedString(string: "\n", attributes: kutu))
-        }
-        let hedef = tam.location + yeni.length
-        yeni.append(NSAttributedString(string: "\n"))
-        return YapiEnterDegisimi(aralik: tam, metin: yeni, imlec: hedef, yazim: [:])
+        guard imlec.length == 0, let kutu else { return nil }
+        let tam = kutu.aralik(belge, konum: konum)
+        return kutu.disariCik(belge, kapsam: tam, govde: tam)
     }
     let baslik = paragraf.length > 0 ? belge.attribute(kBaslikSeviyesiAnahtari, at: konum, effectiveRange: nil) : nil
     guard kod != nil || blok != nil || baslik != nil else { return nil }
@@ -42,23 +30,13 @@ package func yapiEnterKurali(_ belge: NSAttributedString, imlec: NSRange, koddan
     guard NSMaxRange(imlec) <= NSMaxRange(paragraf) else { return nil }
     let eski = belge.attributedSubstring(from: paragraf)
     let isaret = blokIsaretiUzunlugu(eski)
-    let bos = kodBloguGovdesi(eski).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    // Kod bloğu Enter'la hiç terk edilmez (art arda boş satır kodda sık yazılır); çıkış yalnızca Ctrl+Enter.
-    if kod == nil, blok?.tur == .uyari, imlec.length == 0, kodBloguGovdesi(eski).trimmingCharacters(in: .newlines).isEmpty,
-       let cikis = uyariSonBosSatirindanCik(belge, ns: ns, paragraf: paragraf) {
-        return cikis
+    let bos = kutuSatiriBosMu(eski)
+    if let kutu {
+        if imlec.length == 0, bos, let cikis = kutu.sonBosSatirlardanCik(belge, paragraf: paragraf) { return cikis }
     }
-    // Kod bloğunun ve uyarı kutusunun ortasındaki boş satır Enter'la terk edilmez (boş satır kutunun
-    // içinde kalır). Uyarıda her boş satır çıkış sayılınca yazı kutunun dışına düşüyordu.
-    let cik = kod == nil && bos && baslik == nil && blok?.tur != .ayirici && blok?.tur != .uyari
+    // Kutuda (kod/uyarı) boş satır kutuda kalır; çıkış yukarıdaki ortak kuraldır.
+    let cik = kutu == nil && bos && baslik == nil && blok?.tur != .ayirici
     var kapsam = paragraf
-    if kod != nil || blok?.tur == .uyari {
-        var tam = NSRange()
-        _ = belge.attribute(kod != nil ? kKodBloguAnahtari : kUyariKutusuAnahtari,
-                            at: konum, longestEffectiveRange: &tam,
-                            in: NSRange(location: 0, length: belge.length))
-        if cik { kapsam = NSUnionRange(kapsam, tam) }
-    }
     if blok?.listeMi == true { kapsam = enterListeAraligi(belge, ns: ns, paragraf: paragraf) }
     let yeni = NSMutableAttributedString(attributedString: belge.attributedSubstring(from: kapsam))
     var hedef: Int
@@ -68,12 +46,7 @@ package func yapiEnterKurali(_ belge: NSAttributedString, imlec: NSRange, koddan
         // Tek normal boş paragraf; yapının içinde fazladan satır bırakılmaz.
         yeni.replaceCharacters(in: yerel, with: NSAttributedString(string: "\n"))
         hedef = yerel.location
-        enterAltYapiyiAyir(yeni, bas: hedef + 1, kod: kod, blok: blok, kimlikEki: "-enter-\(paragraf.location)")
-        if let kod, hedef > 0 {
-            var sinirlar = kod
-            if (sinirlar["kapanis"] ?? "").isEmpty { sinirlar["kapanis"] = "```\n" }
-            yeni.addAttribute(kKodBloguAnahtari, value: sinirlar, range: NSRange(location: 0, length: hedef))
-        }
+        enterAltYapiyiAyir(yeni, bas: hedef + 1, blok: blok)
     } else {
         let bas = max(isaret, imlec.location - paragraf.location)
         let son = max(bas, NSMaxRange(imlec) - paragraf.location)
@@ -127,34 +100,6 @@ package func yapiEnterKurali(_ belge: NSAttributedString, imlec: NSRange, koddan
     return YapiEnterDegisimi(aralik: kapsam, metin: yeni, imlec: kapsam.location + secim.location, yazim: yazim)
 }
 
-/// Kapanmamış çit kapatılır: kutunun altına yazılan metin koda karışmasın.
-private func kodKapanisiniTamamla(_ yeni: NSMutableAttributedString, kod: [String: String]) {
-    guard (kod["kapanis"] ?? "").isEmpty, yeni.length > 0 else { return }
-    var kod = kod
-    kod["kapanis"] = (kodBloguAyiraci(kod["acilis"] ?? "") ?? "```") + "\n"
-    yeni.addAttribute(kKodBloguAnahtari, value: kod, range: NSRange(location: 0, length: yeni.length))
-}
-
-/// Uyarı kutusunun son satırı boşken Enter (art arda ikinci) kutudan çıkar. Sondaki boş satır kutudan
-/// atılır, imleç kutunun altındaki boş düz satıra geçer; öyle bir satır yoksa açılır. Tek satırlık
-/// kutuda çıkılmaz. Kod bloğu bu yolu kullanmaz: kodda üçüncü Enter imleci kodun altına atıyordu.
-private func uyariSonBosSatirindanCik(_ belge: NSAttributedString, ns: NSString, paragraf: NSRange) -> YapiEnterDegisimi? {
-    var tam = NSRange()
-    _ = belge.attribute(kUyariKutusuAnahtari, at: min(paragraf.location, belge.length - 1),
-                        longestEffectiveRange: &tam, in: NSRange(location: 0, length: belge.length))
-    guard paragraf.location > tam.location, NSMaxRange(paragraf) >= NSMaxRange(tam) else { return nil }
-    let kapsam = NSUnionRange(tam, paragraf)
-    let yeni = NSMutableAttributedString(attributedString: belge.attributedSubstring(
-        from: NSRange(location: tam.location, length: paragraf.location - tam.location)))
-    let alt = NSMaxRange(kapsam)
-    let altBosDuz = alt < belge.length && ns.character(at: alt) == 10 &&
-        ![kKodBloguAnahtari, kUyariKutusuAnahtari, kMetinBloguAnahtari, kBaslikSeviyesiAnahtari].contains {
-            belge.attribute($0, at: alt, effectiveRange: nil) != nil }
-    let hedef = kapsam.location + yeni.length
-    if !altBosDuz { yeni.append(NSAttributedString(string: "\n")) }
-    return YapiEnterDegisimi(aralik: kapsam, metin: yeni, imlec: hedef, yazim: [:])
-}
-
 private let enterYapiAnahtarlari = [kBaslikSeviyesiAnahtari, kMetinBloguAnahtari, kKodBloguAnahtari,
     kKodBloguDiliAnahtari, kBlokKimligiAnahtari, kUyariKutusuAnahtari, kParagrafGeometrisiAnahtari,
     kBlokIsaretiAnahtari, kBosKodSatiriAnahtari, kMarkdownKaynakAnahtari]
@@ -180,34 +125,10 @@ private func enterListeAraligi(_ belge: NSAttributedString, ns: NSString, paragr
     return NSRange(location: bas, length: son - bas)
 }
 
-/// Bölünen alt kutu kendi başlangıcını taşır; dil ve renk korunur.
-private func enterAltYapiyiAyir(_ yeni: NSMutableAttributedString, bas: Int, kod: [String: String]?,
-                              blok: MetinBlogu?, kimlikEki: String) {
+/// Boş maddeden çıkınca bölünen alt numaralı liste 1'den başlar.
+private func enterAltYapiyiAyir(_ yeni: NSMutableAttributedString, bas: Int, blok: MetinBlogu?) {
     guard bas < yeni.length else { return }
-    if var kod {
-        kod["kimlik"] = (kod["kimlik"] ?? "kod") + kimlikEki
-        if (kod["kapanis"] ?? "").isEmpty { kod["kapanis"] = "```\n" }
-        let alt = NSRange(location: bas, length: yeni.length - bas)
-        yeni.removeAttribute(kMarkdownKaynakAnahtari, range: alt)
-        yeni.addAttributes([kKodBloguAnahtari: kod, kBlokKimligiAnahtari: kod["kimlik"]!], range: alt)
-        let isaret: [NSAttributedString.Key: Any] = [kKodBloguAnahtari: kod,
-            kKodBloguDiliAnahtari: kodBloguDilEtiketi(kod), kBlokKimligiAnahtari: kod["kimlik"]!, kBlokIsaretiAnahtari: true]
-        // Aynı anlamsal gövde, bağımsız bloğun görünmez başlangıcını alır.
-        yeni.insert(NSAttributedString(string: "\u{200B}", attributes: isaret), at: bas)
-    } else if var blok, blok.tur == .uyari {
-        blok.uyariKimligi += kimlikEki
-        var konum = bas
-        var ilk = true
-        while konum < yeni.length {
-            let p = yeni.mutableString.paragraphRange(for: NSRange(location: konum, length: 0))
-            blok.devam = !ilk
-            blok.kaynakOnEk = nil
-            yeni.removeAttribute(kMarkdownKaynakAnahtari, range: p)
-            blokBiciminiUygula(blok, metne: yeni, aralik: p)
-            konum = NSMaxRange(p)
-            ilk = false
-        }
-    } else if blok?.tur == .numarali,
+    if blok?.tur == .numarali,
               var ilk = MetinBlogu(oznitelik: yeni.attribute(kMetinBloguAnahtari, at: bas, effectiveRange: nil)), ilk.tur == .numarali {
         ilk.numara = 1
         ilk.kaynakOnEk = nil

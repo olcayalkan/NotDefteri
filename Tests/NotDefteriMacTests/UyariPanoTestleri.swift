@@ -52,10 +52,10 @@ final class UyariPanoTestleri: XCTestCase {
                        "\(kutu)önce\n\(kutu)sonra\n")
     }
 
-    /// Kutunun ortasından alınan satırlar düz alıntıya değil, kutuya dönüşür.
-    func testKutuOrtasindanKopyalananSatirKutuOlur() {
+    /// Kutunun ortasından alınan satır kod bloğundaki gibi düz yazı olur; boş yerde kutu doğmaz.
+    func testKutuOrtasindanKopyalananSatirDuzYaziOlur() {
         XCTAssertEqual(kopyalaYapistir("önce\n\(kutu)sonra\n", kopya: (2, 2), hedef: 0, satirSonu: false),
-                       "> [!💡 mavi] iki\nönce\n\(kutu)sonra\n")
+                       "iki\nönce\n\(kutu)sonra\n")
     }
 
     /// Kutunun içine yapıştırılan kutu satırı ikinci kutu doğurmaz; aynı kutunun satırı olur.
@@ -171,15 +171,15 @@ final class UyariPanoTestleri: XCTestCase {
 
     // MARK: Kod bloğunda Enter ve dışarıdan yapıştırma
 
-    /// Kodun son satırında üç Enter kodda kalır; yazılan metin kodun altındaki içeriğe atlamaz.
-    func testKoddaUcEnterKoddaKalir() {
+    /// Kodun son satırında üçüncü Enter koddan çıkar; yazılan metin kodla alttaki içerik arasına düşer.
+    func testKoddaUcuncuEnterKoddanCikar() {
         let e = editor("```\nabc\n```\nalt\n")
         e.setSelectedRange(NSRange(location: NSMaxRange((e.string as NSString).range(of: "abc")), length: 0))
         e.insertNewline(nil)
         e.insertNewline(nil)
         e.insertNewline(nil)
         e.insertText("x", replacementRange: e.selectedRange())
-        XCTAssertEqual(md(e), "```\nabc\n\n\nx\n```\nalt\n")
+        XCTAssertEqual(md(e), "```\nabc\n```\nx\nalt\n")
     }
 
     /// Enter'dan sonra koda yapıştırılan, kodun dışındaki satırlar: liste işareti ("•\t") koda

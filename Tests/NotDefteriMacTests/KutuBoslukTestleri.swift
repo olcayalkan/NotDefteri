@@ -49,7 +49,7 @@ final class KutuBoslukTestleri: XCTestCase {
     func testIkiKutuArasiBoslukAz() {
         let e = editor("> [!💡 mavi] bir\n\n> [!💡 sarı] iki\n> [!💡 yeşil] üç\n")
         XCTAssertEqual(stil(e, "iki")?.paragraphSpacingBefore, kKutuAltBoslugu, "üstte boş satır varsa ek boşluk yok")
-        XCTAssertEqual(stil(e, "üç")?.paragraphSpacingBefore, kKutuAltBoslugu, "bitişik kutuda ek boşluk yok")
+        XCTAssertEqual(stil(e, "üç")?.paragraphSpacingBefore, kKutuBitisikUstBoslugu, "bitişik kutuda ek boşluk yok")
         let ns = e.string as NSString
         let bos = ns.paragraphRange(for: NSRange(location: NSMaxRange(ns.paragraphRange(for: NSRange(location: 0, length: 0))), length: 0))
         let bosStil = e.textStorage?.attribute(.paragraphStyle, at: bos.location, effectiveRange: nil) as? NSParagraphStyle
@@ -74,6 +74,26 @@ final class KutuBoslukTestleri: XCTestCase {
         XCTAssertEqual(ozet(e), yenidenAcilinca(e))
         e.deleteBackward(nil); e.deleteBackward(nil); e.deleteBackward(nil)
         XCTAssertEqual(ozet(e), yenidenAcilinca(e))
+    }
+
+    /// Kodun içindeki boş satır kutular arası boş satır gibi ezilmez; yapıştırılan çıktı olduğu gibi görünür.
+    func testKodIcindekiBosSatirEzilmez() throws {
+        let e = editor("```\nbir\n\niki\n```\n")
+        let depo = try XCTUnwrap(e.textStorage)
+        let bos = (e.string as NSString).range(of: "bir").upperBound + 1
+        let stil = depo.attribute(.paragraphStyle, at: bos, effectiveRange: nil) as? NSParagraphStyle
+        XCTAssertNotEqual(stil?.maximumLineHeight, kKutularArasiBosSatirYuksekligi)
+    }
+
+    /// Belge sonundaki kutunun çerçevesi, görünmez son satırı içine alıp fazladan boşluk bırakmaz.
+    func testBelgeSonundakiKutuFazlaBoslukBirakmaz() throws {
+        func cerceve(_ md: String) throws -> NSRect {
+            let e = editor(md)
+            e.layoutManager?.ensureLayout(for: e.textContainer!)
+            let blok = try XCTUnwrap(e.cerceveliBlokAraliklari(NSRange(location: 0, length: e.textStorage!.length), anahtar: kKodBloguAnahtari).first)
+            return try XCTUnwrap(e.blokCerceveKaresi(blok, anahtar: kKodBloguAnahtari))
+        }
+        XCTAssertEqual(try cerceve("```\nkod\n```\n").height, try cerceve("```\nkod\n```\nalt\n").height, accuracy: 0.5)
     }
 
     private func yukseklik(_ e: NotMetinGorunumu) -> CGFloat {

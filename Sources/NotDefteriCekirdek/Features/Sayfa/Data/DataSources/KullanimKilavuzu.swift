@@ -63,7 +63,7 @@ Satır başında aşağıdaki yazımları kullanabilirsiniz:
 | Yazım | Sonuç |
 |---|---|
 | `# `, `## `, `### ` | Başlık 1, 2, 3 |
-| `- ` | Madde listesi |
+| `- ` ya da `-` + Tab | Madde listesi |
 | `1. ` | Numaralı liste |
 | `- [ ] ` veya `[] ` | Yapılacak maddesi |
 | `> ` | Alıntı |
@@ -71,7 +71,7 @@ Satır başında aşağıdaki yazımları kullanabilirsiniz:
 | Üç ters tırnak | Kod bloğu |
 | `/` | Blok menüsü |
 
-`/` ile açılan menüden başlık, liste, yapılacak, alıntı, kod bloğu, uyarı kutusu, ayırıcı, alt sayfa, görsel veya tablo seçebilirsiniz. Hızlı seçim için `/1`, `/2`, `/3`, `/0`, `/kod`, `/uyari`, `/sayfa` ve `/tablo` yazabilirsiniz.
+`/` ile açılan menüden başlık, liste, yapılacak, alıntı, kod bloğu, uyarı kutusu, ayırıcı, alt sayfa, görsel veya tablo seçebilirsiniz. Hızlı seçim için `/1`, `/2`, `/3`, `/0`, `/kod`, `/uyari`, `/sayfa` ve `/tablo` yazabilirsiniz. Renkli uyarı için `/gri`, `/mavi`, `/sari`, `/kirmizi`, `/yesil` (ya da `/info`). Uyarı kutusunda `/` düz yazıdır; menü `//` ile açılır, örneğin `//mavi`.
 
 ### Tablolar
 
@@ -93,10 +93,11 @@ Başlıklar sağdaki **İçindekiler** panelinde görünür. Bir başlığa tık
 
 - `- [ ]` görevleri Ana Sayfa'da bir araya gelir; kutuya tıklayınca tamamlanır.
 - Görseli sürükleyip bırakın veya yapıştırın. İlgili sayfanın `Görseller/` klasörüne kaydedilir.
+- Görselin kenarını çekmek onu o yönde uzatır ya da daraltır; köşeler oranı koruyarak büyütür. Kenardan kırpmak için çekerken **⌥ Option**'ı basılı tutun.
 - Kod bloğu eklerken **Otomatik** seçeneği; anahtar kelime, metin, yorum, sayı, tür, fonksiyon ve operatörleri renklendirir. Daha kesin sonuç için `swift`, `python` veya `json` gibi bir dil de seçebilirsiniz.
 - Kod bloğunda `(`, `[`, `{`, `"` ve `'` kapanışıyla birlikte eklenir; kapanışı yazınca üstünden geçilir, boş eşi geri silmek ikisini birden siler.
 - Kod bloğunda satıra yalnızca `try`, `if`, `else`, `for`, `while`, `switch`, `func` veya `class` yazıp **Tab**'a basınca bloğun diline uygun kalıp açılır (ör. Swift'te `do { } catch { }`, Python'da `try: … except`).
-- Uyarı kutusunu blok menüsünden ekleyin; sağ tıklayarak rengini değiştirin. Kod bloğu gibi, boş satırda Enter kutunun içinde kalır; kutudan **Ctrl+Enter** ile çıkılır.
+- Uyarı kutusunu blok menüsünden ekleyin; sağ tıklayarak rengini değiştirin. Kod bloğu ile aynı kural: son satırda üçüncü Enter kutudan çıkar (sondaki boş satırlar atılır), ortadaki boş satırlar kutuda kalır; **Ctrl+Enter** her yerden çıkar. Kutunun içinden kopyalanan parça düz yazı olarak yapışır.
 
 ## Geçmiş, silme ve dışa aktarma
 

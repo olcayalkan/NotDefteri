@@ -78,6 +78,25 @@ final class ResimBoyutlandirmaTestleri: XCTestCase {
         XCTAssertEqual(sag.width, 300, "sağda kırpılmış kısım yok")
     }
 
+    /// Kenar görseli o yönde çekiştirir (kırpmaz); kırpma yalnızca ⌥ ile.
+    func testKenarCekistirirOptionKirpar() {
+        let k = GorselKirpma.tam
+        let (sag, ks) = ResimTutamaci(yatay: 1, dikey: 0).surukle(baslangic: cerceve.size, kirpma: k, fark: NSPoint(x: 100, y: 40),
+                                                                  kirparak: false, enAz: enAz, enFazla: enFazla)
+        XCTAssertEqual(sag, NSSize(width: 400, height: 200), "sağ kenar sağa uzatır, boy değişmez")
+        XCTAssertEqual(ks, .tam)
+        let (sol, _) = ResimTutamaci(yatay: -1, dikey: 0).surukle(baslangic: cerceve.size, kirpma: k, fark: NSPoint(x: 60, y: 0),
+                                                                  kirparak: false, enAz: enAz, enFazla: enFazla)
+        XCTAssertEqual(sol.width, 240, "sol kenar sağa çekilince görsel daralır")
+        let (alt, _) = ResimTutamaci(yatay: 0, dikey: 1).surukle(baslangic: cerceve.size, kirpma: k, fark: NSPoint(x: 0, y: 50),
+                                                                 kirparak: false, enAz: enAz, enFazla: enFazla)
+        XCTAssertEqual(alt, NSSize(width: 300, height: 250))
+        let (kirpik, kk) = ResimTutamaci(yatay: -1, dikey: 0).surukle(baslangic: cerceve.size, kirpma: k, fark: NSPoint(x: 60, y: 0),
+                                                                      kirparak: true, enAz: enAz, enFazla: enFazla)
+        XCTAssertEqual(kirpik.width, 240)
+        XCTAssertEqual(kk.x, 0.2, accuracy: 0.0001, "⌥ ile sol kenar soldan kırpar")
+    }
+
     func testKoseOraniKoruyarakBuyutur() {
         let yatayCok = ResimTutamaci(yatay: 1, dikey: 1).yeniBoyut(baslangic: cerceve.size, fark: NSPoint(x: 150, y: 10), enAz: enAz, enFazla: enFazla)
         XCTAssertEqual(yatayCok, NSSize(width: 450, height: 300))

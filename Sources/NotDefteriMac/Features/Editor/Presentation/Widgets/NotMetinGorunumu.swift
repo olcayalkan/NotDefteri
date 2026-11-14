@@ -13,7 +13,35 @@ import NotDefteriCekirdek
 let kNotPanoTipi = NSPasteboard.PasteboardType("tr.notdefteri.icerik")
 
 /// HTML içe aktarıcı uzak görselleri ana thread'de indirir; bu süreden sonra vazgeçilir.
-private let kHtmlIceAktarmaSuresi: TimeInterval = 3
+// ponytail: bu süreyi aşan sayfada görsel ve biçim düşer, metin kalır; görsel kaybı şikâyeti
+// gelirse uzak görseller içe aktarmadan ayrılıp arka planda indirilmeli.
+private let kHtmlIceAktarmaSuresi: TimeInterval = 1.5
+
+/// İçe aktarıcının ağdan indireceği kaynak (uzak görsel, stil dosyası) var mı.
+func htmlUzakKaynakIceriyor(_ veri: Data) -> Bool {
+    String(decoding: veri, as: UTF8.self).range(
+        of: #"(src\s*=\s*["']?\s*(https?:)?//)|(<link\b)|(url\(\s*["']?\s*(https?:)?//)"#,
+        options: [.regularExpression, .caseInsensitive]) != nil
+}
+
+/// HTML içe aktarıcının ilk çalışması WebKit'i yükler (~500 ms). Kullanıcı uygulamadan ilk
+/// ayrıldığında bir kez çalıştırılır: dışarıdan kopyalamadan önce biter ve yazarken takılma olmaz.
+func htmlIceAktariciniIsit() {
+    _ = try? NSAttributedString(data: Data("<p></p>".utf8),
+                                options: [.documentType: NSAttributedString.DocumentType.html,
+                                          .characterEncoding: String.Encoding.utf8.rawValue],
+                                documentAttributes: nil)
+}
+
+/// Not biçimindeki kopyayı panoya söz olarak verir; yalnızca okunurken üretilir.
+private final class NotPanoSahibi: NSObject, NSPasteboardTypeOwner {
+    let uret: () -> [String: Any]?
+    init(uret: @escaping () -> [String: Any]?) { self.uret = uret }
+    func pasteboard(_ sender: NSPasteboard, provideDataForType type: NSPasteboard.PasteboardType) {
+        if let bilgi = uret() { sender.setPropertyList(bilgi, forType: type) }
+    }
+}
+
 /// AppKit HTML pano türünü eski adıyla da verebiliyor.
 private let kEskiHtmlPanoTuru = NSPasteboard.PasteboardType("Apple HTML pasteboard type")
 
@@ -67,6 +95,7 @@ final class NotMetinGorunumu: NSTextView {
     /// Yalnızca NSTextView'in kullanıcı yazımı (shouldChangeText → didChangeText) kayıt üretir;
     /// doğrudan depo düzenlemesi, blok dönüşümü ve undo/redo imleci kendisi belirler.
     var kullaniciYazimi = false
+    private var kopyaSahibi: NotPanoSahibi?
     private weak var izlenenKodDeposu: NSTextStorage?
     private weak var izlenenKaydirmaIcerigi: NSClipView?
     let kodAraclari = KodBloguAraclari()
@@ -161,7 +190,7 @@ final class NotMetinGorunumu: NSTextView {
     override func keyDown(with event: NSEvent) {
         if isEditable, !hasMarkedText(), [36, 76].contains(event.keyCode),
            event.modifierFlags.intersection([.command, .control, .option, .shift]) == .control,
-           kutuAltindakiBosSatiraGec() || bloktaYeniSatir(koddanCik: true) { return }
+           kutudanCik() { return }
         if blokTasimaKisayolunuUygula(event) { return }
         if window?.firstResponder === self, katlamaKisayolunuUygula(event) { return }
         secimCubugu.gizle()
@@ -320,6 +349,12 @@ final class NotMetinGorunumu: NSTextView {
 
     override func insertTab(_ sender: Any?) {
         if kodKalibiniAc() { return }
+        // Satır başındaki "-" ardından Tab, boşlukla aynı: madde (•) olur.
+        if !hasMarkedText(), selectedRange().length == 0, let depo = textStorage {
+            let bas = paragrafAraligi().location
+            if selectedRange().location == bas + 1, depo.mutableString.character(at: bas) == 45,
+               blokKisayolunuUygula(" ") { return }
+        }
         if hasMarkedText() || !blokGirintisiniDegistir(1) { super.insertTab(sender) }
     }
 
@@ -334,14 +369,21 @@ final class NotMetinGorunumu: NSTextView {
             super.deleteBackward(sender)
             return
         }
-        if cerceveliSecimiSil() || blokDevamindaGeriSil() || uyariBasindaSil() || kodBloguBasindaSil() || satirBasindaBicimiKaldir() { return }
+        if cerceveliSecimiSil() || blokDevamindaGeriSil() || uyariBasindaSil() || kodBloguBasindaSil() || satirBasindaBicimiKaldir()
+            || kutuSinirindaSil(ileri: false) { return }
         super.deleteBackward(sender)
     }
 
     override func deleteForward(_ sender: Any?) {
-        if !hasMarkedText(), cerceveliSecimiSil() { return }
+        if !hasMarkedText(), cerceveliSecimiSil() || kutuSinirindaSil(ileri: true) { return }
         super.deleteForward(sender)
     }
+
+    // Kelime/satır silme kısayolları da satır başında/sonunda komşu satır sonunu siler.
+    override func deleteWordBackward(_ sender: Any?) { if !kutuSinirindaSil(ileri: false) { super.deleteWordBackward(sender) } }
+    override func deleteToBeginningOfLine(_ sender: Any?) { if !kutuSinirindaSil(ileri: false) { super.deleteToBeginningOfLine(sender) } }
+    override func deleteWordForward(_ sender: Any?) { if !kutuSinirindaSil(ileri: true) { super.deleteWordForward(sender) } }
+    override func deleteToEndOfParagraph(_ sender: Any?) { if !kutuSinirindaSil(ileri: true) { super.deleteToEndOfParagraph(sender) } }
 
     override func delete(_ sender: Any?) {
         if !hasMarkedText(), cerceveliSecimiSil() { return }
@@ -518,6 +560,11 @@ final class NotMetinGorunumu: NSTextView {
         if nokta.flatMap({ resimHucresi(noktada: $0) }) == nil {
             resimTutamaclariniGuncelle(nil)
         }
+        // Tekerle kaydırınca fare yerinde kalır ama altındaki blok değişir; tutamaç eski blokta
+        // kalıyordu. Sürüklerken (tuş basılı, otomatik kaydırma) tutamaç gizli kalır.
+        if NSEvent.pressedMouseButtons == 0, uzerindekiResimHucresi == nil {
+            blokTutamaciniGuncelle(noktada: nokta)
+        }
     }
 
     override func drawBackground(in rect: NSRect) {
@@ -566,7 +613,7 @@ final class NotMetinGorunumu: NSTextView {
         defer { cevreGorunumuUygulaniyor = false }
         let secim = selectedRanges
         depo.beginEditing()
-        belgeAdaptoru.gorunumuUygula(depo, aralik: sinirli.length > 0 ? sinirli : depo.mutableString.paragraphRange(for: NSRange(location: min(sinirli.location, depo.length - 1), length: 0)))
+        belgeAdaptoru.cevreyiUygula(depo, aralik: sinirli.length > 0 ? sinirli : depo.mutableString.paragraphRange(for: NSRange(location: min(sinirli.location, depo.length - 1), length: 0)))
         depo.endEditing()
         if selectedRanges != secim { selectedRanges = secim }
     }
@@ -574,16 +621,24 @@ final class NotMetinGorunumu: NSTextView {
     override func menu(for event: NSEvent) -> NSMenu? {
         let nokta = convert(event.locationInWindow, from: nil)
         let konum = characterIndexForInsertion(at: nokta)
-        let menu: NSMenu
-        if let depo = textStorage, konum < depo.length,
-           MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur == .uyari {
-            // Seçimin içine sağ tıklanırsa seçim korunur; hizalama seçili satırlara uygulanır.
-            if !(selectedRange().length > 0 && NSLocationInRange(konum, selectedRange())) {
-                setSelectedRange(NSRange(location: konum, length: 0))
+        // Kutunun öğesi sistem menüsüne eklenir: kes/kopyala/yapıştır her yerde aynı kalır.
+        let menu = super.menu(for: event) ?? NSMenu()
+        if let depo = textStorage, konum < depo.length {
+            let sinirlar = depo.attribute(kKodBloguAnahtari, at: konum, effectiveRange: nil) as? [String: String]
+            let uyari = MetinBlogu(oznitelik: depo.attribute(kMetinBloguAnahtari, at: konum, effectiveRange: nil))?.tur == .uyari
+            if sinirlar != nil || uyari {
+                // Seçimin içine sağ tıklanırsa seçim korunur; hizalama seçili satırlara uygulanır.
+                if !(selectedRange().length > 0 && NSLocationInRange(konum, selectedRange())) {
+                    setSelectedRange(NSRange(location: konum, length: 0))
+                }
+                if let sinirlar {
+                    menu.insertItem(kodDilOgesi(sinirlar), at: 0)
+                } else {
+                    let renk = NSMenuItem(title: "Renk", action: nil, keyEquivalent: "")
+                    renk.submenu = uyariRenkMenusu()
+                    menu.insertItem(renk, at: 0)
+                }
             }
-            menu = uyariRenkMenusu()
-        } else {
-            menu = super.menu(for: event) ?? NSMenu()
         }
         hizalamaOgeleriniEkle(menu)
         return gorunumBaglamMenusunuEkle(menu, hedef: window as? NotPenceresi)
@@ -667,12 +722,24 @@ final class NotMetinGorunumu: NSTextView {
             // Kodda pano işaretlemesi yorumlanmaz; hedef bloğun kimliği korunur. Notun kendi
             // kopyasında liste/kutu işaretleri ("•\t") görünen yazının parçası değildir, koda girmez.
             guard var metin = kopyalananIcerik(pboard).map({ kodBloguGovdesi($0).replacingOccurrences(of: "\u{FFFC}", with: "") })
-                    ?? pboard.string(forType: .string) else { NSSound.beep(); return true }
+                    ?? pboard.string(forType: .string) else {
+                // Panoda yalnızca görsel varsa diğer görsel yollarıyla aynı: kutunun altına eklenir.
+                guard let gorsel = panodanGorsel(pboard) else { NSSound.beep(); return true }
+                gorseliYapistir(gorsel)
+                return true
+            }
             // Satır sonuna yapıştırılan tam satırın satır sonu, imleçten sonrakiyle çakışıp kodda
             // boş (hayalet) satır bırakıyordu.
+            // Satır ortasında/sonunda tam satır kopyası satırı bölmez, alt satıra girer (kutudaki gibi).
             let ns = string as NSString
             if metin.last?.isNewline == true, NSMaxRange(selectedRange()) < ns.length,
-               ns.character(at: NSMaxRange(selectedRange())) == 10 { metin.removeLast() }
+               ns.character(at: NSMaxRange(selectedRange())) == 10 {
+                metin.removeLast()
+                let bas = selectedRange().location
+                if bas > 0, ns.character(at: bas - 1) != 10,
+                   bas > blokIsaretiUzunlugu(textStorage!, konum: ns.paragraphRange(for: NSRange(location: bas, length: 0)).location)
+                       + ns.paragraphRange(for: NSRange(location: bas, length: 0)).location { metin = "\n" + metin }
+            }
             icerigiEkle(NSAttributedString(string: metin, attributes: typingAttributes))
             return true
         }
@@ -698,11 +765,7 @@ final class NotMetinGorunumu: NSTextView {
             return true
         }
         if let gorsel = panodanGorsel(pboard) {
-            guard let ek = gorselEklenecek?(gorsel, bulunanBolumBasligi()) else {
-                gorselYapistirmaHatasiniBildir()
-                return true
-            }
-            ekiEkle(ek)
+            gorseliYapistir(gorsel)
             return true
         }
         // Başka bir uygulamadan gelen içerik: notun kendi yazım biçimine uydurulur.
@@ -711,6 +774,10 @@ final class NotMetinGorunumu: NSTextView {
             return true
         }
         return varsayilanOkuma(pboard, tur: type)
+    }
+
+    private func gorseliYapistir(_ gorsel: NSImage) {
+        if let ek = gorselEklenecek?(gorsel, bulunanBolumBasligi()) { ekiEkle(ek) } else { gorselYapistirmaHatasiniBildir() }
     }
 
     /// HTML süre sınırına takıldıysa (bkz. `panodanZenginMetin`) AppKit onu süresiz yeniden
@@ -761,7 +828,7 @@ final class NotMetinGorunumu: NSTextView {
     private func disPanoIcerigi(_ pano: NSPasteboard) -> NSAttributedString? {
         guard let metin = pano.string(forType: .string).map(sekmeliMetniTabloyaCevir), !metin.isEmpty else { return nil }
         let taban = sayfaTabanKlasoru?() ?? notlarKlasoru()
-        let icerik = MacBelgeAdaptoru.belgeyiAc(disMetniNotBicimineCevir(metin, taban: taban), taban: taban)
+        let icerik = MacBelgeAdaptoru.yapistirmaBelgesi(disMetniNotBicimineCevir(metin, taban: taban), taban: taban)
         return icerik.length > 0 ? icerik : nil
     }
 
@@ -772,13 +839,15 @@ final class NotMetinGorunumu: NSTextView {
            let icerik = NSAttributedString(rtf: veri, documentAttributes: nil) { return icerik }
         // HTML içe aktarıcı uzak <img> adreslerini ana thread'de indirir; erişilemeyen bir
         // adres yapıştırmayı ~60 sn kilitliyordu. Süre dolunca nil döner ve düz metne düşülür.
-        if let veri = pano.data(forType: .html),
-           let icerik = try? NSAttributedString(
-               data: veri,
-               options: [.documentType: NSAttributedString.DocumentType.html,
-                         .characterEncoding: String.Encoding.utf8.rawValue,
-                         .timeout: kHtmlIceAktarmaSuresi],
-               documentAttributes: nil) { return icerik }
+        // Süre yalnızca uzak kaynak varken uygulanır: içe aktarıcının ilk açılışı yavaş makinede
+        // süreyi aşıyor, uzak kaynaksız tablo da düz metne düşüyordu.
+        if let veri = pano.data(forType: .html) {
+            var secenekler: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                .documentType: NSAttributedString.DocumentType.html,
+                .characterEncoding: String.Encoding.utf8.rawValue]
+            if htmlUzakKaynakIceriyor(veri) { secenekler[.timeout] = kHtmlIceAktarmaSuresi }
+            if let icerik = try? NSAttributedString(data: veri, options: secenekler, documentAttributes: nil) { return icerik }
+        }
         return nil
     }
 
@@ -833,50 +902,74 @@ final class NotMetinGorunumu: NSTextView {
 
     override func copy(_ sender: Any?) {
         super.copy(sender)
-        secimiPanoyaEkle()
+        // Markdown üretimi büyük seçimde asıl yüktür ve başka uygulamaya yapıştırmada hiç gerekmez.
+        // Seçim şimdi saklanır; panodan istenince çevrilir (sonraki düzenlemeler kopyayı etkilemez).
+        guard let depo = textStorage, selectedRange().length > 0, NSMaxRange(selectedRange()) <= depo.length else { return }
+        let parca = depo.attributedSubstring(from: selectedRange())
+        let kutuIci = secimKutuIcindeMi()
+        let sahip = NotPanoSahibi { [weak self] in self?.panoBilgisi(parca, kutuIci: kutuIci) }
+        kopyaSahibi = sahip
+        NSPasteboard.general.addTypes([kNotPanoTipi], owner: sahip)
     }
 
     override func cut(_ sender: Any?) {
         // Seçim silinmeden önce okunmalı.
-        let markdown = secimiMarkdownaCevir()
+        let bilgi = secimPanoBilgisi()
         super.copy(sender)
         // Silmede kutu yazı kalsın diye korunur; kesilen kutunun yerinde ise boş kutu kalmamalı.
-        if tumKutuSeciliMi() { seciliAraligiDogrudanSil(); panoyaYaz(markdown); return }
+        if tumKutuSeciliMi() { seciliAraligiDogrudanSil(); panoyaYaz(bilgi); return }
         if !cerceveliSecimiSil() { super.cut(sender) }
-        panoyaYaz(markdown)
+        panoyaYaz(bilgi)
     }
 
-    /// Seçimi, notun kendi Markdown biçimiyle panoya ekler (RTFD'ye ek olarak).
-    private func secimiPanoyaEkle() { panoyaYaz(secimiMarkdownaCevir()) }
-
-    private func secimiMarkdownaCevir() -> String? {
+    private func secimPanoBilgisi() -> [String: Any]? {
         guard let metinDeposu = textStorage else { return nil }
         let aralik = selectedRange()
         guard aralik.length > 0, NSMaxRange(aralik) <= metinDeposu.length else { return nil }
-        let parca = NSMutableAttributedString(attributedString: metinDeposu.attributedSubstring(from: aralik))
-        if parca.string.contains(where: \.isNewline) {
-            uyariDevaminiBasaCevir(parca)
-        } else {
-            satirIcineIndir(parca)
-        }
-        let markdown = markdownMetniUret(parca)
-        return markdown.isEmpty ? nil : markdown
+        return panoBilgisi(metinDeposu.attributedSubstring(from: aralik), kutuIci: secimKutuIcindeMi())
     }
 
-    /// Tek satırdan alınan parça bloğunu taşımaz: kutudan, koddan ya da başlıktan seçilen bir
-    /// kelime yapıştırıldığı satırı bölüp yeni blok açıyordu. Kod parçası satır içi kod olur;
-    /// düz metne dönerse içindeki `**` gibi işaretler yapıştırılınca biçime çevrilirdi.
+    /// Seçim tek bir kod/uyarı kutusunun içinde kalıyor ama kutunun tamamı değil mi?
+    private func secimKutuIcindeMi() -> Bool {
+        let secim = selectedRange()
+        guard let depo = textStorage, secim.length > 0, NSMaxRange(secim) <= depo.length,
+              depo.attribute(kKodBloguAnahtari, at: secim.location, effectiveRange: nil) != nil ||
+              depo.attribute(kUyariKutusuAnahtari, at: secim.location, effectiveRange: nil) != nil else { return false }
+        var blok = NSRange()
+        _ = depo.attribute(kBlokKimligiAnahtari, at: secim.location, longestEffectiveRange: &blok,
+                           in: NSRange(location: 0, length: depo.length))
+        return NSMaxRange(secim) <= NSMaxRange(blok) && secim != blok
+    }
+
+    /// Kutunun içinden alınan parça kutusunu taşımaz: boş bir yere yapıştırılınca yine taralı
+    /// kutu (ya da satır içi kod) olarak geliyordu. Kod parçası `duz` olarak, olduğu gibi taşınır;
+    /// Markdown'a çevrilirse içindeki `**`, `|` gibi işaretler yapıştırılınca biçime dönerdi.
+    /// Kutunun tamamı ya da sınırını aşan seçim kutusuyla birlikte kopyalanır.
+    private func panoBilgisi(_ secim: NSAttributedString, kutuIci: Bool) -> [String: Any]? {
+        let parca = NSMutableAttributedString(attributedString: secim)
+        var bilgi: [String: Any] = [:]
+        if kutuIci, parca.attribute(kKodBloguAnahtari, at: 0, effectiveRange: nil) != nil {
+            bilgi["duz"] = kodBloguGovdesi(parca)
+        } else if kutuIci || !parca.string.contains(where: \.isNewline) {
+            satirIcineIndir(parca)
+        } else {
+            uyariDevaminiBasaCevir(parca)
+        }
+        let markdown = bilgi["duz"] as? String ?? markdownMetniUret(parca)
+        guard !markdown.isEmpty else { return nil }
+        bilgi["markdown"] = markdown
+        if let taban = sayfaTabanKlasoru?() { bilgi["taban"] = taban.path }
+        return bilgi
+    }
+
+    /// Parça bloğunu taşımaz: kutudan ya da başlıktan seçilen bir kelime yapıştırıldığı satırı
+    /// bölüp yeni blok açıyordu.
     private func satirIcineIndir(_ parca: NSMutableAttributedString) {
         let tum = NSRange(location: 0, length: parca.length)
         var isaretler: [NSRange] = []
         parca.enumerateAttribute(kBlokIsaretiAnahtari, in: tum, options: []) { deger, aralik, _ in
             if deger != nil { isaretler.append(aralik) }
         }
-        var kodlar: [NSRange] = []
-        parca.enumerateAttribute(kKodBloguAnahtari, in: tum, options: []) { deger, aralik, _ in
-            if deger != nil { kodlar.append(aralik) }
-        }
-        for aralik in kodlar { parca.addAttribute(kSatirIciKodAnahtari, value: true, range: aralik) }
         for anahtar in [kMetinBloguAnahtari, kUyariKutusuAnahtari, kBlokKimligiAnahtari, kParagrafGeometrisiAnahtari,
                         kKodBloguAnahtari, kKodBloguDiliAnahtari, kMarkdownKaynakAnahtari, kBosKodSatiriAnahtari,
                         kBaslikSeviyesiAnahtari, kOrtaliAnahtari, kTabloHucresiAnahtari, kTabloSatiriAnahtari, kTabloGorselAnahtari,
@@ -886,10 +979,8 @@ final class NotMetinGorunumu: NSTextView {
         for aralik in isaretler.reversed() { parca.deleteCharacters(in: aralik) }
     }
 
-    private func panoyaYaz(_ markdown: String?) {
-        guard let markdown else { return }
-        var bilgi: [String: Any] = ["markdown": markdown]
-        if let taban = sayfaTabanKlasoru?() { bilgi["taban"] = taban.path }
+    func panoyaYaz(_ bilgi: [String: Any]?) {
+        guard let bilgi else { return }
         let pano = NSPasteboard.general
         pano.addTypes([kNotPanoTipi], owner: nil)
         pano.setPropertyList(bilgi, forType: kNotPanoTipi)
@@ -899,6 +990,7 @@ final class NotMetinGorunumu: NSTextView {
     private func kopyalananIcerik(_ pano: NSPasteboard) -> NSAttributedString? {
         guard let bilgi = pano.propertyList(forType: kNotPanoTipi) as? [String: Any],
               let markdown = bilgi["markdown"] as? String else { return nil }
+        if let duz = bilgi["duz"] as? String { return NSAttributedString(string: duz) }
         let taban = (bilgi["taban"] as? String).map { URL(fileURLWithPath: $0) }
         return icerikEklenecek?(markdown, taban)
     }
@@ -1028,6 +1120,14 @@ final class NotMetinGorunumu: NSTextView {
     }
 
     func ekiEkle(_ ek: ResimEki) {
+        blokYaziminiGuncelle()
+        // Markdown kod çiti görsel taşıyamaz (içine yazılan `![]()` yeniden açılınca düz metindir).
+        // Araya girince kutu parçalanıyor, kayıt bozuluyordu; görsel kutunun altına gider.
+        // Uyarı kutusu aynı yolu izler: işaretsiz görsel satırı onu da ikiye bölüyordu.
+        if typingAttributes[kKodBloguAnahtari] != nil || blok(paragrafAraligi())?.tur == .uyari {
+            setSelectedRange(NSRange(location: selectedRange().location, length: 0))
+            guard kutudanCik() else { return }
+        }
         let aralik = selectedRange()
         let ns = (textStorage?.string ?? "") as NSString
 
