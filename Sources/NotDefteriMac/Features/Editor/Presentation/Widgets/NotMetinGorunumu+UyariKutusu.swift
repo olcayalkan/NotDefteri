@@ -20,6 +20,17 @@ extension NotMetinGorunumu {
         return sonuc
     }
 
+    /// TextKit belgenin ilk satırına üst paragraf boşluğu vermez; belge kutuyla başlayınca kutunun üst
+    /// kenarı metin alanının dışına taşıp kesiliyordu. Kutu ilk satırda da kendi boşluğunu alır;
+    /// diğer paragraflar paragraf stilindeki değeri aynen kullanır.
+    func layoutManager(_ layoutManager: NSLayoutManager, paragraphSpacingBeforeGlyphAt glyphIndex: Int,
+                       withProposedLineFragmentRect rect: NSRect) -> CGFloat {
+        guard let depo = textStorage, depo.length > 0 else { return 0 }
+        let konum = min(layoutManager.characterIndexForGlyph(at: glyphIndex), depo.length - 1)
+        if rect.minY <= 0, !kKutuAnahtarlari.contains(where: { depo.attribute($0, at: konum, effectiveRange: nil) != nil }) { return 0 }
+        return (depo.attribute(.paragraphStyle, at: konum, effectiveRange: nil) as? NSParagraphStyle)?.paragraphSpacingBefore ?? 0
+    }
+
     func blokCerceveKaresi(_ aralik: NSRange, anahtar: NSAttributedString.Key) -> NSRect? {
         guard let depo = textStorage, let kapsayici = textContainer,
               let kare = guvenliKare(karakter: aralik) else { return nil }

@@ -103,6 +103,21 @@ final class KutuSinirTestleri: XCTestCase {
         }
     }
 
+    /// Belge kutuyla başlayınca kutunun üst kenarı görünümün içinde kalır (TextKit ilk satıra üst
+    /// boşluk vermiyordu, kenar kesiliyordu); düz ilk satır eskisi gibi boşluksuz.
+    func testBelgeBasindakiKutununUstKenariGorunur() {
+        for kutu in kutular {
+            let e = editor("\(kutu)\nalt\n")
+            e.layoutManager!.delegate = e   // pencereye eklenince kurulur
+            e.layoutManager!.ensureLayout(for: e.textContainer!)
+            let kare = e.blokCerceveKaresi(NSRange(location: 0, length: 1), anahtar: kKutuAnahtarlari.first {
+                e.textStorage!.attribute($0, at: 0, effectiveRange: nil) != nil }!)
+            XCTAssertGreaterThanOrEqual(kare?.minY ?? -1, 0, kutu)
+        }
+        let duz = editor("duz\n")
+        XCTAssertEqual(duz.layoutManager(duz.layoutManager!, paragraphSpacingBeforeGlyphAt: 0, withProposedLineFragmentRect: .zero), 0)
+    }
+
     /// Kutunun üstündeki satırın sonundan ileri silme kutunun ilk satırını dışarı çekmez.
     func testKutuUstundenIleriSilme() {
         for kutu in kutular {
