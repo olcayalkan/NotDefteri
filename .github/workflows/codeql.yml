@@ -58,14 +58,16 @@ jobs:
             build: none
     steps:
       - name: Check out source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install GTK 4 (Homebrew)
         if: matrix.gtk
         run: brew install gtk4 pkg-config
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: ${{ matrix.lang }}
           build-mode: ${{ matrix.build }}
@@ -78,7 +80,7 @@ jobs:
         run: ${{ matrix.command }}
 
       - name: Analyze
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: ${{ matrix.category }}
           output: sarif-results
@@ -87,4 +89,13 @@ jobs:
       # without opening the Security tab.
       - name: Findings summary
         if: always()
-        run: .github/scripts/codeql-summary.sh sarif-results "CodeQL · ${{ matrix.name }}"
+        env:
+          TITLE: CodeQL · ${{ matrix.name }}
+        run: .github/scripts/codeql-summary.sh sarif-results "$TITLE"
+
+      # Blocks the PR on medium+ security findings (security-severity >= 4.0) and error-level
+      # results; low-severity and quality findings are only listed above. A confirmed false
+      # positive is excluded with a `query-filters` entry in a CodeQL config file, never by
+      # lowering the threshold.
+      - name: Fail on security findings
+        run: .github/scripts/codeql-gate.sh sarif-results
