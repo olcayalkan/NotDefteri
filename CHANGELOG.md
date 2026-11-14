@@ -70,4 +70,4 @@ and this project adheres to
 ### Security
 
 - Dependabot alerts resolved; the npm toolchain that caused them was removed.
-- CodeQL fails the check on medium or higher security findings and on error-level results; low-severity and quality findings are still listed. Workflow actions are pinned to commit SHAs and checkout no longer leaves the token in the workspace.
+- CodeQL fails the check on medium or higher security findings and on error-level results; low-severity and quality findings are still listed. The CodeQL workflow pins its actions to commit SHAs and its checkout no longer leaves the token in the workspace.
